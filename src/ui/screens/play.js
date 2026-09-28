@@ -305,7 +305,8 @@ export default function play(ctx, { index = 0 } = {}) {
     const live = !paused && !done;
     // После «упражнение готово» движок молчит — звезду, тень и пунктир прячем.
     const star = target && !done ? { ...toPx(target), r: Math.max(26, target.radius * toPx(target).scale) } : null;
-    const outSign = side === 'left' ? -1 : 1;
+    // Зеркальная тренировка: camera.js переносит все точки на сторону больной руки — «наружу» на экране тоже наоборот.
+    const outSign = (side === 'left' ? -1 : 1) * (ctx.state.mirror ? -1 : 1);
 
     // Пока рука внизу и никто не ошибается: «Вы вчера» (путь лучшего повтора) или тень-тренер.
     const armDown = sh && palm && palm.y - sh.y > 0.55 * S;
@@ -482,7 +483,7 @@ export default function play(ctx, { index = 0 } = {}) {
       return;
     }
     // Прямая рука поворачивается вокруг плеча от «висит вниз» к звезде; длина — до звезды.
-    const out = side === 'left' ? -1 : 1;
+    const out = (side === 'left' ? -1 : 1) * (ctx.state.mirror ? -1 : 1); // зеркало: наружу — в другую сторону
     const R = Math.hypot(star.x - sh.x, star.y - sh.y);
     const a0 = Math.atan2(1, 0.12 * out);
     const a1 = Math.atan2(star.y - sh.y, star.x - sh.x);
