@@ -7,11 +7,12 @@ export const VIDEO_W = 640;
 export const VIDEO_H = 480;
 
 // Поза в покое (нормированные координаты). Плечи 0,2 ширины кадра — «хороший кадр» по правилам движка.
+// Сидит ровно в силуэт-трафарет движка (engine/debug.js): голова ~0,42, плечи ~0,58.
 const REST = {
-  nose: { x: 0.5, y: 0.285 },
-  sh: { left: { x: 0.4, y: 0.45 }, right: { x: 0.6, y: 0.45 } },
-  hip: { left: { x: 0.43, y: 0.8 }, right: { x: 0.57, y: 0.8 } },
-  wrist: { left: { x: 0.44, y: 0.77 }, right: { x: 0.56, y: 0.77 } },
+  nose: { x: 0.5, y: 0.415 },
+  sh: { left: { x: 0.4, y: 0.58 }, right: { x: 0.6, y: 0.58 } },
+  hip: { left: { x: 0.43, y: 0.93 }, right: { x: 0.57, y: 0.93 } },
+  wrist: { left: { x: 0.44, y: 0.9 }, right: { x: 0.56, y: 0.9 } },
 };
 const OUT = { left: -1, right: 1 };
 const S = (REST.sh.right.x - REST.sh.left.x) * ASPECT; // ширина плеч в аспектных единицах
@@ -110,10 +111,10 @@ export function buildPose(b) {
   const vis = (p, v = 0.99) => ({ x: p.x, y: p.y, z: 0, visibility: v });
   // Наклоны: вбок — сдвиг корпуса и головы; вперёд — тело «растёт» в кадре вокруг бёдер.
   const hipMid = { x: 0.5, y: REST.hip.left.y };
-  const lean = (p, headK = 1) => {
+  const lean = (p, headK = 1) => { // вокруг бёдер; 0,5 — «высота» торса до головы
     const scale = 1 + b.leanFwd * 0.12;
-    const x = hipMid.x + (p.x - hipMid.x) * scale + b.leanSide * 0.045 * headK * ((hipMid.y - p.y) / (hipMid.y - 0.3));
-    const y = hipMid.y + (p.y - hipMid.y) * scale + b.leanFwd * 0.05 * headK * ((hipMid.y - p.y) / (hipMid.y - 0.3));
+    const x = hipMid.x + (p.x - hipMid.x) * scale + b.leanSide * 0.045 * headK * ((hipMid.y - p.y) / 0.5);
+    const y = hipMid.y + (p.y - hipMid.y) * scale + b.leanFwd * 0.05 * headK * ((hipMid.y - p.y) / 0.5);
     return { x, y: y + b.breath };
   };
   const nose = lean(REST.nose, 1.15);
@@ -139,7 +140,7 @@ export function buildPose(b) {
     pose[iTh] = vis({ x: wrist.x + f.x * 0.6 + 0.012 * OUT[side], y: wrist.y + f.y * 0.6 });
     const hip = REST.hip[side];
     pose[iHip] = vis({ x: hip.x, y: hip.y + b.breath * 0.3 }, 0.9);
-    pose[iKn] = vis({ x: hip.x + 0.01 * OUT[side], y: 1.02 }, 0.35);
+    pose[iKn] = vis({ x: hip.x + 0.01 * OUT[side], y: 1.12 }, 0.2);
     pose[iAn] = vis({ x: hip.x, y: 1.3 }, 0.05);
     pose[iHe] = vis({ x: hip.x, y: 1.33 }, 0.05);
     pose[iFt] = vis({ x: hip.x, y: 1.35 }, 0.05);
@@ -183,7 +184,7 @@ export function createFakeCamera(video) {
     ctx.fillRect(52, 112, 120, 4);
     // Спинка стула.
     ctx.fillStyle = '#8a6a52';
-    roundRect(VIDEO_W / 2 - px * 0.95, VIDEO_H * 0.36, px * 1.9, VIDEO_H * 0.7, 28);
+    roundRect(VIDEO_W / 2 - px * 0.95, VIDEO_H * (REST.sh.left.y - 0.09), px * 1.9, VIDEO_H * 0.7, 28);
     ctx.fill();
     if (dim) { ctx.fillStyle = `rgba(20,16,12,${dim})`; ctx.fillRect(0, 0, VIDEO_W, VIDEO_H); }
   }

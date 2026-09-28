@@ -1,9 +1,245 @@
-:root { --bg: #fbf8f3; --text: #1f2a27; --accent: #1f8a5b; }
-@media (prefers-color-scheme: dark) { :root { --bg: #141a18; --text: #eef3f0; --accent: #46c38b; } }
+/* Qaita [E] — дизайн «тёплая медицина» для людей 50–75 лет после инсульта.
+   Правила: понятно за 3 секунды с 1,5 метров · текст ≥24px, подсказки ≥40px · контраст WCAG AA · одна мысль на экран. */
+
+:root {
+  /* Цвета (контраст к --bg посчитан: ink 13.9:1, ink-2 6.8:1, green 5.2:1, red 5.4:1 — всё выше AA 4.5:1) */
+  --bg: #faf6ef;
+  --bg-deep: #f2ebdf;
+  --surface: #ffffff;
+  --line: #e7dece;
+  --ink: #1c2a25;
+  --ink-2: #4b5a54;
+  --green: #1d7552;
+  --green-bright: #2ea36e;
+  --green-soft: #dcf0e4;
+  --red: #b33d2c;
+  --red-bright: #e0553f;
+  --red-soft: #fbe4dc;
+  --gold: #e7a41f;
+  --gold-soft: #fdf0cf;
+  --shadow: 0 1px 2px rgba(60, 45, 20, 0.06), 0 12px 32px rgba(60, 45, 20, 0.09);
+
+  /* Типографика: один шрифт, всё крупно */
+  --font: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --fs-small: 24px;
+  --fs-body: clamp(26px, 1.1vw + 16px, 32px);
+  --fs-lead: clamp(30px, 1.6vw + 16px, 40px);
+  --fs-title: clamp(44px, 4.2vw + 12px, 80px);
+  --fs-hint: max(40px, 5vw);
+
+  --radius: 28px;
+  --radius-sm: 18px;
+  --gutter: clamp(16px, 3vw, 48px);
+
+  /* Движение: ≤200 мс, сильный ease-out (быстрый отклик), для перемещений — ease-in-out */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur: 200ms;
+}
+
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text); font: 24px/1.4 system-ui, sans-serif; }
-.hello { max-width: 720px; margin: 0 auto; padding: 24px 16px; text-align: center; }
-.hello h1 { margin: 0; font-size: 56px; color: var(--accent); }
-.tagline { margin: 4px 0 20px; }
-#camera { width: 100%; border-radius: 16px; transform: scaleX(-1); background: #000; }
-#status { font-size: 28px; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 500 var(--fs-body) / 1.35 var(--font);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+}
+h1, h2, h3, p { margin: 0; }
+h1, h2 { font-weight: 800; letter-spacing: -0.02em; line-height: 1.08; text-wrap: balance; }
+p { text-wrap: pretty; }
+
+/* ——— Каркас ——— */
+.app { position: relative; height: 100dvh; overflow: hidden; }
+.stage { position: absolute; inset: 0; }
+.screen {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  padding: var(--gutter);
+  overflow-y: auto;
+}
+.brand {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-weight: 800; font-size: 28px; color: var(--green); letter-spacing: -0.01em;
+}
+.brand svg { width: 34px; height: 34px; }
+.muted { color: var(--ink-2); }
+.small { font-size: var(--fs-small); }
+
+/* ——— Камера (одно <video> на всё приложение, переезжает между экранами) ——— */
+.cam-park { position: fixed; left: 0; top: 0; width: 4px; height: 3px; opacity: 0.01; pointer-events: none; overflow: hidden; }
+.cam-park video { width: 4px; height: 3px; }
+.cam { position: relative; overflow: hidden; background: #2a2622; border-radius: var(--radius); isolation: isolate; }
+.cam video, .cam canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.cam video { object-fit: cover; transform: scaleX(-1); }
+.cam canvas { pointer-events: none; }
+.cam::after { /* мягкая рамка «вижу вас» */
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  box-shadow: inset 0 0 0 0 transparent;
+  transition: box-shadow var(--dur) var(--ease-out);
+}
+.cam[data-seen='true']::after { box-shadow: inset 0 0 0 6px var(--green-bright); }
+.cam-badge {
+  position: absolute; left: 16px; top: 16px; z-index: 2;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 16px 8px 12px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94); color: var(--green);
+  font-weight: 800; font-size: 24px;
+  box-shadow: var(--shadow);
+  opacity: 0; transform: translateY(-6px);
+  transition: opacity var(--dur) var(--ease-out), transform var(--dur) var(--ease-out);
+}
+.cam[data-seen='true'] .cam-badge { opacity: 1; transform: none; }
+.cam-badge svg { width: 26px; height: 26px; }
+.cam-wait {
+  position: absolute; inset: 0; display: grid; place-items: center; z-index: 1;
+  color: #f4ede2; font-size: 26px; font-weight: 700; text-align: center; padding: 16px;
+  transition: opacity var(--dur) var(--ease-out);
+}
+.cam[data-live='true'] .cam-wait { opacity: 0; pointer-events: none; }
+
+/* ——— Кольцо «держите ладонь» (hold-to-confirm) ——— */
+.ring { --size: 220px; position: relative; width: var(--size); height: var(--size); flex: none; }
+.ring svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
+.ring-track { stroke: var(--line); }
+.ring-fill {
+  stroke: var(--green-bright);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 140ms linear, stroke 160ms ease;
+}
+.ring[data-draining='true'] .ring-fill { transition: stroke-dashoffset 220ms var(--ease-out); }
+.ring-core {
+  position: absolute; inset: 14%; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--surface); box-shadow: var(--shadow);
+  color: var(--green);
+  transition: transform 160ms var(--ease-out), background-color var(--dur) ease;
+}
+.ring-core svg { width: 52%; height: 52%; transform: none; position: static; }
+.ring[data-active='true'] .ring-core { transform: scale(0.96); }
+.ring[data-fired='true'] .ring-core { background: var(--green-bright); color: #fff; transform: scale(1.04); }
+.ring[data-disabled='true'] { opacity: 0.45; filter: saturate(0.3); }
+/* Кольцо вокруг живого видео (приветствие): человек видит свою ладонь внутри круга. */
+.ring-cam { position: absolute; inset: 6.5%; border-radius: 50%; overflow: hidden; box-shadow: var(--shadow); background: #2a2622; }
+.ring-cam .cam { width: 100%; height: 100%; border-radius: 50%; }
+.ring-cam .cam-badge { display: none; }
+.ring-cam .cam-wait { font-size: 22px; }
+.ring-cam::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: var(--green-bright) no-repeat center / 38% url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+  opacity: 0; transform: scale(0.96);
+  transition: opacity 160ms ease, transform 200ms var(--ease-out);
+}
+.ring[data-fired='true'] .ring-cam::after { opacity: 0.88; transform: none; }
+.ring-label { font-size: var(--fs-lead); font-weight: 800; text-align: center; line-height: 1.15; }
+.ring-sub { font-size: var(--fs-small); color: var(--ink-2); text-align: center; }
+
+/* Иконка ладони в кольце «дышит», пока ждём жест — подсказка «покажите». */
+@keyframes palm-wave { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-10deg); } }
+.ring:not([data-active='true']):not([data-disabled='true']) .ring-core .palm { animation: palm-wave 2.4s var(--ease-in-out) infinite; transform-origin: 50% 90%; }
+
+/* ——— Плашка статуса поверх всего ——— */
+.status-toast {
+  position: absolute; left: 50%; top: var(--gutter); z-index: 20;
+  display: flex; align-items: center; gap: 14px;
+  max-width: calc(100% - 2 * var(--gutter));
+  padding: 16px 28px 16px 20px; border-radius: 999px;
+  background: var(--ink); color: #fff; box-shadow: var(--shadow);
+  font-size: var(--fs-lead); font-weight: 800;
+  transform: translate(-50%, -140%); opacity: 0;
+  transition: transform 220ms var(--ease-out), opacity 160ms ease;
+}
+.status-toast[data-show='true'] { transform: translate(-50%, 0); opacity: 1; }
+.status-toast svg { width: 36px; height: 36px; flex: none; color: var(--gold); }
+
+/* ——— Экран: Приветствие ——— */
+.welcome { justify-content: space-between; gap: 24px; }
+.welcome-main {
+  flex: 1; display: grid; align-items: center; gap: clamp(24px, 5vw, 80px);
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  max-width: 1280px; width: 100%; margin: 0 auto;
+}
+.welcome h1 { font-size: var(--fs-title); }
+.welcome h1 em { font-style: normal; color: var(--green); }
+.welcome .lead { margin-top: 20px; font-size: var(--fs-lead); color: var(--ink-2); font-weight: 600; }
+.welcome-go { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.welcome-go .ring { --size: min(340px, 34vw); }
+.welcome-foot { display: flex; flex-wrap: wrap; gap: 12px 28px; justify-content: center; max-width: 1280px; margin: 0 auto; }
+.chip {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-size: var(--fs-small); font-weight: 600; color: var(--ink-2);
+}
+.chip svg { width: 28px; height: 28px; flex: none; color: var(--green); }
+
+/* ——— Экран: Подготовка ——— */
+.prep { gap: 20px; }
+.prep h1 { font-size: clamp(40px, 3.4vw + 10px, 64px); text-align: center; }
+.prep-main {
+  flex: 1; min-height: 0; display: grid; gap: clamp(20px, 3vw, 40px);
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: center;
+  max-width: 1400px; width: 100%; margin: 0 auto;
+}
+.prep-main .cam-slot { display: grid; place-items: center; min-width: 0; }
+.prep-main .cam { width: min(100%, 62dvh * 4 / 3); aspect-ratio: 4 / 3; }
+.rules { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.rule {
+  display: grid; grid-template-columns: 56px 1fr 44px; align-items: center; gap: 16px;
+  padding: 12px 16px; border-radius: var(--radius-sm);
+  background: var(--surface); box-shadow: var(--shadow);
+  font-size: var(--fs-body); font-weight: 700; line-height: 1.2;
+  transition: background-color var(--dur) ease, box-shadow var(--dur) ease;
+}
+.rule .ico { width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; background: var(--bg-deep); color: var(--ink-2); }
+.rule .ico svg { width: 34px; height: 34px; }
+.rule .tick { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; transition: background-color var(--dur) ease, transform 180ms var(--ease-out); }
+.rule .tick svg { width: 28px; height: 28px; }
+.rule small { display: block; font-size: 22px; font-weight: 600; color: var(--ink-2); margin-top: 2px; }
+.rule[data-state='ok'] .tick { background: var(--green-bright); color: #fff; }
+.rule[data-state='bad'] { background: var(--red-soft); }
+.rule[data-state='bad'] .tick { background: var(--red-bright); color: #fff; }
+.rule[data-state='bad'] small { color: var(--red); font-weight: 800; }
+.rule[data-state='wait'] .tick { background: var(--bg-deep); }
+.rule[data-state='info'] .tick { visibility: hidden; }
+.prep-go { display: flex; align-items: center; justify-content: center; gap: 24px; }
+.prep-go .ring { --size: 132px; }
+.prep-go .ring-label, .prep-go .ring-sub { text-align: left; }
+
+/* Появление элементов экрана каскадом (только при входе, коротко). */
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.stagger > * { animation: rise 260ms var(--ease-out) both; }
+.stagger > :nth-child(2) { animation-delay: 50ms; }
+.stagger > :nth-child(3) { animation-delay: 100ms; }
+.stagger > :nth-child(4) { animation-delay: 150ms; }
+.stagger > :nth-child(5) { animation-delay: 200ms; }
+.stagger > :nth-child(6) { animation-delay: 250ms; }
+
+/* ——— Телефон и узкие экраны: всё в одну колонку ——— */
+@media (max-width: 860px), (orientation: portrait) {
+  .welcome-main, .prep-main { grid-template-columns: 1fr; align-content: start; }
+  .welcome-main { text-align: center; gap: 20px; }
+  .welcome h1 { font-size: 40px; }
+  .welcome .lead { font-size: 24px; margin-top: 12px; }
+  .prep h1 { font-size: 36px; }
+  .prep-main { flex: none; }
+  .rules { gap: 8px; }
+  .rule { font-size: 24px; }
+  .rule:not([data-state='bad']) small { display: none; }
+  .prep-go {
+    position: sticky; bottom: calc(-1 * var(--gutter)); margin: 0 calc(-1 * var(--gutter)) calc(-1 * var(--gutter));
+    padding: 14px var(--gutter) max(14px, env(safe-area-inset-bottom));
+    background: linear-gradient(to top, var(--bg) 78%, transparent); justify-content: flex-start;
+  }
+  .prep-go .ring { --size: 96px; }
+  .welcome-go .ring { --size: min(260px, 62vw); }
+  .prep-main .cam { width: min(100%, 42dvh * 4 / 3); }
+  .rule { grid-template-columns: 48px 1fr 40px; padding: 10px 12px; }
+  .rule .ico { width: 48px; height: 48px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; }
+  .ring-fill { transition: none; }
+}

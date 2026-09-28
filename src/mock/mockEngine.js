@@ -90,12 +90,12 @@ function targetFor(id, side, stretch) {
   const far = (p) => ({ x: sh.x + (p.x - sh.x) * stretch, y: sh.y + (p.y - sh.y) * stretch });
   let p, radius = 0.075;
   switch (id) {
-    case 'reach_up': p = far({ x: sh.x + 0.07 * o, y: 0.26 }); break;
-    case 'reach_side': p = far({ x: sh.x + 0.22 * o, y: 0.42 }); break;
+    case 'reach_up': p = far({ x: sh.x + 0.07 * o, y: sh.y - 0.32 }); break;
+    case 'reach_side': p = far({ x: sh.x + 0.22 * o, y: sh.y - 0.03 }); break;
     case 'hand_to_mouth': p = mouth(); radius = 0.055; break;
-    case 'reach_across': p = { x: 0.5 - 0.1 * o, y: 0.52 }; break;
-    case 'open_hand': p = { x: sh.x + 0.03 * o, y: 0.47 }; radius = 0.07; break;
-    default: p = far({ x: sh.x, y: 0.25 });
+    case 'reach_across': p = { x: 0.5 - 0.1 * o, y: sh.y + 0.07 }; break;
+    case 'open_hand': p = { x: sh.x + 0.03 * o, y: sh.y + 0.02 }; radius = 0.07; break;
+    default: p = far({ x: sh.x, y: sh.y - 0.3 });
   }
   return { x: clamp(p.x, edgeX, 1 - edgeX), y: clamp(p.y, edgeY, 1 - edgeY), radius };
 }
@@ -342,8 +342,8 @@ export async function createEngine({ video } = {}) {
     if (mode === 'calibration' && calib) {
       const phase = CALIB[calib.phaseIdx];
       const going = calib.prep > phase.prepMs - 700; // рука начинает движение к концу отсчёта
-      if (phase.id === 'max_up' && going) { d.wrist[side] = { x: sh(side).x + 0.02 * OUT[side], y: 0.1 }; d.curl[side] = OPEN; }
-      if (phase.id === 'max_side' && going) { d.wrist[side] = { x: sh(side).x + 0.34 * OUT[side], y: 0.42 }; d.curl[side] = OPEN; }
+      if (phase.id === 'max_up' && going) { d.wrist[side] = { x: sh(side).x + 0.02 * OUT[side], y: sh(side).y - 0.36 }; d.curl[side] = OPEN; }
+      if (phase.id === 'max_side' && going) { d.wrist[side] = { x: sh(side).x + 0.34 * OUT[side], y: sh(side).y - 0.03 }; d.curl[side] = OPEN; }
     }
 
     if (mode === 'exercise' && ex) {
@@ -358,7 +358,7 @@ export async function createEngine({ video } = {}) {
       } else {
         let k = ex.reach;
         if (m === 'INCOMPLETE_ROM') k = Math.min(k, 0.7);
-        if (m === 'WRONG_HAND') { k = 0.1; d.wrist[other] = lerpP(restWristOf(other), { x: sh(other).x - 0.02 * OUT[side], y: 0.25 }, 1); d.curl[other] = OPEN; }
+        if (m === 'WRONG_HAND') { k = 0.1; d.wrist[other] = lerpP(restWristOf(other), { x: sh(other).x - 0.02 * OUT[side], y: sh(other).y - 0.2 }, 1); d.curl[other] = OPEN; }
         d.wrist[side] = lerpP(rest, goal, k);
         d.curl[side] = k > 0.35 ? OPEN : FIST;
         if (m === 'ELBOW_BENT') d.bend[side] = 1;
@@ -371,14 +371,14 @@ export async function createEngine({ video } = {}) {
     if (act) {
       const t = act.type;
       const g = side; // ладонью «командует» рабочая рука
-      if (t === 'PALM_HOLD') { d.wrist[g] = { x: sh(g).x + 0.07 * OUT[g], y: 0.33 }; d.curl[g] = OPEN; }
-      if (t === 'THUMBS_UP') { d.wrist[g] = { x: sh(g).x - 0.02 * OUT[g], y: 0.48 }; d.curl[g] = THUMB_UP; }
+      if (t === 'PALM_HOLD') { d.wrist[g] = { x: sh(g).x + 0.07 * OUT[g], y: sh(g).y - 0.12 }; d.curl[g] = OPEN; }
+      if (t === 'THUMBS_UP') { d.wrist[g] = { x: sh(g).x - 0.02 * OUT[g], y: sh(g).y + 0.03 }; d.curl[g] = THUMB_UP; }
       if (t === 'PAUSE') {
-        for (const s of ['left', 'right']) { d.wrist[s] = { x: sh(s).x + 0.07 * OUT[s], y: 0.33 }; d.curl[s] = OPEN; }
+        for (const s of ['left', 'right']) { d.wrist[s] = { x: sh(s).x + 0.07 * OUT[s], y: sh(s).y - 0.12 }; d.curl[s] = OPEN; }
       }
       if (t === 'RAISE_LEFT' || t === 'RAISE_RIGHT') {
         const s = t === 'RAISE_LEFT' ? 'left' : 'right';
-        d.wrist[s] = { x: sh(s).x + 0.03 * OUT[s], y: 0.12 };
+        d.wrist[s] = { x: sh(s).x + 0.03 * OUT[s], y: sh(s).y - 0.34 };
         d.curl[s] = OPEN;
       }
     }
@@ -406,7 +406,7 @@ export async function createEngine({ video } = {}) {
     for (const s of [side, side === 'left' ? 'right' : 'left']) {
       const [iEl, iWr] = s === 'left' ? [13, 15] : [14, 16];
       const wr = pose[iWr], el = pose[iEl];
-      if (wr.y > 0.66) continue; // рука на коленях — кисть детектор обычно не находит
+      if (wr.y > shoulderOf(s).y + 0.2) continue; // рука на коленях — кисть детектор обычно не находит
       const thumbsUp = act?.type === 'THUMBS_UP' && s === side;
       // В жестах «ладонь к камере» пальцы смотрят вверх, в упражнениях — продолжают предплечье.
       const palmUp = act && ['PALM_HOLD', 'PAUSE', 'RAISE_LEFT', 'RAISE_RIGHT'].includes(act.type);
