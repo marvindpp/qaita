@@ -375,6 +375,67 @@ p { text-wrap: pretty; }
 .pill-gold svg { color: var(--gold); }
 .pill-green { background: var(--green-soft); color: var(--green); }
 
+/* ——— Экран: Ваш сад ——— */
+.garden { align-items: center; gap: 18px; text-align: center; }
+.garden h1 { font-size: var(--fs-title); }
+.garden .lead { font-size: var(--fs-lead); font-weight: 700; color: var(--green); margin-top: 6px; }
+.garden-scene {
+  position: relative; width: min(100%, 1180px); flex: 1; min-height: 220px; max-height: 44dvh;
+  border-radius: calc(var(--radius) * 1.3); overflow: hidden;
+  background: linear-gradient(#e9f3ec 0%, #f4efe4 58%, #e2d2b9 58%, #d6c3a5 100%);
+  display: flex; flex-direction: column; justify-content: flex-end; padding: 0 20px 18px;
+}
+.garden-old { position: absolute; left: 0; right: 0; bottom: calc(42% - 2px); align-items: flex-end; display: flex; justify-content: center; gap: 6px; opacity: 0.42; filter: saturate(0.75); padding: 0 24px; overflow: hidden; }
+.garden-old svg { width: clamp(30px, 2.8vw, 46px); flex: none; }
+.garden-beds { position: relative; display: flex; justify-content: center; gap: clamp(8px, 1.6vw, 24px); }
+.garden-bed { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.garden-plants { display: flex; gap: 2px; padding: 0 10px; border-bottom: 10px solid #b99c78; border-radius: 0 0 12px 12px; }
+.garden-plants span { width: clamp(34px, 3.4vw, 64px); display: block; }
+.garden-plants svg { width: 100%; display: block; }
+.garden-bed figcaption { font-size: 20px; font-weight: 800; color: var(--ink-2); }
+.garden-chips { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; align-items: center; }
+.badge { display: inline-flex; align-items: center; gap: 12px; padding: 8px 18px 8px 10px; border-radius: 20px; background: var(--surface); box-shadow: var(--shadow); text-align: left; }
+.badge svg { width: 44px; height: 44px; color: var(--gold); }
+.badge b { display: block; font-size: 22px; }
+.badge small { display: block; font-size: 18px; color: var(--ink-2); font-weight: 600; }
+.garden-go, .doctor-go { display: flex; align-items: center; gap: 20px; }
+.garden-go .ring { --size: 120px; }
+.doctor-go { flex: none; }
+.doctor-go .ring { --size: 104px; }
+.doctor-go .ring-label { font-size: 28px; }
+.garden-go .ring-label, .garden-go .ring-sub, .doctor-go .ring-label, .doctor-go .ring-sub { text-align: left; }
+
+/* ——— Экран: Показать врачу ——— */
+.doctor { align-items: center; gap: 16px; }
+.report {
+  width: min(100%, 1180px); background: var(--surface); border-radius: calc(var(--radius) * 1.2); box-shadow: var(--shadow);
+  padding: clamp(20px, 2.6vw, 40px); display: flex; flex-direction: column; gap: 20px;
+}
+.report-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.report h1 { font-size: clamp(36px, 3vw + 8px, 56px); }
+.report .muted { font-size: var(--fs-small); margin-top: 4px; }
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.tile { background: var(--bg); border-radius: var(--radius-sm); padding: 14px 18px; display: flex; flex-direction: column; gap: 2px; }
+.tile b { font-size: clamp(40px, 3.4vw, 60px); font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1.05; }
+.tile span { font-size: 22px; font-weight: 700; color: var(--ink-2); }
+.report-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 20px; align-items: start; }
+.chart-box { margin: 0; }
+.chart-box figcaption { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+.chart { width: 100%; height: auto; display: block; overflow: visible; }
+.chart-grid line { stroke: var(--line); stroke-width: 1.5; }
+.chart-grid text, .chart-axis { fill: var(--ink-2); font: 700 20px var(--font); }
+.chart-line { fill: none; stroke: var(--green-bright); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+.chart-pt circle { fill: var(--green-bright); stroke: var(--surface); stroke-width: 3; }
+.chart-label { fill: var(--ink); font: 800 22px var(--font); }
+.chart-empty { font-size: 24px; color: var(--ink-2); padding: 24px 0; }
+.report-table { width: 100%; border-collapse: collapse; font-size: 22px; }
+.report-table th, .report-table td { text-align: left; padding: 8px 10px; border-bottom: 1.5px solid var(--line); vertical-align: top; }
+.report-table thead th { font-size: 18px; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.04em; }
+.report-table td:nth-child(2), .report-table td:nth-child(3) { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.report-table tbody th { font-weight: 800; }
+.report-note { display: flex; align-items: center; gap: 10px; font-size: 20px; color: var(--ink-2); font-weight: 600; }
+.report-note svg { width: 24px; height: 24px; flex: none; color: var(--green); }
+
 /* ——— Подсказка «звук после нажатия» (только если браузер заблокировал звук) ——— */
 .audio-chip {
   position: absolute; right: var(--gutter); bottom: var(--gutter); z-index: 15;
@@ -398,6 +459,10 @@ p { text-wrap: pretty; }
   .legend { display: none; }
   .hint { grid-row: 3; }
   .hud-count b { font-size: 64px; }
+  .tiles { grid-template-columns: 1fr 1fr; }
+  .report-grid { grid-template-columns: 1fr; }
+  .garden-scene { max-height: none; min-height: 260px; }
+  .garden-beds { flex-wrap: wrap; }
   .hand-main { grid-template-columns: 1fr 1fr; align-content: start; }
   .hand-main .cam-slot { grid-column: 1 / -1; grid-row: 1; }
   .hand-main .cam { width: min(100%, 40dvh * 4 / 3); }

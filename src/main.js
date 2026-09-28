@@ -13,6 +13,7 @@ const video = document.querySelector('#camera');
 const engine = await createEngine({ video });
 const app = createApp({ engine, video, mock });
 app.start(params.get('screen') ?? 'welcome');
+if (mock) window.qaita = app; // для отладки в консоли: qaita.ctx.go('garden')
 
 try {
   await engine.start();
