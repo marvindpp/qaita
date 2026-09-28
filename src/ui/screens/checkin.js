@@ -20,11 +20,15 @@ export default function checkin(ctx) {
       </div>
     </section>`);
 
+  // Ответ один: клик и жест могут прийти оба — иначе «цветок из жизни» засчитается дважды и экран «Рука» откроется два раза.
+  let answered = false, alive = true;
   const done = (yes) => {
+    if (answered) return;
+    answered = true;
     answerTask(yes);
     if (yes) { ctx.sound.combo?.(3); ctx.say('Это важнее любых упражнений! В саду вырос цветок из жизни', { interrupt: true, force: true }); }
     else ctx.say('Ничего страшного. Сегодня тренируемся — и попробуем снова', { interrupt: true, force: true });
-    setTimeout(() => ctx.go('hand'), yes ? 2600 : 1800);
+    setTimeout(() => { if (alive) ctx.go('hand'); }, yes ? 2600 : 1800);
   };
   const yes = createRing({ gesture: 'THUMBS_UP', icon: '<span style="font-size:52px">👍</span>', onFire: () => done(true) });
   const no = createRing({ onFire: () => done(false) });
@@ -36,10 +40,10 @@ export default function checkin(ctx) {
   return {
     el,
     enter() {
-      if (!t) { setTimeout(() => ctx.go('hand'), 0); return; } // задания нет — сразу дальше
+      if (!t) { setTimeout(() => { if (alive) ctx.go('hand'); }, 0); return; } // задания нет — сразу дальше
       ctx.say(`Вчера было задание: ${t?.text ?? ''}. Получилось? Палец вверх — да. Ладонь — пока нет`, { hint: true });
     },
     onGesture: (e) => yes.handle(e) || no.handle(e),
-    destroy() { yes.destroy(); no.destroy(); },
+    destroy() { alive = false; yes.destroy(); no.destroy(); },
   };
 }
