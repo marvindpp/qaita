@@ -71,6 +71,15 @@ describe('наклон вбок = сдвиг корпуса ЗА ПОВТОР, �
     const ev = run(s, [[makePose(), 300], [makePose({ wrist: SIDE, shift: 0.3 }), 1200], [makePose(), 400]]);
     expect(codes(ev)).toContain('TRUNK_LEAN_SIDE');
   });
+  it('кисть у рта закрыла лицо — точка носа «прыгнула» вбок, плечи на месте → не «наклон» (корпус = плечи)', () => {
+    const s = createExerciseSession('hand_to_mouth', base, ASPECT);
+    const mouth = { out: -0.5, up: 0.82 };
+    const jumpy = makePose({ wrist: mouth });
+    jumpy[0] = { ...jumpy[0], x: jumpy[0].x - (0.35 * 0.3) / ASPECT }; // нос на 0,35 ширины плеч влево
+    const ev = run(s, [[makePose(), 400], ...ramp(REST, mouth, 1200), [jumpy, 800], ...ramp(mouth, REST, 1000), [makePose(), 400]]);
+    expect(codes(ev)).not.toContain('TRUNK_LEAN_SIDE');
+    expect(ofType(ev, 'rep')[0].payload.quality).toBeGreaterThanOrEqual(CLEAN_QUALITY);
+  });
   it('сдвиг «к норме» во время повтора (сидел левее, выпрямился) — не ошибка', () => {
     const s = createExerciseSession('reach_up', base, ASPECT);
     const ev = run(s, [[makePose({ shift: -0.3 }), 800], [makePose({ wrist: UP }), 1200], [makePose(), 400]]);
