@@ -372,10 +372,10 @@ export async function createEngine({ video } = {}) {
     if (act) {
       const t = act.type;
       const g = side; // ладонью «командует» рабочая рука
-      if (t === 'PALM_HOLD') { d.wrist[g] = { x: sh(g).x + 0.03 * OUT[g], y: 0.36 }; d.curl[g] = OPEN; }
+      if (t === 'PALM_HOLD') { d.wrist[g] = { x: sh(g).x + 0.07 * OUT[g], y: 0.33 }; d.curl[g] = OPEN; }
       if (t === 'THUMBS_UP') { d.wrist[g] = { x: sh(g).x - 0.02 * OUT[g], y: 0.48 }; d.curl[g] = THUMB_UP; }
       if (t === 'PAUSE') {
-        for (const s of ['left', 'right']) { d.wrist[s] = { x: sh(s).x + 0.02 * OUT[s], y: 0.4 }; d.curl[s] = OPEN; }
+        for (const s of ['left', 'right']) { d.wrist[s] = { x: sh(s).x + 0.07 * OUT[s], y: 0.33 }; d.curl[s] = OPEN; }
       }
       if (t === 'RAISE_LEFT' || t === 'RAISE_RIGHT') {
         const s = t === 'RAISE_LEFT' ? 'left' : 'right';
@@ -409,7 +409,9 @@ export async function createEngine({ video } = {}) {
       const wr = pose[iWr], el = pose[iEl];
       if (wr.y > 0.66) continue; // рука на коленях — кисть детектор обычно не находит
       const thumbsUp = act?.type === 'THUMBS_UP' && s === side;
-      const angle = thumbsUp ? (s === 'right' ? Math.PI : 0) : Math.atan2(wr.y - el.y, (wr.x - el.x) * (4 / 3));
+      // В жестах «ладонь к камере» пальцы смотрят вверх, в упражнениях — продолжают предплечье.
+      const palmUp = act && ['PALM_HOLD', 'PAUSE', 'RAISE_LEFT', 'RAISE_RIGHT'].includes(act.type);
+      const angle = thumbsUp ? (s === 'right' ? Math.PI : 0) : palmUp ? -Math.PI / 2 : Math.atan2(wr.y - el.y, (wr.x - el.x) * (4 / 3));
       hands.push(makeHand(wr, angle, curl[s], s));
     }
     return hands;
