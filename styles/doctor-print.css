@@ -24,6 +24,11 @@
   .doctor-go .ring-label, .doctor-pdf .ring-label { font-size: 24px; }
   .doctor-pdf .ring, .doctor-go .ring { --size: 88px; }
 }
+/* Телефон: шапка в столбик (main.css) + wrap отсюда = кнопки уезжали во вторую колонку за правый край. */
+@media (max-width: 520px) {
+  .report-head { flex-wrap: nowrap; }
+  .doctor-actions { flex: none; }
+}
 
 /* ——— Печать / «Сохранить как PDF»: белый лист A4, чёрный текст, без видео, колец и анимаций ——— */
 @page { size: A4; margin: 12mm 14mm; }
