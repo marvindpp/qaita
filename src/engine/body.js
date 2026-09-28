@@ -15,6 +15,13 @@ export function fingersExtended(hand) {
  * @param {number} aspect — ширина/высота кадра
  * @param {Array} [hands] — кисти (21 точка, зеркальные нормированные)
  */
+export const HAND_EXT = 0.3; // от запястья до середины ладони ≈ 0,3 ширины плеч (кисть ~19 см, плечи ~38 см)
+function handPoint(wrist, from, S) {
+  const dx = wrist.x - from.x, dy = wrist.y - from.y;
+  const n = Math.hypot(dx, dy) || 1;
+  return { x: wrist.x + (dx / n) * HAND_EXT * S, y: wrist.y + (dy / n) * HAND_EXT * S };
+}
+
 export function measure(pose, side, aspect, hands = []) {
   if (!pose) return null;
   const idx = sideIndex(side);
@@ -58,6 +65,9 @@ export function measure(pose, side, aspect, hands = []) {
     elbowDeg: wrist && elbow ? angleDeg(sh, elbow, wrist) : null,
     elevationDeg: wrist ? elevationDeg(sh, wrist) : null,
     // Запястье относительно плеча, в ширинах плеч: out — наружу от тела, up — вверх.
+    // Середина кисти: запястье + продолжение предплечья (локоть→запястье) на HAND_EXT ширин плеч.
+    // Звезду человек «берёт» ладонью, а не запястьем — иначе звезда кажется слишком близкой (живой тест 28.09).
+    handPt: wrist ? handPoint(wrist, elbow ?? sh, S) : null,
     wristRel: wrist ? { out: ((wrist.x - sh.x) / S) * idx.outSign, up: (sh.y - wrist.y) / S } : null,
   };
 }

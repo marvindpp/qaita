@@ -34,7 +34,8 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
   // Ошибки, которые видны не по позе одного кадра, а по времени, скорости или другой руке.
   function extraMistakes(m, f, phaseNow, now) {
     const out = [];
-    const moving = phaseNow === 'REACHING' || phaseNow === 'HOLD';
+    // Скорость проверяем только на подъёме к звезде: опускать руку люди всегда быстрее (живой тест 28.09: вниз до 12 ш/с).
+    const reachingNow = phaseNow === 'REACHING';
 
     if (!ex.handExercise && m?.wrist) {
       if (lastWrist) {
@@ -47,7 +48,7 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
       lastWrist = { ...m.wrist, t: now };
       // Рывок = быстро 3 кадра из 5. Одиночный скачок точки (глюк трекинга) — не рывок.
       const fastFrames = speeds.filter((v) => v > THRESHOLDS.tooFastSpeed).length;
-      if (moving && fastFrames >= 3) tooFastUntil = now + 700; // «липкая»: рывок короткий, а debounce 300 мс
+      if (reachingNow && fastFrames >= 3) tooFastUntil = now + 700; // «липкая»: рывок короткий, а debounce 300 мс
     } else { lastWrist = null; speeds.length = 0; }
     if (now < tooFastUntil) {
       out.push({ code: 'TOO_FAST', severity: 1, landmarks: [idx.sh, idx.el, idx.wr], message: 'Слишком быстро. Медленнее!' });
@@ -89,7 +90,8 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
       const events = [];
       // Человека нет в кадре — упражнение «замерло», как на паузе. Иначе ошибка гаснет сама
       // и считается «исправлением» (+50 очков за то, что человек встал и ушёл).
-      if (!m) return { events, info: { ex: id, phase: reps.phase, hold: 0, reps: `${count}/${targetReps}`, mistake: tracker.current ?? '—' } };
+      // Упражнение закончено — движок молчит (иначе после «Готово» сыпались «Слишком быстро»).
+      if (done || !m) return { events, info: { ex: id, phase: reps.phase, hold: 0, reps: `${count}/${targetReps}`, mistake: tracker.current ?? '—' } };
       const f = ex.evaluate(m);
       // Фаза для детекторов — по ТЕКУЩЕМУ кадру: рука уже пошла, значит проверяем с первого кадра движения.
       const phaseNow = !f.atRest && reps.phase === 'REST' ? 'REACHING' : reps.phase;
@@ -111,7 +113,7 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
       if (r.phase === 'REST') peakAny = 0;
       if (r.phase !== 'REST' && m?.elevationDeg != null) peakRom = Math.max(peakRom, Math.round(m.elevationDeg));
       // Самая «амплитудная» точка чистого движения (без компенсаций) — туда может переехать звезда.
-      if (r.phase !== 'REST' && m?.wrist && raw.length === 0 && tracker.activeCodes().length === 0 && (!peakPoint || ex.romOf(m.wrist) > ex.romOf(peakPoint))) peakPoint = { ...m.wrist };
+      if (r.phase !== 'REST' && m?.handPt && raw.length === 0 && tracker.activeCodes().length === 0 && (!peakPoint || ex.romOf(m.handPt) > ex.romOf(peakPoint))) peakPoint = { ...m.handPt };
 
       if (r.rep && !done) {
         count += 1;
@@ -140,6 +142,7 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
         info: { ex: id, phase: r.phase, hold: r.holdProgress, reps: `${count}/${targetReps}`, mistake: tracker.current ?? '—' },
       };
     },
+    get done() { return done; },
     result() {
       return { id, reps: count, quality: count ? qualitySum / count : 0, cleanReps, bestRomDeg, mistakes: tracker.counts, corrected: tracker.corrected };
     },

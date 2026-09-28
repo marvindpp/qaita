@@ -216,7 +216,11 @@ describe('adaptive target', () => {
   });
   it('reach gained by compensation does NOT raise the star', () => {
     const s = createExerciseSession('reach_up', base, ASPECT, { targetReps: 5 });
-    const ev = run(s, [[makePose(), 300], [up(1.6, { hike: 0.45 }), 900], [up(1.05), 1300], [makePose(), 400]]);
+    // Чистый повтор — ровно в направлении звезды: сдвигать её некуда. Выше тянулся только с компенсацией.
+    const t = s.targetEvent(), sh = { x: ASPECT / 2 + 0.15, y: 0.62 };
+    const d = { out: t.x * ASPECT - sh.x, up: sh.y - t.y }, n = Math.hypot(d.out, d.up);
+    const clean = makePose({ wrist: { out: (d.out / n) * 1.5, up: (d.up / n) * 1.5 } });
+    const ev = run(s, [[makePose(), 300], [up(1.6, { hike: 0.45 }), 900], [clean, 1300], [makePose(), 400]]);
     expect(ev.filter((e) => e.type === 'rep')).toHaveLength(1);
     expect(ev.filter((e) => e.type === 'target')).toHaveLength(0);
   });
@@ -227,13 +231,14 @@ describe('adaptive target', () => {
     const lenS = Math.hypot((t.x - sh.x) * ASPECT, t.y - sh.y) / 0.3;
     expect(lenS).toBeGreaterThan(1.2); // рука ~1,5 ширины плеч; локоть был бы ~0,75
   });
-  it('growth is capped at +40% of the calibrated reach', () => {
+  it('star never moves further than the straight arm + palm (grows by angle only)', () => {
     const s = createExerciseSession('reach_up', base, ASPECT, { targetReps: 10 });
+    const sh = { x: (ASPECT / 2 + 0.15), y: 0.62 };
+    const lenOf = (t) => Math.hypot(t.x * ASPECT - sh.x, t.y - sh.y);
+    const len0 = lenOf(s.targetEvent());
     const seq = [];
     for (let i = 0; i < 6; i++) seq.push([makePose(), 300], [up(3), 900], [makePose(), 400]);
     run(s, seq);
-    const t = s.targetEvent();
-    const shY = 0.62; // плечо в synth
-    expect((shY - t.y) / 0.3).toBeLessThanOrEqual(1.0 * 1.05 * 1.4 + 0.05);
+    expect(lenOf(s.targetEvent())).toBeLessThanOrEqual(len0 + 0.01);
   });
 });

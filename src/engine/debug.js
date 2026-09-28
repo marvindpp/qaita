@@ -2,7 +2,9 @@
 const POSE_EDGES = [[11, 12], [11, 13], [13, 15], [12, 14], [14, 16], [11, 23], [12, 24], [23, 24], [0, 7], [0, 8], [7, 11], [8, 12]];
 const HAND_EDGES = [[0, 1], [1, 2], [2, 3], [3, 4], [0, 5], [5, 6], [6, 7], [7, 8], [5, 9], [9, 10], [10, 11], [11, 12], [9, 13], [13, 14], [14, 15], [15, 16], [13, 17], [17, 18], [18, 19], [19, 20], [0, 17]];
 
-const GHOST_MS = 3200; // цикл: 40% подъём, 25% держим, 35% опускаем
+// Цикл: 40% подъём (2,6 с), 25% держим, 35% опускаем. Тень сама двигается МЕДЛЕННО — иначе она показывает
+// рывок, за который движок ругает «Слишком быстро» (живой тест 28.09: подъём был 1,3 с).
+const GHOST_MS = 6500;
 
 function drawGhost(ctx, pose, side, target, ex, w, h) {
   const sh = pose[side === 'left' ? 11 : 12];
@@ -122,7 +124,15 @@ export function createDebugOverlay(video, { showNumbers = false } = {}) {
       if (target && pose && info.phase === 'REST') drawGhost(ctx, pose, side, target, info.ex, w, h);
       if (target) {
         // Пунктир от кисти рабочей руки к звезде — «тянись сюда».
-        const wr = pose?.[side === 'left' ? 15 : 16];
+        const wr0 = pose?.[side === 'left' ? 15 : 16], el = pose?.[side === 'left' ? 13 : 14];
+        const shp = pose?.[side === 'left' ? 11 : 12], osh = pose?.[side === 'left' ? 12 : 11];
+        // Точка — середина ЛАДОНИ (как в движке: запястье + 0,3 ширины плеч по предплечью): ей и «берём» звезду.
+        let wr = wr0;
+        if (wr0 && el && shp && osh && el.visibility > 0.5) {
+          const dx = (wr0.x - el.x) * w, dy = (wr0.y - el.y) * h, n = Math.hypot(dx, dy) || 1;
+          const S = Math.hypot((shp.x - osh.x) * w, (shp.y - osh.y) * h);
+          wr = { x: wr0.x + (dx / n) * 0.3 * S / w, y: wr0.y + (dy / n) * 0.3 * S / h, visibility: wr0.visibility };
+        }
         if (wr && wr.visibility > 0.5) {
           ctx.save();
           ctx.setLineDash([10 * devicePixelRatio, 10 * devicePixelRatio]);

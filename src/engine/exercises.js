@@ -1,10 +1,15 @@
 // Описание упражнений: где цель, когда рука «у цели», когда «в покое».
 // Цель ставится на 105% ЛИЧНОГО максимума из калибровки — адаптивная сложность.
 import { clamp, dist, fromSpace, sideIndex } from './geometry.js';
+import { HAND_EXT } from './body.js';
 
 const STRETCH = 1.05;
 const TARGET_RADIUS_S = 0.45; // радиус цели в ширинах плеч
 const EDGE = 0.06;            // цель не ближе 6% к краю кадра
+// Сверху круг звезды может касаться края кадра (раньше отступ был 23% высоты,
+// и у высокого человека звезда вверх стояла на 1,5 ширины плеч при руке 1,9 — живой тест 28.09).
+const topY = (aspect) => RADIUS_MAX * aspect + 0.005;
+const HIT = 0.4;               // ладонь в пределах 40% радиуса от центра звезды = «взял»
 const RADIUS_MIN = 0.05, RADIUS_MAX = 0.11; // радиус цели в долях ширины кадра
 const REST_UP = -0.4; // запястье ниже плеча на 0,4 ширины плеч (или не видно) = рука опущена
 // Цель не ниже этого (в ширинах плеч над плечом): весь круг цели должен быть выше зоны «рука опущена»,
@@ -18,13 +23,14 @@ const MIN_TARGET_UP = REST_UP + TARGET_RADIUS_S + 0.05;
 function targetFromRel(base, rel, aspect, { straight = true } = {}) {
   const { outSign } = sideIndex(base.side);
   const len = Math.hypot(rel.out, rel.up) || 1;
-  const reach = straight ? (base.armLen ?? 1.5) * 0.95 : len * STRETCH;
+  // Звезда там, где окажется ЛАДОНЬ прямой руки: длина руки до запястья + кисть.
+  const reach = straight ? (base.armLen ?? 1.5) + HAND_EXT : len * STRETCH;
   const p = {
     x: base.sh.x + (rel.out / len) * reach * base.S * outSign,
     y: Math.min(base.sh.y - (rel.up / len) * reach * base.S, base.sh.y - MIN_TARGET_UP * base.S),
   };
   const edge = EDGE + RADIUS_MAX; // весь круг, а не только центр, внутри кадра
-  return { x: clamp(p.x, edge * aspect, (1 - edge) * aspect), y: clamp(p.y, edge * aspect, 1 - edge) };
+  return { x: clamp(p.x, edge * aspect, (1 - edge) * aspect), y: clamp(p.y, topY(aspect), 1 - edge) };
 }
 
 export const EXERCISE_DEFS = {
@@ -72,7 +78,7 @@ export function createExercise(id, base, aspect) {
   const dirLen = Math.hypot(dir0.x, dir0.y) || 1;
   const unit = { x: dir0.x / dirLen, y: dir0.y / dirLen };
   const edge = EDGE + RADIUS_MAX;
-  const clampToFrame = (p) => ({ x: clamp(p.x, edge * aspect, (1 - edge) * aspect), y: clamp(p.y, edge * aspect, 1 - edge) });
+  const clampToFrame = (p) => ({ x: clamp(p.x, edge * aspect, (1 - edge) * aspect), y: clamp(p.y, topY(aspect), 1 - edge) });
   const restPoint = { x: base.sh.x, y: base.sh.y - restUp * base.S };
 
   const targetLen = () => Math.hypot(target.x - base.sh.x, target.y - base.sh.y);
@@ -90,7 +96,7 @@ export function createExercise(id, base, aspect) {
       return { x: n.x, y: n.y, radius: radius / aspect };
     },
     /** Насколько далеко (по направлению к цели) сейчас запястье, в единицах пространства. */
-    reachOf(m) { return m?.wrist ? alongOf(m.wrist) : 0; },
+    reachOf(m) { return m?.handPt ? alongOf(m.handPt) : 0; },
     /** Отодвинуть цель на длину len от плеча (в пределах кадра). @returns true, если цель сдвинулась */
     moveTo(len) {
       if (def.adaptive === false) return false;
@@ -138,14 +144,15 @@ export function createExercise(id, base, aspect) {
       }
       const w = m?.wristRel;
       const atRest = !w || w.up < restUp;
-      const wristS = m?.wrist;
-      // «У цели» = внутри круга ИЛИ дотянулся дальше звезды по направлению от плеча к ней
-      // (цель могла прижаться к краю кадра — перевыполнение засчитываем).
+      const wristS = m?.handPt; // ладонь, не запястье
+      // «У цели» = ладонь ближе к центру звезды, чем HIT доли радиуса, ИЛИ дотянулся дальше звезды
+      // по направлению от плеча к ней (цель могла прижаться к краю кадра — перевыполнение засчитываем).
+      // Раньше хватало коснуться запястьем КРАЯ круга — звезда «бралась» на 2/3 руки (живой тест 28.09).
       let inTarget = false;
       if (wristS) {
         const len = targetLen();
         const perp = Math.abs((wristS.x - base.sh.x) * unit.y - (wristS.y - base.sh.y) * unit.x);
-        inTarget = dist(wristS, target) < radius || (alongOf(wristS) >= len - radius && perp < radius * 1.8);
+        inTarget = dist(wristS, target) < radius * HIT || (alongOf(wristS) >= len - radius * HIT && perp < radius * 1.8);
       }
       const fullPath = Math.max(0.3 * base.S, dist(restPoint, target));
       const progress = wristS ? clamp(1 - dist(wristS, target) / fullPath, 0, 1) : 0;

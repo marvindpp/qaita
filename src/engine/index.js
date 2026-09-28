@@ -116,7 +116,7 @@ export async function createEngine({ video }) {
 
     const fps = measureFps();
     bus.emit('frame', { t: now, pose, hand: hands[0] ?? null, hands, fps });
-    overlay?.draw({ pose, hands, fps, delegate: models.delegate, info: lastInfo, target: exercise?.targetEvent(), framing, side, showGuide: !baseline || !!calibration });
+    overlay?.draw({ pose, hands, fps, delegate: models.delegate, info: lastInfo, target: exercise && !exercise.done ? exercise.targetEvent() : null, framing, side, showGuide: !baseline || !!calibration });
   }
 
   const engine = {

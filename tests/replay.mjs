@@ -6,14 +6,13 @@ import { createCalibration } from '../src/engine/calibration.js';
 import { createExerciseSession } from '../src/engine/session.js';
 import { checkFraming } from '../src/engine/framing.js';
 
-const file = process.argv[2];
-if (!file) { console.error('usage: node tests/replay.mjs <recording.json>'); process.exit(2); }
-const rec = JSON.parse(readFileSync(file, 'utf8'));
 const unpackPose = (p) => p && Array.from({ length: 33 }, (_, i) => (p[i] ? { x: p[i][0], y: p[i][1], z: 0, visibility: p[i][2] } : { x: 0, y: 0, z: 0, visibility: 0 }));
 const unpackHands = (hs) => hs.map((h) => h.map(([x, y]) => ({ x, y, z: 0 })));
 
+/** Прогон записи через движок. @returns {{lines:string[], summary:object[], events:Array<{t:number, ex:string, type:string, payload:object}>}} */
+export function replay(rec) {
 let side = 'right', calib = null, baseline = null, session = null, mi = 0;
-const out = [], summary = [];
+const out = [], summary = [], events = [];
 const t0 = rec.frames[0]?.[0] ?? 0;
 const ts = (t) => `${((t - t0) / 1000).toFixed(1).padStart(6)}s`;
 
@@ -25,6 +24,7 @@ for (const [t, p, hs] of rec.frames) {
     if (mk.type === 'exercise') {
       if (session) summary.push(session.result());
       session = createExerciseSession(mk.id, baseline, rec.aspect, { targetReps: mk.targetReps });
+      events.push({ t: t - t0, ex: mk.id, type: 'start', payload: session.targetEvent() });
       out.push(`${ts(t)}  ▶ ${mk.id}  target=${JSON.stringify(session.targetEvent(), (k, v) => (typeof v === 'number' ? +v.toFixed(3) : v))}`);
     }
   }
@@ -36,6 +36,7 @@ for (const [t, p, hs] of rec.frames) {
   } else if (session && baseline) {
     for (const e of session.step(m, t).events) {
       const p2 = e.payload;
+      events.push({ t: t - t0, ex: session.result().id, type: e.type, payload: p2 });
       if (e.type === 'mistake') out.push(`${ts(t)}    ✗ ${p2.code.padEnd(18)} ${p2.message}`);
       else if (e.type === 'mistake-cleared') out.push(`${ts(t)}    ✓ cleared ${p2.code}`);
       else if (e.type === 'rep') out.push(`${ts(t)}    ★ rep ${p2.count}/${p2.targetReps} quality=${p2.quality.toFixed(2)} rom=${p2.romDeg}°`);
@@ -45,7 +46,15 @@ for (const [t, p, hs] of rec.frames) {
   }
 }
 if (session) summary.push(session.result());
+return { lines: out, summary, events };
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+const file = process.argv[2];
+if (!file) { console.error('usage: node tests/replay.mjs <recording.json>'); process.exit(2); }
+const { lines: out, summary } = replay(JSON.parse(readFileSync(file, 'utf8')));
 console.log(out.join('\n'));
 console.log('\nИТОГ');
 for (const r of summary) console.log(`  ${r.id.padEnd(14)} reps=${r.reps} quality=${r.quality.toFixed(2)} mistakes=${JSON.stringify(r.mistakes)}`);
 console.log('REPLAY_OK');
+}
