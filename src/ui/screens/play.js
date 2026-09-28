@@ -10,6 +10,8 @@ import { EXERCISE_INFO, TARGET_REPS, SESSION_PLAN } from '../exercises.js';
 const IDX = { left: { sh: 11, el: 13, wr: 15, other: 12 }, right: { sh: 12, el: 14, wr: 16, other: 11 } };
 const GHOST_MS = 3200;      // цикл тени: вверх → держим → вниз (как в прототипе Даулета)
 const REP_MESSAGE_MS = 1100;
+// Подсказки, которые движок снимает сам по таймеру, а не потому что человек исправился (src/engine/tracker.js).
+const SELF_EXPIRING = new Set(['INCOMPLETE_ROM', 'TOO_FAST']);
 const WORDS = ['Раз!', 'Два!', 'Три!', 'Четыре!', 'Пять!', 'Шесть!'];
 
 const GOLD = '#f2b42a', GOLD_DEEP = '#d48f0f', RED = '#e0553f', GREEN = '#2ea36e';
@@ -154,7 +156,10 @@ export default function play(ctx, { index = 0 } = {}) {
 
   function onMistakeCleared() {
     if (!mistake || done) return;
+    const expired = SELF_EXPIRING.has(mistake.code);
     mistake = null;
+    // «Не хватило N см» и «Слишком быстро» гаснут сами по таймеру движка — это не исправление, +50 не даём.
+    if (expired) { idleHint(); return; }
     const pts = game.cleared();
     setScore();
     floatPoints(`+${pts}`);
