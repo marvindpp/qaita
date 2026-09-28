@@ -9,7 +9,8 @@
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%231d7552'/%3E%3Cpath d='M32 13l5.4 11 12.1 1.8-8.8 8.5 2.1 12L32 40.6 21.2 46.3l2.1-12-8.8-8.5 12.1-1.8z' fill='%23ffd66b'/%3E%3C/svg%3E" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+    <!-- Шрифт не блокирует запуск: если Google Fonts недоступен или молчит, приложение стартует на системном шрифте. -->
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
   </head>
   <body>
     <div id="app" class="app">

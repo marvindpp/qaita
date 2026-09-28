@@ -35,7 +35,8 @@ export default function welcome(ctx) {
   el.querySelector('.ring-slot').replaceWith(ring.el);
   // Браузер не даёт голосу говорить, пока на странице ни разу не нажали. Жюри и родственник, открывший ссылку,
   // нажмут кнопку — и голос включится сразу (app.js разблокирует звук на любое нажатие). Жест ладонью тоже работает.
-  el.querySelector('.btn-start').addEventListener('click', () => ctx.go('prep'));
+  const startBtn = el.querySelector('.btn-start');
+  startBtn.addEventListener('click', () => ctx.go('prep'));
   const label = el.querySelector('.ring-label');
   const sub = el.querySelector('.ring-sub');
 
@@ -52,13 +53,17 @@ export default function welcome(ctx) {
       cameraHelp().then((t) => { if (alive && ctx.state.status?.code === 'NO_CAMERA') show(t); });
       return;
     }
+    // Распознавание не загрузилось (app.fail): говорим прямо и прячем кнопку — дальше без него всё равно не пройти.
+    const failed = !ctx.state.live && ctx.state.failed;
+    startBtn.style.display = failed ? 'none' : '';
+    if (failed) { ring.setDisabled(true); return show(ctx.state.failed); }
     ring.setDisabled(!ctx.state.live);
     if (ctx.state.live) return show({ label: 'Покажите ладонь', sub: 'и подержите секунду — начнём' });
     show({ label: 'Включаю камеру…', sub: 'Если браузер спросит — нажмите «Разрешить»' });
     // Камера так и не открылась — вопрос не появился (встроенный браузер мессенджера или запрет). Подсказываем, что делать.
     // Если камера уже открыта, а кадров ещё нет — это грузится распознавание, просто ждём.
     helpTimer = setTimeout(() => {
-      if (!alive || ctx.state.live) return;
+      if (!alive || ctx.state.live || ctx.state.failed) return;
       const camOpen = Boolean(document.getElementById('camera')?.srcObject);
       show(camOpen ? { label: 'Загружаю распознавание…', sub: 'В первый раз это до минуты' } : noPromptHelp());
     }, NO_PROMPT_MS);
@@ -76,6 +81,7 @@ export default function welcome(ctx) {
       ctx.say('Здравствуйте! Это упражнения для руки. Покажите ладонь в камеру и подержите секунду', { hint: true });
     },
     onStatus: syncReady,
+    onFailed: syncReady,
     onGesture: (g) => ring.handle(g),
     destroy() { alive = false; clearTimeout(helpTimer); ring.destroy(); },
   };
