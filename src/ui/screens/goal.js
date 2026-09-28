@@ -27,8 +27,9 @@ export default function goal(ctx) {
   const idx = IDX[side];
   // Зеркальная тренировка: camera.js переносит точки на сторону больной руки — пузыри тоже должны быть снаружи от неё.
   const outSign = (side === 'left' ? -1 : 1) * (ctx.state.mirror ? -1 : 1);
-  let hover = null, hoverSince = 0, chosen = null, alive = true, mockTimer = null;
+  let hover = null, hoverSince = 0, chosen = null, alive = true;
   let bubbles = [];
+  let mockTimer = null;
 
   function choose(id) {
     if (chosen) return;
