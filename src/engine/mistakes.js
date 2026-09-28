@@ -29,7 +29,12 @@ export const PRIORITY = ['WRONG_HAND', 'TRUNK_LEAN_FORWARD', 'TRUNK_LEAN_SIDE', 
 // Меньшее по модулю из двух смещений, если они в одну сторону; иначе 0.
 const minSameSign = (a, b) => (Math.sign(a) !== Math.sign(b) ? 0 : Math.abs(a) < Math.abs(b) ? a : b);
 
-const cmText = (cm) => (cm >= 3 ? ` на ${Math.round(cm)} см` : '');
+// Насколько сильно: во сколько раз превышен порог. Сантиметры человеку не показываем — камера
+// не знает точного расстояния, и «12 см» пугает/путает (решение 28.09). valueCm остаётся для отчёта врачу.
+export function levelOf(over) { return over < 1.5 ? 0 : over < 2.2 ? 1 : 2; }
+const LEAN_FWD = ['Чуть наклонились вперёд. Спину ровно!', 'Наклонились вперёд. Спину ровно!', 'Сильный наклон! Спину ровно!'];
+const leanSide = (dir) => [`Чуть наклонились ${dir}. Сядьте ровно!`, `Наклон ${dir}. Сядьте ровно!`, `Сильный наклон ${dir}! Сядьте ровно!`];
+const HIKE = ['Плечо чуть поднято. Опустите плечо!', 'Плечо поднято к уху. Опустите!', 'Плечо у самого уха! Опустите!'];
 
 /**
  * @param {ReturnType<import('./body.js').measure>} m
@@ -56,7 +61,7 @@ export function detectMistakes(m, base, ctx) {
     const cm = Math.min(T.maxShownCm, Math.max(noseDrop * SHOULDER_CM, (ratio - 1) * CAMERA_CM));
     out.push({
       code: 'TRUNK_LEAN_FORWARD', severity: 3, landmarks: [LM.L_SH, LM.R_SH, LM.NOSE], valueCm: Math.round(cm),
-      message: `Наклон вперёд${cmText(cm)}. Спину ровно!`,
+      message: LEAN_FWD[levelOf(Math.max(noseDrop / T.leanForwardNoseDrop, (ratio - 1) / ((m.headW && base.headW ? T.leanForwardHeadRatio : T.leanForwardWidthRatio) - 1)))],
     });
   }
 
@@ -73,7 +78,7 @@ export function detectMistakes(m, base, ctx) {
     const cm = Math.min(T.maxShownCm, Math.abs(main) * SHOULDER_CM);
     out.push({
       code: 'TRUNK_LEAN_SIDE', severity: 3, landmarks: [LM.L_SH, LM.R_SH, LM.NOSE], valueCm: Math.round(cm),
-      message: `Корпус ${dir}${cmText(cm)}. Сядьте ровно!`,
+      message: leanSide(dir)[levelOf(Math.max(Math.abs(shift) / T.leanSideShift, Math.abs(noseShift) / T.leanSideNoseShift))],
     });
   }
 
@@ -85,7 +90,7 @@ export function detectMistakes(m, base, ctx) {
       const cm = Math.min(T.maxShownCm, ((base.earShRaw - earSh) / base.S) * SHOULDER_CM);
       out.push({
         code: 'SHOULDER_HIKE', severity: 2, landmarks: [idx.sh, idx.ear], valueCm: Math.round(cm),
-        message: `Плечо к уху${cmText(cm)}. Опустите плечо!`,
+        message: HIKE[levelOf((1 - earSh / base.earShRaw) / (T.shoulderHikeDrop + topBonus))],
       });
     }
   }

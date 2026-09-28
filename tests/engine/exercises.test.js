@@ -74,7 +74,7 @@ describe('INCOMPLETE_ROM', () => {
     ]);
     const m = r.ev.find((e) => e.payload?.code === 'INCOMPLETE_ROM');
     expect(m).toBeTruthy();
-    expect(m.payload.message).toMatch(/Не хватило \d+ см|Почти/);
+    expect(m.payload.message).toMatch(/Почти|Не хватило немного|Далеко до звезды/);
     expect(r.reps).toBe(1);
   });
 });

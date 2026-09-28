@@ -28,3 +28,9 @@ describe('live recording 28.09', () => {
     expect(start.payload.y).toBeLessThan(0.17);
   });
 });
+
+describe('hints without centimeters (28.09: camera does not know the real distance)', () => {
+  it('no "см" in any hint of the live recording', () => {
+    for (const e of events) if (e.type === 'mistake') expect(e.payload.message).not.toMatch(/\d\s*см/);
+  });
+});

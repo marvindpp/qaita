@@ -13,6 +13,8 @@ import { createExercise } from './exercises.js';
 
 // «Чистый» повтор — как в игре «Сад Qaita» (docs/TASKS.md): quality ≥ 0.9.
 export const CLEAN_QUALITY = 0.9;
+// «Не дотянулся» — словами по доле пути до звезды, без сантиметров.
+const INCOMPLETE = ['Почти! Ещё чуть-чуть!', 'Не хватило немного. Дальше!', 'Далеко до звезды. Тянитесь!'];
 
 export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } = {}) {
   const ex = createExercise(id, baseline, aspect);
@@ -104,10 +106,11 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
       const r = reps.update({ ...f, blocked: blocking, t: now });
       if (r.phase !== 'REST') peakAny = Math.max(peakAny, ex.reachOf(m));
       if (r.incomplete && !ex.handExercise) {
+        const reachShare = peakAny / Math.max(1e-6, ex.targetLen());
         const cm = Math.min(THRESHOLDS.maxShownCm, Math.max(0, ((ex.targetLen() - ex.radius - peakAny) / baseline.S) * SHOULDER_CM));
         incomplete = {
           until: now + 1800,
-          payload: { code: 'INCOMPLETE_ROM', severity: 1, landmarks: [idx.wr], valueCm: Math.round(cm), message: cm >= 3 ? `Не хватило ${Math.round(cm)} см. Ещё чуть-чуть!` : 'Почти! Ещё чуть-чуть!' },
+          payload: { code: 'INCOMPLETE_ROM', severity: 1, landmarks: [idx.wr], valueCm: Math.round(cm), message: INCOMPLETE[reachShare >= 0.85 ? 0 : reachShare >= 0.6 ? 1 : 2] },
         };
       }
       if (r.phase === 'REST') peakAny = 0;
