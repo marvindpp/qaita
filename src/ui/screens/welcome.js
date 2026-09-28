@@ -3,6 +3,10 @@
 import { html } from '../dom.js';
 import { icons } from '../icons.js';
 import { createRing } from '../components/ring.js';
+import { cameraHelp, noPromptHelp } from '../camera-help.js';
+
+// Столько ждём вопроса «Разрешить камеру?», прежде чем подсказать, где её включить.
+const NO_PROMPT_MS = 6000;
 
 export default function welcome(ctx) {
   const el = html(`
@@ -31,17 +35,29 @@ export default function welcome(ctx) {
   const label = el.querySelector('.ring-label');
   const sub = el.querySelector('.ring-sub');
 
+  let helpTimer = null, alive = true;
+
+  function show(t) { label.textContent = t.label; sub.textContent = t.sub; }
+
   function syncReady() {
     const s = ctx.state.status;
+    clearTimeout(helpTimer);
     if (s?.code === 'NO_CAMERA') {
       ring.setDisabled(true);
-      label.textContent = 'Нет доступа к камере';
-      sub.textContent = 'Разрешите камеру в адресной строке и обновите страницу';
+      show({ label: 'Нет доступа к камере', sub: s.message });
+      cameraHelp().then((t) => { if (alive && ctx.state.status?.code === 'NO_CAMERA') show(t); });
       return;
     }
     ring.setDisabled(!ctx.state.live);
-    label.textContent = ctx.state.live ? 'Покажите ладонь' : 'Включаю камеру…';
-    sub.textContent = ctx.state.live ? 'и подержите секунду — начнём' : 'Если браузер спросит — нажмите «Разрешить»';
+    if (ctx.state.live) return show({ label: 'Покажите ладонь', sub: 'и подержите секунду — начнём' });
+    show({ label: 'Включаю камеру…', sub: 'Если браузер спросит — нажмите «Разрешить»' });
+    // Камера так и не открылась — вопрос не появился (встроенный браузер мессенджера или запрет). Подсказываем, что делать.
+    // Если камера уже открыта, а кадров ещё нет — это грузится распознавание, просто ждём.
+    helpTimer = setTimeout(() => {
+      if (!alive || ctx.state.live) return;
+      const camOpen = Boolean(document.getElementById('camera')?.srcObject);
+      show(camOpen ? { label: 'Загружаю распознавание…', sub: 'В первый раз это до минуты' } : noPromptHelp());
+    }, NO_PROMPT_MS);
   }
 
   return {
@@ -57,6 +73,6 @@ export default function welcome(ctx) {
     },
     onStatus: syncReady,
     onGesture: (g) => ring.handle(g),
-    destroy: () => ring.destroy(),
+    destroy() { alive = false; clearTimeout(helpTimer); ring.destroy(); },
   };
 }
