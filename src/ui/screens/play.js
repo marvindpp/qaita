@@ -8,7 +8,9 @@ import { createRing } from '../components/ring.js';
 import { EXERCISE_INFO, TARGET_REPS, SESSION_PLAN } from '../exercises.js';
 
 const IDX = { left: { sh: 11, el: 13, wr: 15, other: 12 }, right: { sh: 12, el: 14, wr: 16, other: 11 } };
-const GHOST_MS = 3200;      // цикл тени: вверх → держим → вниз (как в прототипе Даулета)
+// Цикл тени 6,5 с: 40% подъём (2,6 с), 25% держим, 35% опускаем — как src/engine/debug.js.
+// Быстрее нельзя: тень показывала бы рывок, за который движок ругает «Слишком быстро».
+const GHOST_MS = 6500;
 const REP_MESSAGE_MS = 1100;
 const WORDS = ['Раз!', 'Два!', 'Три!', 'Четыре!', 'Пять!', 'Шесть!'];
 
@@ -233,6 +235,13 @@ export default function play(ctx, { index = 0 } = {}) {
     const el_ = pose && vis(pose[idx.el]) ? toPx(pose[idx.el]) : null;
     const wr = pose && vis(pose[idx.wr]) ? toPx(pose[idx.wr]) : null;
     const S = sh && other ? Math.hypot(sh.x - other.x, sh.y - other.y) : w * 0.18;
+    // Звезду «берёт» ладонь: запястье + продолжение предплечья (локоть→запястье) на 0,3 ширины плеч (как в движке).
+    const from = el_ ?? sh;
+    const palm = wr && from ? (() => {
+      const dx = wr.x - from.x, dy = wr.y - from.y;
+      const n = Math.hypot(dx, dy) || 1;
+      return { x: wr.x + (dx / n) * 0.3 * S, y: wr.y + (dy / n) * 0.3 * S };
+    })() : wr;
     const bad = new Set(mistake?.landmarks ?? []);
     const star = target ? { ...toPx(target), r: Math.max(26, target.radius * toPx(target).scale) } : null;
 
@@ -242,8 +251,8 @@ export default function play(ctx, { index = 0 } = {}) {
     if (showGhost) drawGhost(g, now, sh, S, star, unit);
 
     // Пунктир от кисти к звезде: «тянись сюда». Точки бегут к звезде.
-    if (star && wr && id !== 'open_hand' && !done) {
-      const d = Math.hypot(star.x - wr.x, star.y - wr.y);
+    if (star && palm && id !== 'open_hand' && !done) {
+      const d = Math.hypot(star.x - palm.x, star.y - palm.y);
       if (d > star.r * 1.1) {
         const k = (d - star.r) / d;
         g.save();
@@ -255,19 +264,19 @@ export default function play(ctx, { index = 0 } = {}) {
         g.shadowColor = 'rgba(0,0,0,.35)';
         g.shadowBlur = 4;
         g.beginPath();
-        g.moveTo(wr.x, wr.y);
-        g.lineTo(wr.x + (star.x - wr.x) * k, wr.y + (star.y - wr.y) * k);
+        g.moveTo(palm.x, palm.y);
+        g.lineTo(palm.x + (star.x - palm.x) * k, palm.y + (star.y - palm.y) * k);
         g.stroke();
         g.restore();
       }
     }
 
-    // Звезда: мягкое свечение + пульс. Во время паузы и после конца — приглушена.
-    if (star) {
+    // Звезда: мягкое свечение + пульс. На паузе приглушена, после exercise-done не рисуется (движок уже молчит).
+    if (star && !done) {
       const pulse = 1 + 0.07 * Math.sin(now / 320);
       const r = star.r * pulse;
       g.save();
-      g.globalAlpha = paused || done ? 0.45 : 1;
+      g.globalAlpha = paused ? 0.45 : 1;
       const glow = g.createRadialGradient(star.x, star.y, r * 0.2, star.x, star.y, r * 1.7);
       glow.addColorStop(0, 'rgba(255, 214, 102, .55)');
       glow.addColorStop(1, 'rgba(255, 214, 102, 0)');
@@ -305,7 +314,8 @@ export default function play(ctx, { index = 0 } = {}) {
       seg(other, sh, idx.other, idx.sh);
       seg(sh, el_, idx.sh, idx.el);
       seg(el_, wr, idx.el, idx.wr);
-      for (const [p, i] of [[other, idx.other], [sh, idx.sh], [el_, idx.el], [wr, idx.wr]]) {
+      seg(wr, palm, idx.wr, idx.wr);
+      for (const [p, i] of [[other, idx.other], [sh, idx.sh], [el_, idx.el], [palm, idx.wr]]) {
         if (!p) continue;
         g.beginPath();
         g.arc(p.x, p.y, unit * 0.95, 0, Math.PI * 2);
