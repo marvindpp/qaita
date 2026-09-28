@@ -10,17 +10,17 @@ import {
 const TICK_MS = 33;
 const OUT = { left: -1, right: 1 };
 const HAND_NAME = { left: 'левую', right: 'правую' };
-const HAND_NAME_NOM = { left: 'левая', right: 'правая' };
+const HAND_CAP = { left: 'Левую', right: 'Правую' };
 
 // Тексты статусов — как у настоящего движка (framing.js / index.js).
 export const STATUS_TEXT = {
-  OK: 'Вас хорошо видно',
+  OK: 'Вижу вас',
   NO_CAMERA: 'Нет доступа к камере. Нажмите на значок камеры в адресной строке, разрешите доступ и обновите страницу',
-  NO_PERSON: 'Сядьте перед камерой так, чтобы были видны голова, плечи и руки',
-  TOO_CLOSE: 'Вы слишком близко: поднятая рука не поместится. Отодвиньтесь от камеры на полшага',
-  TOO_FAR: 'Вы далеко. Придвиньтесь к камере на полшага',
-  LOW_VISIBILITY: 'Не видно локтей. Отодвиньтесь или опустите камеру, чтобы руки были в кадре',
-  LOW_LIGHT: 'Темновато. Включите свет или сядьте лицом к окну',
+  NO_PERSON: 'Сядьте перед камерой',
+  TOO_CLOSE: 'Отодвиньтесь назад',
+  TOO_FAR: 'Придвиньтесь ближе',
+  LOW_VISIBILITY: 'Не видно рук. Отодвиньтесь',
+  LOW_LIGHT: 'Темно. Включите свет',
 };
 const STATUS_CYCLE = ['OK', 'NO_PERSON', 'TOO_CLOSE', 'TOO_FAR', 'LOW_VISIBILITY', 'LOW_LIGHT'];
 // Первые секунды «человек садится»: так UI экрана «Подготовка» видит, как правила загораются зелёным.
@@ -34,10 +34,10 @@ const CALIB = [
 ];
 function phaseMessage(phase, side) {
   switch (phase) {
-    case 'neutral': return 'Сядьте ровно, спиной к спинке стула. Руки опустите и смотрите в камеру — 3 секунды';
-    case 'max_up': return `Поднимите ${HAND_NAME[side]} руку вверх как можно выше — без боли`;
-    case 'max_side': return `Теперь отведите ${HAND_NAME[side]} руку в сторону как можно дальше`;
-    default: return 'Готово! Ваша норма сохранена';
+    case 'neutral': return 'Сядьте ровно, руки вниз';
+    case 'max_up': return `${HAND_CAP[side]} руку — вверх до упора`;
+    case 'max_side': return `${HAND_CAP[side]} руку — в сторону до упора`;
+    default: return 'Готово!';
   }
 }
 
@@ -70,16 +70,15 @@ const lerpP = (a, b, k) => ({ x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k
 
 function mistakePayload(code, side) {
   const i = side === 'left' ? { sh: 11, el: 13, wr: 15, ear: 7, otherWr: 16 } : { sh: 12, el: 14, wr: 16, ear: 8, otherWr: 15 };
-  const other = side === 'left' ? 'right' : 'left';
   switch (code) {
-    case 'TRUNK_LEAN_FORWARD': return { code, severity: 3, landmarks: [11, 12, 0], valueCm: 7, message: 'Корпус ушёл вперёд на ~7 см — прижмите спину к спинке стула и тянитесь только рукой' };
-    case 'TRUNK_LEAN_SIDE': return { code, severity: 3, landmarks: [11, 12, 0], valueCm: 5, message: `Корпус заваливается ${side === 'right' ? 'влево' : 'вправо'} на ~5 см — сядьте ровно, плечи на одном уровне` };
-    case 'SHOULDER_HIKE': return { code, severity: 2, landmarks: [i.sh, i.ear], valueCm: 4, message: 'Плечо поднялось к уху на ~4 см — опустите плечо вниз и поднимайте только руку' };
-    case 'ELBOW_BENT': return { code, severity: 2, landmarks: [i.sh, i.el, i.wr], valueDeg: 128, message: 'Локоть согнут (128°) — выпрямите руку полностью, тянитесь кончиками пальцев' };
-    case 'TOO_FAST': return { code, severity: 1, landmarks: [i.wr], message: 'Слишком быстро — медленно, на счёт раз-два-три' };
-    case 'INCOMPLETE_ROM': return { code, severity: 1, landmarks: [i.wr], valueCm: 6, message: 'Не хватило ~6 см до звезды — ещё чуть-чуть, без рывка' };
-    case 'WRONG_HAND': return { code, severity: 2, landmarks: [i.otherWr], message: `Сейчас тренируем ${HAND_NAME[side]} руку — ${HAND_NAME_NOM[other]} пусть отдыхает` };
-    case 'FINGERS_NOT_OPEN': return { code, severity: 1, landmarks: [i.wr], message: 'Безымянный и мизинец согнуты — раскройте ладонь полностью, медленно, без рывка' };
+    case 'TRUNK_LEAN_FORWARD': return { code, severity: 3, landmarks: [11, 12, 0], valueCm: 7, message: 'Наклон вперёд на 7 см. Спину ровно!' };
+    case 'TRUNK_LEAN_SIDE': return { code, severity: 3, landmarks: [11, 12, 0], valueCm: 5, message: `Корпус ${side === 'right' ? 'влево' : 'вправо'} на 5 см. Сядьте ровно!` };
+    case 'SHOULDER_HIKE': return { code, severity: 2, landmarks: [i.sh, i.ear], valueCm: 4, message: 'Плечо к уху на 4 см. Опустите плечо!' };
+    case 'ELBOW_BENT': return { code, severity: 2, landmarks: [i.sh, i.el, i.wr], valueDeg: 128, message: 'Локоть согнут. Выпрямите руку!' };
+    case 'TOO_FAST': return { code, severity: 1, landmarks: [i.wr], message: 'Слишком быстро. Медленнее!' };
+    case 'INCOMPLETE_ROM': return { code, severity: 1, landmarks: [i.wr], valueCm: 6, message: 'Ещё 6 см. Чуть выше!' };
+    case 'WRONG_HAND': return { code, severity: 2, landmarks: [i.otherWr], message: `Не та рука. Тянитесь ${HAND_NAME[side]}!` };
+    case 'FINGERS_NOT_OPEN': return { code, severity: 1, landmarks: [i.wr], message: 'Мизинец согнут. Раскройте ладонь!' };
     default: return { code, severity: 1, landmarks: [], message: code };
   }
 }
@@ -212,7 +211,7 @@ export async function createEngine({ video } = {}) {
     if (calib.prep < phase.prepMs) {
       calib.prep += dt;
       const left = Math.max(1, Math.ceil((phase.prepMs - calib.prep) / 1000));
-      bus.emit('calibration', { phase: phase.id, progress: 0, message: `${phaseMessage(phase.id, side)}. Начинаем через ${left}…` });
+      bus.emit('calibration', { phase: phase.id, progress: 0, message: `${phaseMessage(phase.id, side)} · ${left}…` });
       return;
     }
     calib.elapsed += dt;
@@ -228,7 +227,7 @@ export async function createEngine({ video } = {}) {
         return;
       }
       const next = CALIB[calib.phaseIdx];
-      bus.emit('calibration', { phase: next.id, progress: 0, message: `${phaseMessage(next.id, side)}. Начинаем через 3…` });
+      bus.emit('calibration', { phase: next.id, progress: 0, message: `${phaseMessage(next.id, side)} · 3…` });
       return;
     }
     bus.emit('calibration', { phase: phase.id, progress: calib.elapsed / phase.ms, message: phaseMessage(phase.id, side) });
@@ -319,9 +318,9 @@ export async function createEngine({ video } = {}) {
       bus.emit('exercise-done', { exercise: ex.id, reps: ex.count, quality: ex.qualitySum / ex.count });
       return;
     }
-    // Адаптивная сложность: 3 чистых подряд → звезда дальше на 5%, максимум +15% за упражнение.
+    // Адаптивная сложность как в движке: каждые 3 чистых подряд → звезда дальше на 5%.
     ex.streak = quality >= CLEAN ? ex.streak + 1 : 0;
-    if (ex.streak >= 3 && ex.stretch < 1.15 && ['reach_up', 'reach_side'].includes(ex.id)) {
+    if (ex.streak >= 3 && ex.stretch < 1.4 && ['reach_up', 'reach_side'].includes(ex.id)) {
       ex.stretch = Math.round((ex.stretch + 0.05) * 100) / 100;
       ex.streak = 0;
       ex.target = targetFor(ex.id, side, ex.stretch);
