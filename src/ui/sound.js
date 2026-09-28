@@ -75,7 +75,8 @@ export function createSound() {
     /** Отсчёт калибровки 3-2-1. */
     tick() { note(C5, { dur: 0.12, gain: 0.1, bell: false }); },
     unlock() { ensure(); },
-    get blocked() { return !AC || (ctx ? ctx.state !== 'running' : false); },
+    // Без Web Audio звука нет вовсе — плашку «звук после нажатия» не показываем (нажатие не поможет).
+    get blocked() { return Boolean(AC && ctx && ctx.state !== 'running'); },
     setMuted(v) { muted = Boolean(v); },
     get muted() { return muted; },
   };

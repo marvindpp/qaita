@@ -77,7 +77,7 @@ export default function garden(ctx) {
         </div>
       </div>
       <div class="garden-chips">
-        <span class="pill pill-gold">${icons.star}${record.stars} из ${record.maxStars} звёзд</span>
+        ${record.maxStars ? `<span class="pill pill-gold">${icons.star}${record.stars} из ${record.maxStars} ${plural(record.maxStars, 'звезды', 'звёзд', 'звёзд')}</span>` : ''}
         <span class="pill pill-green">${icons.sun}${streak} ${plural(streak, 'день', 'дня', 'дней')} подряд</span>
         ${badges.map((b) => `<span class="badge">${b.icon}<span><b>${b.title}</b><small>${b.text}</small></span></span>`).join('')}
       </div>

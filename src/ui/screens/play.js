@@ -149,7 +149,8 @@ export default function play(ctx, { index = 0 } = {}) {
   function onMistake(m) {
     if (done) return;
     mistake = m;
-    game.mistake();
+    // «Не хватило N см» — про прошлую попытку: следующий повтор из-за неё не должен стать ростком.
+    if (m.code !== 'INCOMPLETE_ROM') game.mistake();
     clearTimeout(hintTimer);
     setHint('mistake', m.message);
     ctx.sound.mistake();
@@ -421,7 +422,7 @@ export default function play(ctx, { index = 0 } = {}) {
       } catch (err) {
         console.warn(err);
         // Упражнение ещё не реализовано в движке — тихо идём дальше по плану.
-        setTimeout(() => ctx.go(index + 1 < SESSION_PLAN.length ? 'demo' : 'garden', { index: index + 1 }), 0);
+        setTimeout(() => { if (alive) ctx.go(index + 1 < SESSION_PLAN.length ? 'demo' : 'garden', { index: index + 1 }); }, 0);
       }
     },
     onTarget,
