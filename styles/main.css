@@ -492,6 +492,35 @@ p { text-wrap: pretty; }
   .rule .ico { width: 48px; height: 48px; }
 }
 
+/* ——— Телефон ~375px: ничего не вылезает вбок (body overflow: hidden — вылезшее просто обрезается) ——— */
+@media (max-width: 520px) {
+  /* Подготовка: длинный статус («Отодвиньтесь назад») переносится, а не уходит за край */
+  .prep-go > div { min-width: 0; }
+  .prep-go .ring-label { font-size: 26px; overflow-wrap: anywhere; }
+  /* Пауза: кольцо над подписью, а не рядом */
+  .pause-card { padding: 24px 20px; }
+  .pause-card h2 { font-size: 40px; }
+  .pause-card p { font-size: 26px; }
+  .pause-go { flex-direction: column; gap: 12px; }
+  .pause-go .ring-label, .pause-go .ring-sub { text-align: center; }
+  /* Отчёт врача: шапка в столбик, плитки и таблица по ширине экрана */
+  .report { padding: 18px 16px; }
+  .report-head { flex-direction: column; }
+  .report-grid { grid-template-columns: minmax(0, 1fr); }
+  .doctor-go .ring { --size: 88px; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .tile { padding: 12px; }
+  .tile b { font-size: 36px; }
+  .tile span { font-size: 18px; overflow-wrap: anywhere; }
+  .report-table { font-size: 18px; table-layout: fixed; }
+  .report-table th, .report-table td { padding: 6px 4px; }
+  .report-table th:nth-child(1) { width: 33%; }
+  .report-table th:nth-child(2) { width: 14%; }
+  .report-table th:nth-child(3) { width: 15%; }
+  .report-table thead th { font-size: 12px; letter-spacing: 0; overflow-wrap: anywhere; }
+  .report-table td:last-child { overflow-wrap: anywhere; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; }
   .ring-fill { transition: none; }
