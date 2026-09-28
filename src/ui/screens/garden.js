@@ -56,7 +56,8 @@ function recordSession(ctx) {
 export default function garden(ctx) {
   const { record, history } = recordSession(ctx);
   const all = [...history, record];
-  const prev = history[history.length - 1];
+  // «Выше, чем в прошлый раз» — сравниваем с прошлым занятием ТОЙ ЖЕ рукой, а не с другой.
+  const prev = history.filter((s) => !s.side || !record.side || s.side === record.side).at(-1);
   const streak = streakDays(all);
   const goal = loadGoal();
   const dose = doseToday();
