@@ -3,11 +3,17 @@
 import { PRIORITY } from './mistakes.js';
 
 export const TRACKER_TIMING = { onMs: 300, offMs: 500 };
+// Кадры не шли дольше этого (пауза, человек вышел) — неподтверждённые нарушения начинаем отсчитывать заново.
+const MAX_GAP_MS = 250;
+// Эти подсказки гаснут сами по таймеру (про прошлое движение), а не потому, что человек исправился:
+// mistake-cleared шлём, чтобы UI убрал текст, но в «исправленные» (+50 очков) не считаем.
+const SELF_EXPIRING = new Set(['INCOMPLETE_ROM', 'TOO_FAST']);
 
 export function createMistakeTracker({ onMs, offMs } = TRACKER_TIMING) {
   const state = new Map(); // code → { since, falseSince, active, payload }
   let current = null;
   let corrected = 0;
+  let lastT = null;
   const counts = {};
 
   return {
@@ -21,6 +27,10 @@ export function createMistakeTracker({ onMs, offMs } = TRACKER_TIMING) {
     update(candidates, t) {
       const events = [];
       const seen = new Set();
+      if (lastT != null && t - lastT > MAX_GAP_MS) {
+        for (const s of state.values()) if (!s.active) s.since = t;
+      }
+      lastT = t;
       for (const c of candidates) {
         seen.add(c.code);
         const s = state.get(c.code) ?? { since: t, falseSince: null, active: false, payload: c };
@@ -41,7 +51,7 @@ export function createMistakeTracker({ onMs, offMs } = TRACKER_TIMING) {
 
       if (current && !state.get(current)?.active) {
         events.push({ type: 'mistake-cleared', payload: { code: current } });
-        corrected += 1;
+        if (!SELF_EXPIRING.has(current)) corrected += 1;
         current = null;
       }
       const best = PRIORITY.find((code) => state.get(code)?.active);

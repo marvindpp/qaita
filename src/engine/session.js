@@ -11,12 +11,15 @@ import { createMistakeTracker } from './tracker.js';
 import { createRepCounter } from './reps.js';
 import { createExercise } from './exercises.js';
 
+// «Чистый» повтор — как в игре «Сад Qaita» (docs/TASKS.md): quality ≥ 0.9.
+export const CLEAN_QUALITY = 0.9;
+
 export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } = {}) {
   const ex = createExercise(id, baseline, aspect);
   if (!ex) throw new Error(`Упражнение ещё не реализовано: ${id}`);
   const tracker = createMistakeTracker();
   const reps = createRepCounter();
-  let count = 0, qualitySum = 0, bestRomDeg = 0, peakRom = 0, done = false;
+  let count = 0, cleanReps = 0, qualitySum = 0, bestRomDeg = 0, peakRom = 0, done = false;
   let peakPoint = null, cleanStreak = 0;
   // Адаптивная сложность: цель «догоняет» реальную руку и растёт за чистые повторы,
   // но не больше +40% от калибровки за сессию (пожилым резкий рост сложности мешает — PLAN §9).
@@ -84,6 +87,9 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
     /** @returns {{events: Array<{type:string,payload:object}>, info: object}} */
     step(m, now) {
       const events = [];
+      // Человека нет в кадре — упражнение «замерло», как на паузе. Иначе ошибка гаснет сама
+      // и считается «исправлением» (+50 очков за то, что человек встал и ушёл).
+      if (!m) return { events, info: { ex: id, phase: reps.phase, hold: 0, reps: `${count}/${targetReps}`, mistake: tracker.current ?? '—' } };
       const f = ex.evaluate(m);
       // Фаза для детекторов — по ТЕКУЩЕМУ кадру: рука уже пошла, значит проверяем с первого кадра движения.
       const phaseNow = !f.atRest && reps.phase === 'REST' ? 'REACHING' : reps.phase;
@@ -110,10 +116,11 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
       if (r.rep && !done) {
         count += 1;
         qualitySum += r.rep.quality;
+        if (r.rep.quality >= CLEAN_QUALITY) cleanReps += 1;
         bestRomDeg = Math.max(bestRomDeg, peakRom);
         events.push({ type: 'rep', payload: { exercise: id, count, targetReps, quality: r.rep.quality, romDeg: peakRom } });
         peakRom = 0;
-        cleanStreak = r.rep.quality >= 0.9 ? cleanStreak + 1 : 0;
+        cleanStreak = r.rep.quality >= CLEAN_QUALITY ? cleanStreak + 1 : 0;
         // Звезда всегда на длине прямой руки, поэтому «сложнее» = выше по углу, а не дальше.
         // Прямой рукой без компенсаций поднял выше звезды → звезда переезжает туда (+3° за 3 чистых подряд).
         if (ex.adaptive && !done && count < targetReps && peakPoint) {
@@ -134,7 +141,7 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
       };
     },
     result() {
-      return { id, reps: count, quality: count ? qualitySum / count : 0, bestRomDeg, mistakes: tracker.counts, corrected: tracker.corrected };
+      return { id, reps: count, quality: count ? qualitySum / count : 0, cleanReps, bestRomDeg, mistakes: tracker.counts, corrected: tracker.corrected };
     },
   };
 }

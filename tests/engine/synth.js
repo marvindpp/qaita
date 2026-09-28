@@ -12,8 +12,9 @@ export const ASPECT = 4 / 3;
  * @param {number} [o.shift=0] сдвиг всего корпуса вбок (ширины плеч)
  * @param {number} [o.noseDrop=0] нос ниже нормы (ширины плеч)
  * @param {number} [o.hike=0] плечо рабочей стороны выше нормы (ширины плеч)
+ * @param {number} [o.slide=0] только точка плеча РАБОЧЕЙ стороны «уехала» наружу (ширины плеч) — так MediaPipe ведёт себя при поднятой руке
  */
-export function makePose({ side = 'right', wrist = null, elbowBend = 0, elbowDrop = 0, spread = 1, scale = 1, shift = 0, noseDrop = 0, hike = 0 } = {}) {
+export function makePose({ side = 'right', wrist = null, elbowBend = 0, elbowDrop = 0, spread = 1, scale = 1, shift = 0, noseDrop = 0, hike = 0, slide = 0 } = {}) {
   const S = 0.3 * scale;
   const cx = ASPECT / 2 + shift * 0.3;
   const shY = 0.62;
@@ -22,6 +23,7 @@ export function makePose({ side = 'right', wrist = null, elbowBend = 0, elbowDro
   const outSign = side === 'left' ? -1 : 1;
   const L = { x: cx - (S * spread) / 2, y: shY }, R = { x: cx + (S * spread) / 2, y: shY };
   if (side === 'right') R.y -= hike * 0.3; else L.y -= hike * 0.3;
+  if (side === 'right') R.x += slide * S; else L.x -= slide * S;
   set(11, L.x, L.y); set(12, R.x, R.y);
   set(0, cx, shY - 1.0 * 0.3 + noseDrop * 0.3);
   set(7, cx - 0.25 * S, shY - 0.9 * 0.3); set(8, cx + 0.25 * S, shY - 0.9 * 0.3);

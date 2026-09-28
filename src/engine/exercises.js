@@ -6,6 +6,10 @@ const STRETCH = 1.05;
 const TARGET_RADIUS_S = 0.45; // радиус цели в ширинах плеч
 const EDGE = 0.06;            // цель не ближе 6% к краю кадра
 const RADIUS_MIN = 0.05, RADIUS_MAX = 0.11; // радиус цели в долях ширины кадра
+const REST_UP = -0.4; // запястье ниже плеча на 0,4 ширины плеч (или не видно) = рука опущена
+// Цель не ниже этого (в ширинах плеч над плечом): весь круг цели должен быть выше зоны «рука опущена»,
+// иначе при слабой руке на калибровке звезда попадает в зону покоя и повтор невозможен.
+const MIN_TARGET_UP = REST_UP + TARGET_RADIUS_S + 0.05;
 
 // Точка цели в аспектном пространстве от НОРМЫ плеча (калибровка), а не от текущего:
 // если человек дотягивается наклоном корпуса — это компенсация, её поймают детекторы.
@@ -17,7 +21,7 @@ function targetFromRel(base, rel, aspect, { straight = true } = {}) {
   const reach = straight ? (base.armLen ?? 1.5) * 0.95 : len * STRETCH;
   const p = {
     x: base.sh.x + (rel.out / len) * reach * base.S * outSign,
-    y: base.sh.y - (rel.up / len) * reach * base.S,
+    y: Math.min(base.sh.y - (rel.up / len) * reach * base.S, base.sh.y - MIN_TARGET_UP * base.S),
   };
   const edge = EDGE + RADIUS_MAX; // весь круг, а не только центр, внутри кадра
   return { x: clamp(p.x, edge * aspect, (1 - edge) * aspect), y: clamp(p.y, edge * aspect, 1 - edge) };
@@ -62,7 +66,7 @@ export function createExercise(id, base, aspect) {
   if (!def) return null;
   let target = def.target(base, aspect);
   const radius = clamp(TARGET_RADIUS_S * base.S * (def.radiusScale ?? 1), RADIUS_MIN * aspect, RADIUS_MAX * aspect);
-  const restUp = -0.4; // запястье ниже плеча на 0,4 ширины плеч (или не видно) = рука опущена
+  const restUp = REST_UP;
   // Направление «плечо → цель»: по нему считаем, насколько далеко человек дотянулся.
   const dir0 = { x: target.x - base.sh.x, y: target.y - base.sh.y };
   const dirLen = Math.hypot(dir0.x, dir0.y) || 1;
