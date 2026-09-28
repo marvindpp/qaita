@@ -397,19 +397,54 @@ p { text-wrap: pretty; }
 .garden h1 { font-size: var(--fs-title); }
 .garden .lead { font-size: var(--fs-lead); font-weight: 700; color: var(--green); margin-top: 6px; }
 .garden-scene {
-  position: relative; width: min(100%, 1180px); flex: 1; min-height: 220px; max-height: 44dvh;
-  border-radius: calc(var(--radius) * 1.3); overflow: hidden;
-  background: linear-gradient(#e9f3ec 0%, #f4efe4 58%, #e2d2b9 58%, #d6c3a5 100%);
-  display: flex; flex-direction: column; justify-content: flex-end; padding: 0 20px 18px;
+  /* Сцена «Сад Qaita»: небо с солнцем (высота солнца = дни подряд, до 7), холм с садом прошлых дней, грядки сегодня. */
+  /* 5 грядок × 3 растения должны встать в один ряд на ноутбуке */
+  --plant: clamp(40px, min(4.3vw, 8.5dvh), 88px);
+  --horizon: 46%;
+  position: relative; width: min(100%, 1180px); flex: 1; min-height: 240px; max-height: 50dvh;
+  border-radius: calc(var(--radius) * 1.3); overflow: hidden; isolation: isolate;
+  /* --horizon — высота земли от НИЖНЕГО края сцены */
+  background: linear-gradient(#dfeee6 0%, #eef3e8 40%, #f6efe0 calc(100% - var(--horizon)), #cfdcb8 calc(100% - var(--horizon)), #bccf9f 100%);
+  box-shadow: inset 0 0 0 1px rgba(60, 45, 20, 0.05);
+  display: flex; flex-direction: column; justify-content: flex-end; padding: 0 20px clamp(40px, 7dvh, 64px);
 }
-.garden-old { position: absolute; left: 0; right: 0; bottom: calc(42% - 2px); align-items: flex-end; display: flex; justify-content: center; gap: 6px; opacity: 0.42; filter: saturate(0.75); padding: 0 24px; overflow: hidden; }
-.garden-old svg { width: clamp(30px, 2.8vw, 46px); flex: none; }
-.garden-beds { position: relative; display: flex; justify-content: center; gap: clamp(8px, 1.6vw, 24px); }
-.garden-bed { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.garden-plants { display: flex; gap: 2px; padding: 0 10px; border-bottom: 10px solid #b99c78; border-radius: 0 0 12px 12px; }
-.garden-plants span { width: clamp(34px, 3.4vw, 64px); display: block; }
+.garden-sky { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+.garden-sun {
+  position: absolute; right: 12%; width: clamp(64px, 7vw, 112px); aspect-ratio: 1; border-radius: 50%;
+  /* 0 дней — у горизонта, 7+ дней подряд — высоко в небе */
+  top: calc(6% + (1 - var(--sun, 0)) * 26%);
+  background: radial-gradient(circle at 40% 38%, #fff4c9 0%, #ffd66b 45%, #f2b42a 100%);
+  box-shadow: 0 0 0 14px rgba(255, 214, 107, 0.22), 0 0 0 32px rgba(255, 214, 107, 0.12), 0 0 80px 30px rgba(255, 214, 107, 0.28);
+}
+.garden-hill { position: absolute; border-radius: 50%; }
+.garden-hill-back { left: -12%; right: 38%; top: calc(100% - var(--horizon) - 9%); height: 40%; background: #d9e6c9; }
+.garden-hill-front { left: 30%; right: -18%; top: calc(100% - var(--horizon) - 5%); height: 40%; background: #cadbb5; }
+.garden-old {
+  position: absolute; left: 0; right: 0; bottom: calc(var(--horizon) - 1%); display: flex; align-items: flex-end; justify-content: center;
+  gap: 4px; opacity: 0.55; filter: saturate(0.8); padding: 0 24px; overflow: hidden;
+}
+.garden-old svg { width: calc(var(--plant) * 0.42); flex: none; }
+.garden-beds { position: relative; display: flex; flex-wrap: nowrap; justify-content: center; align-items: flex-end; gap: clamp(28px, 3dvh, 44px) clamp(10px, 1.6vw, 26px); }
+.garden-bed { margin: 0; display: flex; flex-direction: column; align-items: center; }
+/* Деревянная грядка: растения стоят в земле, стебли уходят за бортик. */
+.garden-plants {
+  position: relative; display: flex; align-items: flex-end; gap: 0; padding: 0 12px;
+}
+.garden-plants::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: calc(var(--plant) * -0.28); height: calc(var(--plant) * 0.42);
+  border-radius: 10px 10px 16px 16px;
+  background:
+    linear-gradient(#6f5138, #6f5138) top / 100% 7px no-repeat,
+    repeating-linear-gradient(90deg, transparent 0 calc(var(--plant) * 0.9), rgba(0, 0, 0, 0.07) 0 calc(var(--plant) * 0.9 + 2px)),
+    linear-gradient(#b98d62, #9c7349);
+  box-shadow: 0 8px 14px -6px rgba(60, 40, 15, 0.35);
+}
+.garden-plants span { width: var(--plant); display: block; transform-origin: 50% 100%; }
 .garden-plants svg { width: 100%; display: block; }
-.garden-bed figcaption { font-size: 20px; font-weight: 800; color: var(--ink-2); }
+.garden-bed figcaption {
+  position: relative; margin-top: calc(var(--plant) * 0.28 + 8px); padding: 2px 12px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82); font-size: 20px; font-weight: 800; color: var(--ink-2); white-space: nowrap;
+}
 .garden-chips { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; align-items: center; }
 .badge { display: inline-flex; align-items: center; gap: 12px; padding: 8px 18px 8px 10px; border-radius: 20px; background: var(--surface); box-shadow: var(--shadow); text-align: left; }
 .badge svg { width: 44px; height: 44px; color: var(--gold); }
@@ -484,6 +519,12 @@ p { text-wrap: pretty; }
   .report-grid { grid-template-columns: 1fr; }
   .garden-scene { max-height: none; min-height: 260px; }
   .garden-beds { flex-wrap: wrap; }
+  /* Телефон: сцена по высоте содержимого (грядки по 2 в ряд), небо — сверху над ними */
+  .garden-scene { --plant: clamp(34px, 10vw, 60px); --horizon: calc(100% - 120px); flex: none; padding-top: 130px; }
+  .garden-hill-back, .garden-hill-front { height: 90px; }
+  .garden-sun { top: calc(14px + (1 - var(--sun, 0)) * 44px); }
+  .garden-beds { align-items: flex-start; }
+  .garden-bed figcaption { font-size: 16px; white-space: normal; max-width: calc(var(--plant) * 3 + 24px); text-align: center; line-height: 1.15; }
   .hand-main { grid-template-columns: 1fr 1fr; align-content: start; }
   .hand-main .cam-slot { grid-column: 1 / -1; grid-row: 1; }
   .hand-main .cam { width: min(100%, 40dvh * 4 / 3); }
@@ -516,6 +557,8 @@ p { text-wrap: pretty; }
 /* ——— Телефон ~375px: ничего не вылезает вбок (body overflow: hidden — вылезшее просто обрезается) ——— */
 @media (max-width: 520px) {
   .audio-chip { font-size: 16px; white-space: nowrap; }
+  /* Пока видна плашка звука, контент экрана начинается под ней (на телефоне ей больше некуда встать) */
+  .app:has(.audio-chip[data-show='true']) .screen { padding-top: 60px; }
   /* Подготовка: длинный статус («Отодвиньтесь назад») переносится, а не уходит за край */
   .prep-go > div { min-width: 0; }
   .prep-go .ring-label { font-size: 26px; overflow-wrap: anywhere; }

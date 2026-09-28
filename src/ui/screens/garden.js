@@ -1,6 +1,6 @@
 // Экран 8 — Итоги сессии «Ваш сад» [E]. Слова вместо цифр: «рука поднялась выше, чем в прошлый раз».
 // Каждое упражнение — грядка: чистый повтор = цветок, с исправлением = росток. Прошлые дни растут на заднем плане.
-import { html, esc } from '../dom.js';
+import { html, esc, prefersReducedMotion } from '../dom.js';
 import { icons } from '../icons.js';
 import { createRing } from '../components/ring.js';
 import { EXERCISE_INFO } from '../exercises.js';
@@ -66,7 +66,8 @@ export default function garden(ctx) {
         <h1 id="garden-title">Ваш сад</h1>
         <p class="lead">${esc(compareWords(amplitudeOf(record), amplitudeOf(prev)))}</p>
       </div>
-      <div class="garden-scene">
+      <div class="garden-scene" style="--sun: ${Math.min(streak, 7) / 7}">
+        <div class="garden-sky" aria-hidden="true"><span class="garden-sun"></span><span class="garden-hill garden-hill-back"></span><span class="garden-hill garden-hill-front"></span></div>
         ${old.length ? `<div class="garden-old" aria-hidden="true">${old.map((p) => (p === 'flower' ? icons.flower : icons.sprout)).join('')}</div>` : ''}
         <div class="garden-beds">
           ${record.beds.map((b) => `
@@ -78,7 +79,7 @@ export default function garden(ctx) {
       </div>
       <div class="garden-chips">
         ${record.maxStars ? `<span class="pill pill-gold">${icons.star}${record.stars} из ${record.maxStars} ${plural(record.maxStars, 'звезды', 'звёзд', 'звёзд')}</span>` : ''}
-        <span class="pill pill-green">${icons.sun}${streak} ${plural(streak, 'день', 'дня', 'дней')} подряд</span>
+        ${streak < 3 ? `<span class="pill pill-green">${icons.sun}${streak} ${plural(streak, 'день', 'дня', 'дней')} подряд</span>` : ''}
         ${badges.map((b) => `<span class="badge">${b.icon}<span><b>${b.title}</b><small>${b.text}</small></span></span>`).join('')}
       </div>
       <div class="garden-go">
@@ -93,10 +94,16 @@ export default function garden(ctx) {
   return {
     el,
     enter() {
+      // Сначала встаёт солнце (чем больше дней подряд, тем выше), потом из земли по одному растут растения.
+      const reduce = prefersReducedMotion();
+      el.querySelector('.garden-sun')?.animate(
+        reduce ? [{ opacity: 0 }, { opacity: 1 }] : [{ transform: 'translateY(60%)', opacity: 0 }, { transform: 'none', opacity: 1 }],
+        { duration: reduce ? 200 : 900, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'backwards' },
+      );
       let i = 0;
       el.querySelectorAll('.garden-plants span').forEach((p) => p.animate(
-        [{ transform: 'translateY(35%) scale(0.4)', opacity: 0 }, { transform: 'none', opacity: 1 }],
-        { duration: 420, delay: 300 + (i++) * 70, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', fill: 'backwards' },
+        reduce ? [{ opacity: 0 }, { opacity: 1 }] : [{ transform: 'scale(0.6, 0.05)', opacity: 0 }, { opacity: 1, offset: 0.3 }, { transform: 'none', opacity: 1 }],
+        { duration: reduce ? 200 : 560, delay: 450 + (i++) * 80, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'backwards' },
       ));
       el.querySelectorAll('.badge').forEach((b, k) => b.animate(
         [{ transform: 'scale(0.8)', opacity: 0 }, { transform: 'none', opacity: 1 }],
