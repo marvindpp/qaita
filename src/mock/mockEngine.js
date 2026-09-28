@@ -245,7 +245,7 @@ export async function createEngine({ video } = {}) {
   // ——— упражнение ———
   function newExercise(id, targetReps) {
     const e = {
-      id, targetReps, count: 0, qualitySum: 0, bestRomDeg: 0, mistakes: {}, corrected: 0,
+      id, targetReps, count: 0, cleanReps: 0, qualitySum: 0, bestRomDeg: 0, mistakes: {}, corrected: 0,
       phase: 'REST', phaseT: 0, stretch: 1, streak: 0, done: false,
       mistake: null, mistakeT: 0, hadMistake: false, peakRom: 0, reach: 0,
       path: [], repStart: null, restBuf: [], bestRep: null, moments: {},
@@ -323,6 +323,7 @@ export async function createEngine({ video } = {}) {
     const quality = ex.hadMistake ? 0.62 + Math.random() * 0.12 : 0.92 + Math.random() * 0.08;
     ex.count += 1;
     ex.qualitySum += quality;
+    if (quality >= CLEAN) ex.cleanReps += 1;
     const romDeg = Math.round(ex.peakRom);
     ex.bestRomDeg = Math.max(ex.bestRomDeg, romDeg);
     // Лучший повтор (как session.js в движке): выше качество, при равном — больше амплитуда.
@@ -547,24 +548,26 @@ export async function createEngine({ video } = {}) {
       const all = [...finished, ...(ex ? [result(ex)] : [])];
       const byId = new Map();
       for (const r of all) {
-        const acc = byId.get(r.id) ?? { id: r.id, reps: 0, qualitySum: 0, bestRomDeg: 0, mistakes: {}, bestRep: null, moments: {} };
+        const acc = byId.get(r.id) ?? { id: r.id, reps: 0, cleanReps: 0, qualitySum: 0, bestRomDeg: 0, mistakes: {}, bestRep: null, moments: {} };
         const b = r.bestRep;
         if (b && (!acc.bestRep || b.quality > acc.bestRep.quality || (b.quality === acc.bestRep.quality && b.romDeg > acc.bestRep.romDeg))) acc.bestRep = b;
         acc.moments = { ...acc.moments, ...r.moments };
         acc.reps += r.reps;
+        acc.cleanReps += r.cleanReps;
         acc.qualitySum += r.quality * r.reps;
         acc.bestRomDeg = Math.max(acc.bestRomDeg, r.bestRomDeg);
         for (const [code, n] of Object.entries(r.mistakes)) acc.mistakes[code] = (acc.mistakes[code] ?? 0) + n;
         byId.set(r.id, acc);
       }
-      const exercises = [...byId.values()].map(({ qualitySum, ...e }) => ({ ...e, quality: e.reps ? qualitySum / e.reps : 0 }));
+      const exercises = [...byId.values()].map(({ qualitySum, cleanReps, ...e }) => ({ ...e, quality: e.reps ? qualitySum / e.reps : 0 }));
       const totalReps = exercises.reduce((s, e) => s + e.reps, 0);
       return {
         side,
         durationSec: Math.round((performance.now() - startedAt) / 1000),
         exercises,
         totalReps,
-        accuracy: totalReps ? exercises.reduce((s, e) => s + e.quality * e.reps, 0) / totalReps : 0,
+        // Как движок (summary.js): доля ЧИСТЫХ повторов (quality ≥ 0.9), а не средняя quality.
+        accuracy: totalReps ? all.reduce((s, r) => s + r.cleanReps, 0) / totalReps : 0,
         mistakesCorrected: all.reduce((s, r) => s + r.corrected, 0),
       };
     },
@@ -574,7 +577,7 @@ export async function createEngine({ video } = {}) {
 
 function result(e) {
   return {
-    id: e.id, reps: e.count, quality: e.count ? e.qualitySum / e.count : 0, bestRomDeg: e.bestRomDeg, mistakes: { ...e.mistakes }, corrected: e.corrected,
+    id: e.id, reps: e.count, cleanReps: e.cleanReps, quality: e.count ? e.qualitySum / e.count : 0, bestRomDeg: e.bestRomDeg, mistakes: { ...e.mistakes }, corrected: e.corrected,
     bestRep: e.bestRep, moments: { ...e.moments },
   };
 }
