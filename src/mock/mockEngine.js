@@ -3,13 +3,18 @@
 // и исправляется. Сам показывает ладонь и поднимает руку, чтобы экраны листались без нас.
 // URL: ?mock=1 · &speed=2 — ускорить · &manual — без автопациента (только клавиши) · &nopanel — без панели
 // · &calibrated — норма уже есть (чтобы открыть экран упражнения сразу, без калибровки).
+// Итоги отдают и необязательные поля (CONTRACT.md): bestRep — путь ладони лучшего повтора, moments — стоп-кадры до/после.
 import { createEmitter } from '../engine/emitter.js';
+import { snapshot } from '../engine/moments.js';
 import {
   buildPose, makeHand, createFakeCamera, shoulderOf, restWristOf, mouth, elevationDeg, OPEN, FIST, THUMB_UP,
+  ASPECT,
 } from './fakeBody.js';
 
 const TICK_MS = 33;
 const OUT = { left: -1, right: 1 };
+const HAND_EXT = 0.3;      // ладонь = запястье + 0,3 ширины плеч по предплечью (как engine/body.js)
+const PATH_STEP_MS = 33;   // шаг записи пути ладони
 const HAND_NAME = { left: 'левую', right: 'правую' };
 const HAND_CAP = { left: 'Левую', right: 'Правую' };
 
@@ -51,6 +56,7 @@ const GESTURES_NONE = new Set();
 
 // Повтор: фазы по времени сценария (мс).
 const REP = { REST: 900, REACHING: 1500, HOLD: 700, RETURNING: 1100 };
+const FIRST_REST_MS = 4200; // покой перед первым повтором: успеть увидеть тень
 const MISTAKE_AT = 0.6;    // на какой доле пути пациент «компенсирует»
 const MISTAKE_MS = 2200;   // сколько держит ошибку, пока не исправится
 const CLEAN = 0.9;         // порог «чистого» повтора (правила игры)
@@ -69,16 +75,17 @@ const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const ease = (k) => (k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2);
 const lerpP = (a, b, k) => ({ x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k });
 
+// Подсказки — словами, без сантиметров, как у движка (engine/mistakes.js, session.js). valueCm — только для отчёта врачу.
 function mistakePayload(code, side) {
   const i = side === 'left' ? { sh: 11, el: 13, wr: 15, ear: 7, otherWr: 16 } : { sh: 12, el: 14, wr: 16, ear: 8, otherWr: 15 };
   switch (code) {
-    case 'TRUNK_LEAN_FORWARD': return { code, severity: 3, landmarks: [11, 12, 0], valueCm: 7, message: 'Наклон вперёд на 7 см. Спину ровно!' };
-    case 'TRUNK_LEAN_SIDE': return { code, severity: 3, landmarks: [11, 12, 0], valueCm: 5, message: `Корпус ${side === 'right' ? 'влево' : 'вправо'} на 5 см. Сядьте ровно!` };
-    case 'SHOULDER_HIKE': return { code, severity: 2, landmarks: [i.sh, i.ear], valueCm: 4, message: 'Плечо к уху на 4 см. Опустите плечо!' };
+    case 'TRUNK_LEAN_FORWARD': return { code, severity: 3, landmarks: [11, 12, 0], valueCm: 7, message: 'Наклонились вперёд. Спину ровно!' };
+    case 'TRUNK_LEAN_SIDE': return { code, severity: 3, landmarks: [11, 12, 0], valueCm: 5, message: `Наклон ${side === 'right' ? 'влево' : 'вправо'}. Сядьте ровно!` };
+    case 'SHOULDER_HIKE': return { code, severity: 2, landmarks: [i.sh, i.ear], valueCm: 4, message: 'Плечо поднято к уху. Опустите!' };
     case 'ELBOW_BENT': return { code, severity: 2, landmarks: [i.sh, i.el, i.wr], valueDeg: 128, message: 'Локоть согнут. Выпрямите руку!' };
     case 'TOO_FAST': return { code, severity: 1, landmarks: [i.wr], message: 'Слишком быстро. Медленнее!' };
-    case 'INCOMPLETE_ROM': return { code, severity: 1, landmarks: [i.wr], valueCm: 6, message: 'Ещё 6 см. Чуть выше!' };
-    case 'WRONG_HAND': return { code, severity: 2, landmarks: [i.otherWr], message: `Не та рука. Тянитесь ${HAND_NAME[side]}!` };
+    case 'INCOMPLETE_ROM': return { code, severity: 1, landmarks: [i.wr], valueCm: 6, message: 'Почти! Ещё чуть-чуть!' };
+    case 'WRONG_HAND': return { code, severity: 2, landmarks: [i.otherWr], message: `Не та рука! Тренируем ${HAND_NAME[side]}` };
     case 'FINGERS_NOT_OPEN': return { code, severity: 1, landmarks: [i.wr], message: 'Мизинец согнут. Раскройте ладонь!' };
     default: return { code, severity: 1, landmarks: [], message: code };
   }
@@ -126,6 +133,7 @@ export async function createEngine({ video } = {}) {
   let baseline = params.has('calibrated') ? { side: 'right', mock: true, maxUpDeg: 158 } : null;
   let calib = null;        // { phaseIdx, prep, elapsed, resolve }
   let ex = null;           // текущее упражнение
+  let lastPose = null;     // для стоп-кадров moments
   const finished = [];
 
   // Жест, который сейчас «показывает» пациент.
@@ -240,6 +248,7 @@ export async function createEngine({ video } = {}) {
       id, targetReps, count: 0, qualitySum: 0, bestRomDeg: 0, mistakes: {}, corrected: 0,
       phase: 'REST', phaseT: 0, stretch: 1, streak: 0, done: false,
       mistake: null, mistakeT: 0, hadMistake: false, peakRom: 0, reach: 0,
+      path: [], repStart: null, restBuf: [], bestRep: null, moments: {},
     };
     e.target = targetFor(id, side, e.stretch);
     return e;
@@ -262,6 +271,10 @@ export async function createEngine({ video } = {}) {
 
     if (ex.mistake) {
       ex.mistakeT += dt;
+      // Стоп-кадр «ошибка» — когда компенсация уже видна на «видео» (как moments.js в движке: первая ошибка).
+      if (!ex.moments.mistake && ex.mistakeT >= 500) {
+        ex.moments.mistake = { code: ex.mistake, message: mistakePayload(ex.mistake, side).message, image: snap('mistake', mistakePayload(ex.mistake, side).landmarks) };
+      }
       if (ex.mistakeT >= MISTAKE_MS) {
         bus.emit('mistake-cleared', { code: ex.mistake });
         ex.corrected += 1;
@@ -273,7 +286,8 @@ export async function createEngine({ video } = {}) {
     switch (ex.phase) {
       case 'REST':
         ex.reach = 0;
-        if (ex.phaseT >= REP.REST) { ex.phase = 'REACHING'; ex.phaseT = 0; ex.hadMistake = false; ex.peakRom = 0; }
+        // Перед первым повтором «пациент» дольше сидит и смотрит на тень («Вы вчера» / тень-тренер), как живой человек.
+        if (ex.phaseT >= (ex.count === 0 ? FIRST_REST_MS : REP.REST)) { ex.phase = 'REACHING'; ex.phaseT = 0; ex.hadMistake = false; ex.peakRom = 0; }
         break;
       case 'REACHING': {
         const fast = MISTAKE_PLAN[ex.id]?.[repNo] === 'TOO_FAST' && !ex.hadMistake;
@@ -292,6 +306,7 @@ export async function createEngine({ video } = {}) {
       }
       case 'HOLD':
         ex.reach = 1;
+        if (!ex.hadMistake && !ex.moments.good && ex.phaseT >= 300) ex.moments.good = { image: snap('good'), romDeg: Math.round(ex.peakRom) };
         if (ex.phaseT >= REP.HOLD) { ex.phase = 'RETURNING'; ex.phaseT = 0; }
         break;
       case 'RETURNING': {
@@ -310,6 +325,12 @@ export async function createEngine({ video } = {}) {
     ex.qualitySum += quality;
     const romDeg = Math.round(ex.peakRom);
     ex.bestRomDeg = Math.max(ex.bestRomDeg, romDeg);
+    // Лучший повтор (как session.js в движке): выше качество, при равном — больше амплитуда.
+    const b = ex.bestRep;
+    if (ex.path.length >= 4 && (!b || quality > b.quality || (quality === b.quality && romDeg > b.romDeg))) {
+      ex.bestRep = { quality, romDeg, ms: Math.round(simNow - ex.repStart), side, pts: ex.path };
+    }
+    ex.path = []; ex.repStart = null; ex.restBuf = [];
     bus.emit('rep', { exercise: ex.id, count: ex.count, targetReps: ex.targetReps, quality, romDeg });
     ex.phase = 'REST';
     ex.phaseT = 0;
@@ -417,6 +438,36 @@ export async function createEngine({ video } = {}) {
     return hands;
   }
 
+  // Путь ЛАДОНИ за повтор в ширинах плеч от плеча (out > 0 — наружу), как bestRep.pts у движка.
+  function recordPath(pose) {
+    const [iSh, iEl, iWr, iO] = side === 'left' ? [11, 13, 15, 12] : [12, 14, 16, 11];
+    const A = (p) => ({ x: p.x * ASPECT, y: p.y });
+    const sh = A(pose[iSh]), el = A(pose[iEl]), wr = A(pose[iWr]), o = A(pose[iO]);
+    const S = Math.hypot(sh.x - o.x, sh.y - o.y);
+    if (!S) return;
+    const dx = wr.x - el.x, dy = wr.y - el.y, n = Math.hypot(dx, dy) || 1;
+    const palm = { x: wr.x + (dx / n) * HAND_EXT * S, y: wr.y + (dy / n) * HAND_EXT * S };
+    const rel = [+(((palm.x - sh.x) / S) * OUT[side]).toFixed(3), +((sh.y - palm.y) / S).toFixed(3)];
+    if (ex.phase === 'REST') { // «разгон»: последние 0,8 с покоя — тень стартует от опущенной руки
+      ex.restBuf.push([simNow, ...rel]);
+      while (ex.restBuf.length && simNow - ex.restBuf[0][0] > 800) ex.restBuf.shift();
+      return;
+    }
+    if (ex.repStart == null) {
+      ex.repStart = ex.restBuf.length ? ex.restBuf[0][0] : simNow;
+      ex.path = ex.restBuf.map(([t, u, v]) => [Math.round(t - ex.repStart), u, v]);
+    }
+    const last = ex.path[ex.path.length - 1];
+    if (!last || simNow - ex.repStart - last[0] >= PATH_STEP_MS) ex.path.push([Math.round(simNow - ex.repStart), ...rel]);
+  }
+
+  // Стоп-кадр с «видео» мока тем же snapshot(), что у движка. Нет кадра — простая картинка-заглушка.
+  function snap(kind, landmarks = []) {
+    let img = null;
+    try { if (video && lastPose) img = snapshot(video, lastPose, { kind, side, landmarks, target: ex?.target }); } catch { img = null; }
+    return img ?? placeholder(kind);
+  }
+
   function tick() {
     const real = performance.now();
     const dtReal = lastReal == null ? TICK_MS : Math.min(real - lastReal, 100);
@@ -436,6 +487,8 @@ export async function createEngine({ video } = {}) {
       const [iSh, iWr] = side === 'left' ? [11, 15] : [12, 16];
       ex.peakRom = Math.max(ex.peakRom, elevationDeg(pose[iSh], pose[iWr]));
     }
+    if (pose && mode === 'exercise' && ex && !ex.done) recordPath(pose);
+    lastPose = pose;
     const hands = handsFor(pose);
     camera?.draw(pose, hands, status === 'LOW_LIGHT' ? 0.62 : 0);
     bus.emit('frame', { t: real, pose, hand: hands[0] ?? null, hands, fps: 30 });
@@ -493,7 +546,10 @@ export async function createEngine({ video } = {}) {
       const all = [...finished, ...(ex ? [result(ex)] : [])];
       const byId = new Map();
       for (const r of all) {
-        const acc = byId.get(r.id) ?? { id: r.id, reps: 0, qualitySum: 0, bestRomDeg: 0, mistakes: {} };
+        const acc = byId.get(r.id) ?? { id: r.id, reps: 0, qualitySum: 0, bestRomDeg: 0, mistakes: {}, bestRep: null, moments: {} };
+        const b = r.bestRep;
+        if (b && (!acc.bestRep || b.quality > acc.bestRep.quality || (b.quality === acc.bestRep.quality && b.romDeg > acc.bestRep.romDeg))) acc.bestRep = b;
+        acc.moments = { ...acc.moments, ...r.moments };
         acc.reps += r.reps;
         acc.qualitySum += r.quality * r.reps;
         acc.bestRomDeg = Math.max(acc.bestRomDeg, r.bestRomDeg);
@@ -516,5 +572,15 @@ export async function createEngine({ video } = {}) {
 }
 
 function result(e) {
-  return { id: e.id, reps: e.count, quality: e.count ? e.qualitySum / e.count : 0, bestRomDeg: e.bestRomDeg, mistakes: { ...e.mistakes }, corrected: e.corrected };
+  return {
+    id: e.id, reps: e.count, quality: e.count ? e.qualitySum / e.count : 0, bestRomDeg: e.bestRomDeg, mistakes: { ...e.mistakes }, corrected: e.corrected,
+    bestRep: e.bestRep, moments: { ...e.moments },
+  };
+}
+
+// Картинка-заглушка для moments, если кадра с «камеры» нет (например, вкладка в фоне).
+function placeholder(kind) {
+  const bad = kind === 'mistake';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="360" height="270" viewBox="0 0 360 270"><rect width="360" height="270" fill="${bad ? '#fbe4dc' : '#dcf0e4'}"/><circle cx="180" cy="95" r="36" fill="#4a3a33"/><path d="M110 250c0-60 30-100 70-100s70 40 70 100z" fill="#6f8f86"/><text x="300" y="70" font-size="64" text-anchor="middle" fill="${bad ? '#e0553f' : '#2ea36e'}">${bad ? '✗' : '✓'}</text></svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
