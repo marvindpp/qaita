@@ -65,13 +65,17 @@ export function createCalibration(side) {
 
   return {
     /** @returns {{phase:string, progress:number, message:string, done:boolean, baseline?:object}} */
-    push(m, t) {
+    /** framing — результат checkFraming: в первой фазе (сидим ровно) плохой кадр ставит калибровку на паузу. */
+    push(m, t, framing = null) {
       if (phaseIndex >= CALIBRATION_PHASES.length) {
         return { phase: 'done', progress: 1, message: phaseMessage('done', side), done: true, baseline: baseline() };
       }
       const phase = CALIBRATION_PHASES[phaseIndex];
       const dt = lastT == null ? 0 : Math.min(t - lastT, 100); // не прыгаем после паузы
       lastT = t;
+      if (phase.id === 'neutral' && framing && !framing.ok) {
+        return { phase: phase.id, progress: 0, message: framing.message, done: false };
+      }
       if (prep < phase.prepMs) {
         if (m) prep += dt;
         const left = Math.max(1, Math.ceil((phase.prepMs - prep) / 1000));

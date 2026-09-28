@@ -55,38 +55,60 @@ export function createDebugOverlay(video) {
   };
 }
 
-// Сценарий для проверки движка без UI: ?debug=1&auto=1&side=right&reps=5
+// Сценарий для проверки движка без UI: ?debug=1&auto=1 (это НЕ интерфейс продукта — его делает Ерсултан).
 export function runDebugScenario(engine, bus, overlay, params) {
   const banner = document.createElement('div');
   Object.assign(banner.style, {
     position: 'fixed', top: '12px', left: '50%', transform: 'translateX(-50%)', zIndex: 10000,
-    padding: '14px 22px', borderRadius: '14px', background: 'rgba(0,0,0,.82)', color: '#fff',
-    font: '600 26px/1.3 system-ui', maxWidth: '92vw', textAlign: 'center',
+    padding: '16px 26px', borderRadius: '16px', background: 'rgba(0,0,0,.85)', color: '#fff',
+    font: '600 28px/1.35 system-ui', maxWidth: '92vw', textAlign: 'center',
   });
+  const ring = document.createElement('div');
+  Object.assign(ring.style, { font: '500 20px/1.3 system-ui', color: '#ffd400', marginTop: '6px' });
+  banner.append(document.createElement('span'), ring);
   document.body.append(banner);
-  const say = (text, color = '#fff') => { banner.textContent = text; banner.style.color = color; };
+  const say = (text, color = '#fff') => { banner.firstChild.textContent = text; banner.style.color = color; };
 
-  bus.on('status', ({ code, message }) => { if (code !== 'OK') say(message, '#ffb3b3'); });
-  bus.on('calibration', ({ message, progress }) => say(`${message}  ${Math.round(progress * 100)}%`));
+  let lastStatus = 'OK';
+  let waiting = null; // { types:Set, resolve }
+  const waitGesture = (types, hint) => new Promise((resolve) => { waiting = { types: new Set(types), resolve }; ring.textContent = hint; });
+
+  bus.on('status', ({ code, message }) => { lastStatus = code; if (code !== 'OK') say(message, '#ffb3b3'); });
+  bus.on('gesture', ({ type, progress, fired }) => {
+    if (!waiting || !waiting.types.has(type)) return;
+    ring.textContent = fired ? '✓' : `${'●'.repeat(Math.round(progress * 10))}${'○'.repeat(10 - Math.round(progress * 10))}`;
+    if (fired) { const w = waiting; waiting = null; setTimeout(() => w.resolve(type), 300); }
+  });
+  bus.on('calibration', ({ message }) => say(message));
   bus.on('mistake', ({ message }) => say(message, '#ff8a80'));
   bus.on('mistake-cleared', () => say('Отлично, так правильно!', '#9ff5c9'));
-  bus.on('rep', ({ count, targetReps, quality }) => say(`Повтор ${count}/${targetReps} ✓  качество ${Math.round(quality * 100)}%`, '#9ff5c9'));
+  bus.on('rep', ({ count, targetReps, quality }) => say(`${quality >= 0.9 ? '🌸' : '🌱'} Повтор ${count} из ${targetReps}`, '#9ff5c9'));
 
-  const side = params.get('side') === 'left' ? 'left' : 'right';
-  const reps = Number(params.get('reps')) || 5;
+  const NAMES = { reach_up: 'Звезда вверх: дотянитесь до ★ над головой', reach_side: 'Звезда в сторону: отведите руку к ★' };
   (async () => {
-    engine.setSide(side);
+    say('Покажите открытую ладонь в камеру и держите 1 секунду');
+    await waitGesture(['PALM_HOLD'], '○○○○○○○○○○');
+    say('Поднимите руку, которую будем тренировать');
+    const raised = await waitGesture(['RAISE_LEFT', 'RAISE_RIGHT'], 'держите руку поднятой 1 секунду');
+    engine.setSide(raised === 'RAISE_LEFT' ? 'left' : 'right');
+    ring.textContent = '';
+    say('Опустите руку. Начинаем калибровку');
+    await new Promise((r) => setTimeout(r, 1500));
     const base = await engine.calibrate();
     console.log('[qaita] baseline', base);
-    const run = () => {
-      engine.setExercise('reach_up', { targetReps: reps });
-      say('Дотянитесь до звезды ★ и задержитесь на полсекунды');
-    };
-    bus.on('exercise-done', () => {
-      console.log('[qaita] summary', engine.getSummary());
-      say('Упражнение выполнено! Следующий подход через 3 секунды', '#9ff5c9');
-      setTimeout(run, 3000);
-    });
-    run();
+    for (const id of ['reach_up', 'reach_side']) {
+      say(`${NAMES[id]}. Покажите ладонь, когда будете готовы`);
+      await waitGesture(['PALM_HOLD'], '○○○○○○○○○○');
+      ring.textContent = 'две ладони = пауза';
+      engine.setExercise(id, { targetReps: Number(params.get('reps')) || 3 });
+      say(NAMES[id]);
+      await new Promise((r) => { const off = bus.on('exercise-done', () => { off(); r(); }); });
+      say('Упражнение выполнено! ★★★', '#9ff5c9');
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+    const s = engine.getSummary();
+    console.log('[qaita] summary', s);
+    say(`Готово! Повторов: ${s.totalReps}, исправлено ошибок: ${s.mistakesCorrected}`, '#9ff5c9');
+    ring.textContent = '';
   })();
 }

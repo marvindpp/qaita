@@ -14,6 +14,7 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
 
   return {
     id,
+    get done() { return done; },
     targetEvent: () => ex.targetEvent(),
     get tracker() { return tracker; },
     /** @returns {{events: Array<{type:string,payload:object}>, info: object}} */

@@ -15,7 +15,7 @@ export const THRESHOLDS = {
   shoulderHikeDrop: 0.20,        // ухо–плечо короче нормы на 20%+ ...
   shoulderHikeExtraAtTop: 0.15,  // ... плюс до 15% допуска, когда рука выше 90° (плечо естественно чуть поднимается)
   elbowBentDeg: 150,             // локоть согнут сильнее, чем на 150°
-  elbowCheckWristUp: 0.5,        // локоть проверяем, когда запястье выше плеча на 0,5 ширины плеч
+  elbowCheckReach: 1.0,          // локоть проверяем, когда запястье дальше 1 ширины плеч от плеча (рука вытянута)
 };
 
 // Порядок = приоритет показа (одна подсказка за раз).
@@ -73,9 +73,10 @@ export function detectMistakes(m, base, ctx) {
     }
   }
 
-  // Локоть согнут, когда рука уже высоко (там 2D-угол надёжен).
+  // Локоть согнут, когда рука уже вытянута к цели (там 2D-угол надёжен).
   const straightArm = ['reach_up', 'reach_side', 'reach_across'].includes(ctx.exercise);
-  if (straightArm && m.elbowDeg != null && m.wristRel && m.wristRel.up > T.elbowCheckWristUp && m.elbowDeg < T.elbowBentDeg) {
+  const reach = m.wristRel ? Math.hypot(m.wristRel.out, m.wristRel.up) : 0;
+  if (straightArm && m.elbowDeg != null && reach > T.elbowCheckReach && m.elbowDeg < T.elbowBentDeg) {
     out.push({
       code: 'ELBOW_BENT', severity: 2, landmarks: [idx.sh, idx.el, idx.wr], valueDeg: Math.round(m.elbowDeg),
       message: `Локоть согнут (${Math.round(m.elbowDeg)}°) — выпрямите руку полностью, тянитесь кончиками пальцев`,

@@ -7,6 +7,14 @@ import { startLoop, createFpsMeter } from './loop.js';
 import { measure } from './body.js';
 import { createCalibration } from './calibration.js';
 import { createExerciseSession } from './session.js';
+import { checkFraming } from './framing.js';
+import { detectGesture, createGestureHold } from './gestures.js';
+
+// Какие жесты слушаем в каком режиме: во время упражнения ладонь = часть движения, поэтому только пауза и «палец вверх».
+const GESTURES_IDLE = new Set(['PALM_HOLD', 'THUMBS_UP', 'PAUSE', 'RAISE_LEFT', 'RAISE_RIGHT']);
+const GESTURES_EXERCISE = new Set(['PAUSE', 'THUMBS_UP']);
+const GESTURES_NONE = new Set();
+const EXERCISE_STATUSES = new Set(['NO_PERSON', 'LOW_LIGHT']); // во время упражнения «слишком близко» ловит ошибка наклона
 
 const NO_PERSON_MS = 1000; // столько без позы → статус NO_PERSON
 
@@ -24,6 +32,8 @@ export async function createEngine({ video }) {
   let status = null;
   let lastPoseAt = 0, lastVideoTime = -1, frameNo = 0;
   let hands = [];
+  let brightness = null, lastBrightnessAt = -Infinity;
+  const gestureHold = createGestureHold();
 
   let calibration = null;      // { calib, resolve }
   let baseline = null;
@@ -38,10 +48,24 @@ export async function createEngine({ video }) {
     bus.emit('status', { code, message });
   };
 
+  // Средняя яркость кадра раз в секунду по уменьшенной копии 32×24.
+  const probe = typeof document !== 'undefined' ? document.createElement('canvas') : null;
+  function sampleBrightness(now) {
+    if (!probe || now - lastBrightnessAt < 1000) return;
+    lastBrightnessAt = now;
+    probe.width = 32; probe.height = 24;
+    const c = probe.getContext('2d', { willReadFrequently: true });
+    c.drawImage(video, 0, 0, 32, 24);
+    const px = c.getImageData(0, 0, 32, 24).data;
+    let sum = 0;
+    for (let i = 0; i < px.length; i += 4) sum += 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+    brightness = sum / (px.length / 4);
+  }
+
   const aspect = () => (video.videoWidth && video.videoHeight ? video.videoWidth / video.videoHeight : 4 / 3);
 
-  function stepCalibration(m, now) {
-    const r = calibration.calib.push(m, now);
+  function stepCalibration(m, now, framing) {
+    const r = calibration.calib.push(m, now, framing);
     bus.emit('calibration', { phase: r.phase, progress: r.progress, message: r.message });
     lastInfo = { calib: `${r.phase} ${(r.progress * 100) | 0}%` };
     if (r.done) {
@@ -62,7 +86,7 @@ export async function createEngine({ video }) {
   }
 
   function onFrame(now) {
-    if (paused || video.readyState < 2 || video.currentTime === lastVideoTime) return;
+    if (video.readyState < 2 || video.currentTime === lastVideoTime) return;
     lastVideoTime = video.currentTime;
     frameNo += 1;
 
@@ -70,16 +94,23 @@ export async function createEngine({ video }) {
     const pose = poseSmoother.next(mirror(rawPose));
     if (frameNo % 2 === 0) hands = (models.hand.detectForVideo(video, now).landmarks ?? []).map(mirror);
 
-    if (pose) {
-      lastPoseAt = now;
-      setStatus('OK', 'Вас хорошо видно');
-    } else if (now - lastPoseAt > NO_PERSON_MS) {
-      setStatus('NO_PERSON', 'Сядьте перед камерой так, чтобы были видны голова, плечи и руки');
+    sampleBrightness(now);
+    const m = measure(pose, side, aspect());
+    const framing = checkFraming(pose, m, brightness);
+    if (pose) lastPoseAt = now;
+    const personLost = !pose && now - lastPoseAt > NO_PERSON_MS;
+    if (framing.code !== 'NO_PERSON' || personLost) {
+      const quiet = exercise && !EXERCISE_STATUSES.has(framing.code);
+      if (quiet) setStatus('OK', 'Вас хорошо видно');
+      else setStatus(framing.code, framing.message);
     }
 
-    const m = measure(pose, side, aspect());
-    if (calibration) stepCalibration(m, now);
-    else if (exercise && baseline) stepExercise(m, now);
+    // На паузе упражнение стоит, но жесты видны — иначе паузу не снять без мыши.
+    if (!paused && calibration) stepCalibration(m, now, framing);
+    else if (!paused && exercise && baseline) stepExercise(m, now);
+
+    const allow = paused ? GESTURES_IDLE : calibration ? GESTURES_NONE : exercise && !exercise.done ? GESTURES_EXERCISE : GESTURES_IDLE;
+    for (const g of gestureHold.update(detectGesture({ hands, m, allow }), now)) bus.emit('gesture', g);
 
     const fps = measureFps();
     bus.emit('frame', { t: now, pose, hand: hands[0] ?? null, hands, fps });
