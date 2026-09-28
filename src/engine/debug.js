@@ -2,6 +2,57 @@
 const POSE_EDGES = [[11, 12], [11, 13], [13, 15], [12, 14], [14, 16], [11, 23], [12, 24], [23, 24], [0, 7], [0, 8], [7, 11], [8, 12]];
 const HAND_EDGES = [[0, 1], [1, 2], [2, 3], [3, 4], [0, 5], [5, 6], [6, 7], [7, 8], [5, 9], [9, 10], [10, 11], [11, 12], [9, 13], [13, 14], [14, 15], [15, 16], [13, 17], [17, 18], [18, 19], [19, 20], [0, 17]];
 
+const GHOST_MS = 3200; // цикл: 40% подъём, 25% держим, 35% опускаем
+
+function drawGhost(ctx, pose, side, target, ex, w, h) {
+  const sh = pose[side === 'left' ? 11 : 12];
+  const other = pose[side === 'left' ? 12 : 11];
+  if (!sh || sh.visibility < 0.5) return;
+  const dpr = devicePixelRatio;
+  const S = Math.abs(sh.x - other.x); // ширина плеч в долях ширины кадра
+  const out = side === 'left' ? -1 : 1;
+  const rest = { x: sh.x + 0.12 * S * out, y: sh.y + 1.05 * S * (w / h) }; // рука висит вниз
+  const cyc = (performance.now() % GHOST_MS) / GHOST_MS;
+  const k = cyc < 0.4 ? ease(cyc / 0.4) : cyc < 0.65 ? 1 : 1 - ease((cyc - 0.65) / 0.35);
+
+  if (ex === 'open_hand') { // кисть: кулак ↔ ладонь у цели
+    ctx.font = `${Math.round(w / 9)}px system-ui`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.globalAlpha = 0.9;
+    ctx.fillText(k > 0.5 ? '🖐' : '✊', target.x * w, target.y * h);
+    ctx.globalAlpha = 1; ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
+    label(ctx, k > 0.5 ? 'Раскройте' : 'Сожмите', target.x * w, (target.y - 0.14) * h, w);
+    return;
+  }
+  // Кисть тени идёт по дуге (чуть наружу), локоть — между плечом и кистью, слегка наружу.
+  const hand = { x: rest.x + (target.x - rest.x) * k, y: rest.y + (target.y - rest.y) * k };
+  const bow = Math.sin(k * Math.PI) * 0.35 * S * out;
+  hand.x += bow;
+  const elbow = { x: (sh.x + hand.x) / 2 + 0.06 * S * out, y: (sh.y + hand.y) / 2 };
+
+  ctx.save();
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.strokeStyle = 'rgba(255,255,255,.55)';
+  ctx.lineWidth = S * w * 0.28;
+  ctx.beginPath(); ctx.moveTo(sh.x * w, sh.y * h); ctx.lineTo(elbow.x * w, elbow.y * h); ctx.lineTo(hand.x * w, hand.y * h); ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,.75)';
+  ctx.beginPath(); ctx.arc(hand.x * w, hand.y * h, S * w * 0.2, 0, Math.PI * 2); ctx.fill();
+  // «Старт»: где рука начинает движение.
+  ctx.setLineDash([8 * dpr, 8 * dpr]);
+  ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 3 * dpr;
+  ctx.beginPath(); ctx.arc(rest.x * w, rest.y * h, S * w * 0.22, 0, Math.PI * 2); ctx.stroke();
+  ctx.restore();
+  label(ctx, cyc < 0.4 ? 'Медленно вверх…' : cyc < 0.65 ? 'Держим' : 'Опускаем', hand.x * w, hand.y * h - S * w * 0.35, w);
+}
+const ease = (x) => 0.5 - Math.cos(Math.PI * Math.min(1, Math.max(0, x))) / 2;
+function label(ctx, text, x, y, w) {
+  ctx.font = `700 ${Math.round(w / 26)}px system-ui`;
+  ctx.textAlign = 'center';
+  ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.strokeText(text, x, y);
+  ctx.fillStyle = '#fff'; ctx.fillText(text, x, y);
+  ctx.textAlign = 'start';
+}
+
 export function createDebugOverlay(video, { showNumbers = false } = {}) {
   const canvas = document.createElement('canvas');
   const panel = document.createElement('pre');
@@ -59,6 +110,9 @@ export function createDebugOverlay(video, { showNumbers = false } = {}) {
         ctx.fillText(ok ? 'На месте ✓' : 'Сядьте в пунктир', 0.5 * w, 0.1 * h);
         ctx.textAlign = 'start';
       }
+      // «Тень-тренер»: полупрозрачная рука растёт из ТВОЕГО плеча и показывает путь старт → звезда → назад.
+      // Видна, пока человек в покое; как только сам пошёл — исчезает (не мешает).
+      if (target && pose && info.phase === 'REST') drawGhost(ctx, pose, side, target, info.ex, w, h);
       if (target) {
         // Пунктир от кисти рабочей руки к звезде — «тянись сюда».
         const wr = pose?.[side === 'left' ? 15 : 16];
@@ -141,7 +195,7 @@ export function runDebugScenario(engine, bus, overlay, params) {
       await waitGesture(['PALM_HOLD'], '○○○○○○○○○○');
       ring.textContent = '✋✋ = пауза';
       engine.setExercise(id, { targetReps: Number(params.get('reps')) || 3 });
-      say(NAMES[id]);
+      say(`${NAMES[id]} · повторяйте за тенью`);
       await new Promise((r) => { const off = bus.on('exercise-done', () => { off(); r(); }); });
       say('★★★ Готово!', '#9ff5c9');
       await new Promise((r) => setTimeout(r, 1500));
