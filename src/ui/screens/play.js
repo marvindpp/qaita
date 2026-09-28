@@ -223,8 +223,10 @@ export default function play(ctx, { index = 0 } = {}) {
     ctx.engine.resume();
     pauseEl.dataset.show = 'false';
     pauseEl.setAttribute('aria-hidden', 'true');
-    mistake = null;
-    idleHint();
+    // Подсказку не сбрасываем: движок на паузе её помнит и не засчитает звезду, пока человек не исправится.
+    // Сбросить её здесь = человек видит «Поднимите руку…», а звезда молча не берётся.
+    if (mistake) setHint('mistake', mistake.message);
+    else idleHint();
     ctx.say('Продолжаем', { interrupt: true, force: true });
   }
 
