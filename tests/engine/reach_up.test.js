@@ -115,7 +115,19 @@ describe('reach_up session', () => {
     const ev = run(s, [[makePose(), 300], [makePose({ wrist: UP, scale: 1.18, noseDrop: 0.25 }), 1200], [makePose(), 400]]);
     const m = ev.find((e) => e.payload.code === 'TRUNK_LEAN_FORWARD');
     expect(m).toBeTruthy();
-    expect(m.payload.message).toMatch(/Корпус ушёл вперёд на ~\d+ см/);
+    expect(m.payload.message).toMatch(/Корпус наклонился вперёд на ~\d+ см/);
+  });
+
+  it('regression 28.09: raised arm «spreads» shoulder points but head is the same → NO forward-lean false alarm', () => {
+    const s = createExerciseSession('reach_up', base, ASPECT);
+    const ev = run(s, [[makePose(), 300], [makePose({ wrist: UP, spread: 1.34 }), 1200], [makePose(), 400]]);
+    expect(codes(ev)).not.toContain('TRUNK_LEAN_FORWARD');
+  });
+
+  it('never shows absurd distances (capped at 30 cm)', () => {
+    const s = createExerciseSession('reach_up', base, ASPECT);
+    const ev = run(s, [[makePose(), 300], [makePose({ wrist: UP, scale: 1.8 }), 1200], [makePose(), 400]]);
+    expect(ev.find((e) => e.payload?.code === 'TRUNK_LEAN_FORWARD').payload.valueCm).toBeLessThanOrEqual(30);
   });
 
   it('TRUNK_LEAN_SIDE names the direction', () => {

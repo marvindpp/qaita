@@ -7,19 +7,20 @@ export const ASPECT = 4 / 3;
  * @param {{out:number, up:number}|null} [o.wrist] запястье рабочей руки относительно плеча, в ширинах плеч; null = рука опущена за кадр
  * @param {number} [o.elbowBend=0] смещение локтя вбок от прямой линии (ширины плеч) → сгиб
  * @param {number} [o.elbowDrop=0] смещение локтя вниз (ширины плеч) → сгиб при отведении в сторону
+ * @param {number} [o.spread=1] только точки плеч шире (как у MediaPipe при поднятой руке), голова та же
  * @param {number} [o.scale=1] ширина плеч × scale (наклон к камере)
  * @param {number} [o.shift=0] сдвиг всего корпуса вбок (ширины плеч)
  * @param {number} [o.noseDrop=0] нос ниже нормы (ширины плеч)
  * @param {number} [o.hike=0] плечо рабочей стороны выше нормы (ширины плеч)
  */
-export function makePose({ side = 'right', wrist = null, elbowBend = 0, elbowDrop = 0, scale = 1, shift = 0, noseDrop = 0, hike = 0 } = {}) {
+export function makePose({ side = 'right', wrist = null, elbowBend = 0, elbowDrop = 0, spread = 1, scale = 1, shift = 0, noseDrop = 0, hike = 0 } = {}) {
   const S = 0.3 * scale;
   const cx = ASPECT / 2 + shift * 0.3;
   const shY = 0.62;
   const pts = Array.from({ length: 33 }, () => ({ x: cx, y: 0.9, z: 0, visibility: 0.1 }));
   const set = (i, x, y, v = 0.99) => { pts[i] = { x, y, z: 0, visibility: v }; };
   const outSign = side === 'left' ? -1 : 1;
-  const L = { x: cx - S / 2, y: shY }, R = { x: cx + S / 2, y: shY };
+  const L = { x: cx - (S * spread) / 2, y: shY }, R = { x: cx + (S * spread) / 2, y: shY };
   if (side === 'right') R.y -= hike * 0.3; else L.y -= hike * 0.3;
   set(11, L.x, L.y); set(12, R.x, R.y);
   set(0, cx, shY - 1.0 * 0.3 + noseDrop * 0.3);

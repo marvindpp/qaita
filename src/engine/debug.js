@@ -17,7 +17,7 @@ export function createDebugOverlay(video) {
   const line = (a, b, w, h) => { ctx.beginPath(); ctx.moveTo(a.x * w, a.y * h); ctx.lineTo(b.x * w, b.y * h); ctx.stroke(); };
 
   return {
-    draw({ pose, hands, fps, delegate, info = {}, target }) {
+    draw({ pose, hands, fps, delegate, info = {}, target, framing, side = 'right', showGuide = false }) {
       const r = video.getBoundingClientRect();
       Object.assign(canvas.style, { left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px` });
       canvas.width = r.width * devicePixelRatio;
@@ -35,15 +35,53 @@ export function createDebugOverlay(video) {
           if ([0, 7, 8, 11, 12, 13, 14, 15, 16].includes(i)) ctx.fillText(String(i), p.x * w + 6, p.y * h - 6);
         });
       }
+      // Силуэт-трафарет «куда сесть»: голова по центру сверху, плечи ниже, место над головой для руки.
+      if (showGuide) {
+        const ok = framing?.ok;
+        ctx.save();
+        ctx.setLineDash([14 * devicePixelRatio, 10 * devicePixelRatio]);
+        ctx.lineWidth = 5 * devicePixelRatio;
+        ctx.strokeStyle = ok ? '#46c38b' : 'rgba(255,255,255,.85)';
+        ctx.beginPath();
+        ctx.ellipse(0.5 * w, 0.42 * h, 0.075 * w, 0.13 * h, 0, 0, Math.PI * 2); // голова
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0.3 * w, 0.98 * h);
+        ctx.quadraticCurveTo(0.3 * w, 0.64 * h, 0.44 * w, 0.6 * h); // левое плечо
+        ctx.moveTo(0.7 * w, 0.98 * h);
+        ctx.quadraticCurveTo(0.7 * w, 0.64 * h, 0.56 * w, 0.6 * h); // правое плечо
+        ctx.stroke();
+        ctx.restore();
+        ctx.fillStyle = ok ? '#46c38b' : '#fff';
+        ctx.font = `600 ${22 * devicePixelRatio}px system-ui`;
+        ctx.textAlign = 'center';
+        ctx.fillText(ok ? 'Отлично, вы на месте ✓' : 'Сядьте так, чтобы голова и плечи попали в пунктир', 0.5 * w, 0.1 * h);
+        ctx.textAlign = 'start';
+      }
       if (target) {
+        // Пунктир от кисти рабочей руки к звезде — «тянись сюда».
+        const wr = pose?.[side === 'left' ? 15 : 16];
+        if (wr && wr.visibility > 0.5) {
+          ctx.save();
+          ctx.setLineDash([10 * devicePixelRatio, 10 * devicePixelRatio]);
+          ctx.strokeStyle = 'rgba(255,212,0,.9)';
+          ctx.lineWidth = 4 * devicePixelRatio;
+          ctx.beginPath(); ctx.moveTo(wr.x * w, wr.y * h); ctx.lineTo(target.x * w, target.y * h); ctx.stroke();
+          ctx.restore();
+          ctx.fillStyle = '#ffd400';
+          ctx.beginPath(); ctx.arc(wr.x * w, wr.y * h, 12 * devicePixelRatio, 0, Math.PI * 2); ctx.fill();
+        }
+        const pulse = 1 + 0.12 * Math.sin(performance.now() / 180);
+        ctx.font = `${56 * pulse * devicePixelRatio}px system-ui`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#ffd400';
+        ctx.fillText('★', target.x * w, target.y * h);
+        ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
         ctx.strokeStyle = '#ffd400';
         ctx.lineWidth = 4 * devicePixelRatio;
         ctx.beginPath();
         ctx.arc(target.x * w, target.y * h, target.radius * w, 0, Math.PI * 2);
         ctx.stroke();
-        ctx.fillStyle = '#ffd400';
-        ctx.font = `${28 * devicePixelRatio}px system-ui`;
-        ctx.fillText('★', target.x * w - 12 * devicePixelRatio, target.y * h + 10 * devicePixelRatio);
       }
       ctx.lineWidth = 3 * devicePixelRatio;
       ctx.strokeStyle = '#ffb347';
@@ -84,7 +122,7 @@ export function runDebugScenario(engine, bus, overlay, params) {
   bus.on('mistake-cleared', () => say('Отлично, так правильно!', '#9ff5c9'));
   bus.on('rep', ({ count, targetReps, quality }) => say(`${quality >= 0.9 ? '🌸' : '🌱'} Повтор ${count} из ${targetReps}`, '#9ff5c9'));
 
-  const NAMES = { reach_up: 'Звезда вверх: дотянитесь до ★ над головой', reach_side: 'Звезда в сторону: отведите руку к ★' };
+  const NAMES = { reach_up: 'Дотянитесь рукой до звезды ★ над головой и задержите на секунду', reach_side: 'Отведите руку в сторону до звезды ★ и задержите на секунду' };
   (async () => {
     say('Покажите открытую ладонь в камеру и держите 1 секунду');
     await waitGesture(['PALM_HOLD'], '○○○○○○○○○○');

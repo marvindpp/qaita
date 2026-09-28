@@ -8,8 +8,10 @@ export const SHOULDER_CM = 37;
 const CAMERA_CM = 60;
 
 export const THRESHOLDS = {
-  leanForwardWidthRatio: 1.08,   // плечи в кадре шире нормы на 8%+ → корпус пошёл к камере
+  leanForwardHeadRatio: 1.10,    // голова (ухо–ухо) в кадре больше нормы на 10%+ → корпус пошёл к камере
+  leanForwardWidthRatio: 1.15,   // запасной признак, если ушей не видно: плечи шире нормы на 15%+
   leanForwardNoseDrop: 0.15,     // нос ниже нормы на 0,15 ширины плеч
+  maxShownCm: 30,                // больше 30 см на экран не пишем — это уже «вы пересели», а не наклон
   leanSideShift: 0.12,           // центр плеч сместился вбок на 0,12 ширины плеч
   leanSideNoseShift: 0.18,       // голова сместилась вбок на 0,18 ширины плеч
   shoulderHikeDrop: 0.20,        // ухо–плечо короче нормы на 20%+ ...
@@ -36,24 +38,29 @@ export function detectMistakes(m, base, ctx) {
   const idx = sideIndex(base.side);
   const T = THRESHOLDS;
 
-  // Корпус вперёд: плечи «растут» в кадре (по горизонтали) или голова опускается к руке.
-  const widthRatio = m.Sx / base.Sx;
-  const noseDrop = m.nose && base.nose ? (m.nose.y - base.nose.y) / base.S : 0;
-  if (widthRatio > T.leanForwardWidthRatio || noseDrop > T.leanForwardNoseDrop) {
-    const cm = Math.max(noseDrop * SHOULDER_CM, (widthRatio - 1) * CAMERA_CM);
+  // Масштаб: насколько человек сейчас ближе/дальше к камере, чем при калибровке (по ширине головы).
+  const scale = m.headW && base.headW ? m.headW / base.headW : 1;
+  const unit = base.S * scale; // ширина плеч «в текущем масштабе» — делим на неё все смещения
+
+  // Корпус вперёд: голова «растёт» в кадре или опускается к руке.
+  const noseDrop = m.nose && base.nose ? (m.nose.y - base.nose.y) / unit : 0;
+  const closer = m.headW && base.headW ? scale > T.leanForwardHeadRatio : m.Sx / base.Sx > T.leanForwardWidthRatio;
+  if (closer || noseDrop > T.leanForwardNoseDrop) {
+    const ratio = m.headW && base.headW ? scale : m.Sx / base.Sx;
+    const cm = Math.min(T.maxShownCm, Math.max(noseDrop * SHOULDER_CM, (ratio - 1) * CAMERA_CM));
     out.push({
       code: 'TRUNK_LEAN_FORWARD', severity: 3, landmarks: [LM.L_SH, LM.R_SH, LM.NOSE], valueCm: Math.round(cm),
-      message: `Корпус ушёл вперёд${cmText(cm)} — прижмите спину к спинке стула и тянитесь только рукой`,
+      message: `Корпус наклонился вперёд${cmText(cm)} — выпрямите спину и тянитесь только рукой`,
     });
   }
 
   // Корпус вбок: смещаются центр плеч и голова.
-  const shift = (m.shMid.x - base.shMid.x) / base.S;
-  const noseShift = m.nose && base.nose ? (m.nose.x - base.nose.x) / base.S : 0;
+  const shift = (m.shMid.x - base.shMid.x) / unit;
+  const noseShift = m.nose && base.nose ? (m.nose.x - base.nose.x) / unit : 0;
   if (Math.abs(shift) > T.leanSideShift || Math.abs(noseShift) > T.leanSideNoseShift) {
     const main = Math.abs(noseShift) > Math.abs(shift) ? noseShift : shift;
     const dir = main > 0 ? 'вправо' : 'влево'; // зеркальный кадр: +x = правая сторона человека
-    const cm = Math.abs(main) * SHOULDER_CM;
+    const cm = Math.min(T.maxShownCm, Math.abs(main) * SHOULDER_CM);
     out.push({
       code: 'TRUNK_LEAN_SIDE', severity: 3, landmarks: [LM.L_SH, LM.R_SH, LM.NOSE], valueCm: Math.round(cm),
       message: `Корпус заваливается ${dir}${cmText(cm)} — сядьте ровно, плечи на одном уровне`,
@@ -61,11 +68,11 @@ export function detectMistakes(m, base, ctx) {
   }
 
   // Плечо к уху: расстояние ухо–плечо рабочей стороны короче нормы.
-  if (m.earSh != null && base.earSh) {
+  if (m.earShRaw != null && base.earShRaw) {
     const topBonus = T.shoulderHikeExtraAtTop * clamp(((m.elevationDeg ?? 0) - 90) / 90, 0, 1);
-    const allowed = base.earSh * (1 - T.shoulderHikeDrop - topBonus);
-    if (m.earSh < allowed) {
-      const cm = (base.earSh - m.earSh) * SHOULDER_CM;
+    const earSh = m.earShRaw / scale; // приводим к масштабу калибровки
+    if (earSh < base.earShRaw * (1 - T.shoulderHikeDrop - topBonus)) {
+      const cm = Math.min(T.maxShownCm, ((base.earShRaw - earSh) / base.S) * SHOULDER_CM);
       out.push({
         code: 'SHOULDER_HIKE', severity: 2, landmarks: [idx.sh, idx.ear], valueCm: Math.round(cm),
         message: `Плечо поднялось к уху${cmText(cm)} — опустите плечо вниз и поднимайте только руку`,

@@ -13,7 +13,7 @@ const HAND_NAME = { left: 'левую', right: 'правую' };
 
 export function phaseMessage(phase, side) {
   switch (phase) {
-    case 'neutral': return 'Сядьте ровно, спиной к спинке стула. Руки опустите и смотрите в камеру — 3 секунды';
+    case 'neutral': return 'Сядьте ровно, спина прямая. Руки опустите и смотрите в камеру — 3 секунды';
     case 'max_up': return `Поднимите ${HAND_NAME[side]} руку вверх как можно выше — без боли`;
     case 'max_side': return `Теперь отведите ${HAND_NAME[side]} руку в сторону как можно дальше`;
     default: return 'Готово! Ваша норма сохранена';
@@ -29,7 +29,7 @@ export function createCalibration(side) {
   let prep = 0;
   let elapsed = 0;
   let lastT = null;
-  const neutral = { S: [], Sx: [], shMidX: [], shMidY: [], shX: [], shY: [], tilt: [], noseX: [], noseY: [], earSh: [] };
+  const neutral = { S: [], Sx: [], shMidX: [], shMidY: [], shX: [], shY: [], tilt: [], noseX: [], noseY: [], earSh: [], earShRaw: [], headW: [] };
   let maxUp = null, maxSide = null, maxUpDeg = 0;
 
   function collect(phase, m) {
@@ -37,7 +37,8 @@ export function createCalibration(side) {
       neutral.S.push(m.S); neutral.Sx.push(m.Sx); neutral.shMidX.push(m.shMid.x); neutral.shMidY.push(m.shMid.y);
       neutral.shX.push(m.sh.x); neutral.shY.push(m.sh.y); neutral.tilt.push(m.tiltDeg);
       if (m.nose) { neutral.noseX.push(m.nose.x); neutral.noseY.push(m.nose.y); }
-      if (m.earSh != null) neutral.earSh.push(m.earSh);
+      if (m.earSh != null) { neutral.earSh.push(m.earSh); neutral.earShRaw.push(m.earShRaw); }
+      if (m.headW != null) neutral.headW.push(m.headW);
     } else if (phase === 'max_up' && m.wristRel) {
       if (!maxUp || m.wristRel.up > maxUp.up) maxUp = { ...m.wristRel };
       maxUpDeg = Math.max(maxUpDeg, m.elevationDeg ?? 0);
@@ -57,6 +58,8 @@ export function createCalibration(side) {
       tiltDeg: median(neutral.tilt),
       nose: noseX == null ? null : { x: noseX, y: noseY },
       earSh: median(neutral.earSh),
+      earShRaw: median(neutral.earShRaw),
+      headW: median(neutral.headW),
       maxUp: maxUp ?? DEFAULT_MAX_UP,
       maxSide: maxSide ?? DEFAULT_MAX_SIDE,
       maxUpDeg: Math.round(maxUpDeg),
