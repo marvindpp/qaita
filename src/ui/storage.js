@@ -13,8 +13,16 @@ export function loadSessions() {
   }
 }
 
+// Картинки «до/после» (moments, data:image ~20–70 КБ) и путь лучшего повтора (bestRep) в историю НЕ кладём
+// (CONTRACT.md): иначе через 20–30 тренировок localStorage переполнен и история молча перестаёт сохраняться.
+// Путь лучшего повтора хранится отдельно — saveBestRep(). Заодно чистим старые записи, где картинки уже есть.
+export function slimSession(session) {
+  if (!Array.isArray(session?.exercises)) return session;
+  return { ...session, exercises: session.exercises.map(({ moments, bestRep, ...e }) => e) };
+}
+
 export function saveSession(session) {
-  const list = [...loadSessions(), session].slice(-MAX_SESSIONS);
+  const list = [...loadSessions(), session].slice(-MAX_SESSIONS).map(slimSession);
   try {
     localStorage.setItem(KEY, JSON.stringify(list));
     return true;
