@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 160" width="120" height="160" role="img" aria-labelledby="t">
+  <title id="t">Росток — повтор с исправлением</title>
+  <style>
+    .grow { transform-origin: 60px 150px; animation: grow .7s cubic-bezier(.3,1.4,.5,1) both; }
+    @keyframes grow { from { transform: scale(.2, 0); } to { transform: scale(1, 1); } }
+    @media (prefers-reduced-motion: reduce) { .grow { animation: none; } }
+  </style>
+  <ellipse cx="60" cy="152" rx="34" ry="6" fill="#B9A58F" opacity=".45"/>
+  <g class="grow">
+    <path d="M60 150 C59 132 61 118 60 102" fill="none" stroke="#2F8A57" stroke-width="6" stroke-linecap="round"/>
+    <path d="M60 106 C46 106 34 96 30 80 C46 78 58 90 60 106 Z" fill="#6CC48F" stroke="#2F8A57" stroke-width="2"/>
+    <path d="M60 100 C72 96 84 84 88 68 C72 68 62 80 60 100 Z" fill="#6CC48F" stroke="#2F8A57" stroke-width="2"/>
+  </g>
+</svg>

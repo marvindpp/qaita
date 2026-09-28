@@ -1,0 +1,136 @@
+/* Qaita — дизайн-токены «тёплая медицина» (черновик для src/ui, перенесёт Ерсултан).
+ *
+ * Правило: пожилой человек без очков понимает экран за 3 секунды (docs/TASKS.md).
+ * Текст ≥ 24px, подсказка ≥ 28px. Контраст WCAG 2.1 AA: обычный текст ≥ 4.5:1, крупный ≥ 3:1.
+ *
+ * Контраст посчитан по формуле WCAG (relative luminance) скриптом docs/design/check-contrast.mjs:
+ *   node docs/design/check-contrast.mjs
+ *
+ *   Светлая тема                фон #FBF6EF   карточка #FFFFFF
+ *   --text     #2B2622           13.92          14.97   AAA
+ *   --muted    #5E554D            6.78           7.29   AA / AAA
+ *   --ok       #1F7A4D            4.95           5.32   AA
+ *   --err      #B3412E            5.26           5.66   AA
+ *   --accent   #9A5B13            5.03           5.41   AA
+ *   белый текст на --ok 5.32 · белый на --err 5.66 (кнопки/плашки)
+ *   --text на --ok-soft 12.67 · --text на --err-soft 12.20 (плашки подсказок)
+ *
+ *   Тёмная тема                 фон #1C1916   карточка #2A2521
+ *   --text     #F5EEE6           15.21          13.18   AAA
+ *   --muted    #C9BDB0            9.49           8.22   AAA
+ *   --ok       #5CC98E            8.50           7.36   AAA
+ *   --err      #F08A78            7.18           6.22   AAA / AA
+ *   --accent   #F0B45C            9.49           8.22   AAA
+ *   --on-ok на --ok 7.60 · --on-err на --err 7.25
+ *
+ * Цвет — не единственный сигнал (WCAG 1.4.1): у «правильно» всегда ✓ и слово, у ошибки — ✋ и текст.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* ——— Палитра: светлая (по умолчанию) ——— */
+  --bg: #FBF6EF;          /* тёплый молочный, не «больничный» белый */
+  --surface: #FFFFFF;     /* карточки, панель подсказки */
+  --surface-2: #F3EADF;   /* вторичные блоки, дорожки прогресса */
+  --line: #E3D6C6;        /* разделители, рамки (декор, не текст) */
+  --text: #2B2622;        /* основной текст */
+  --muted: #5E554D;       /* вторичный текст — всё равно AA */
+  --ok: #1F7A4D;          /* «правильно», повтор засчитан, «Вижу вас ✓» */
+  --ok-soft: #DDF1E4;     /* фон зелёной плашки */
+  --err: #B3412E;         /* ошибка-компенсация: мягкий терракотовый, не алый */
+  --err-soft: #FBE3DC;    /* фон плашки подсказки-ошибки */
+  --accent: #9A5B13;      /* звезда-цель, ссылки, акцентный текст */
+  --star: #F2B233;        /* заливка звезды ★ (графика, не текст) */
+  --on-ok: #FFFFFF;
+  --on-err: #FFFFFF;
+  --focus: #1F5FBF;       /* обводка фокуса для клавиатуры */
+
+  /* Поверх видео: полупрозрачные подложки, чтобы текст читался на любой картинке. */
+  --scrim: rgba(28, 25, 22, 0.72);
+  --on-scrim: #FFFFFF;
+  --skeleton: #5CC98E;    /* упрощённый скелет (плечи + рабочая рука) */
+  --skeleton-err: #F08A78;/* подсветка точки ошибки */
+
+  /* ——— Шрифт ——— */
+  /* Nunito: округлый, дружелюбный, есть кириллица. Подключение:
+     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&display=swap" rel="stylesheet"> */
+  --font: 'Nunito', 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif;
+  --weight-regular: 400;
+  --weight-bold: 800;
+  --line-height: 1.35;
+
+  /* ——— Размеры текста (минимумы из docs/TASKS.md) ——— */
+  --fs-small: 24px;       /* минимум на экране пользователя — меньше не бывает */
+  --fs-body: 26px;
+  --fs-hint: 32px;        /* панель подсказки (≥ 28px по правилу) */
+  --fs-title: clamp(36px, 5vw, 56px);
+  --fs-counter: clamp(48px, 8vw, 96px); /* «3 из 5» */
+
+  /* ——— Отступы, скругления, тени ——— */
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 40px;
+  --space-5: 64px;
+  --radius: 20px;
+  --radius-pill: 999px;
+  --shadow: 0 6px 24px rgba(60, 40, 20, 0.12);
+
+  /* ——— Кольцо «ладонь 1 сек» ——— */
+  --ring-size: 120px;
+  --ring-stroke: 12px;
+  --ring-track: var(--surface-2);
+  --ring-fill: var(--ok);
+
+  /* ——— Движение ——— */
+  --dur-fast: 150ms;
+  --dur: 300ms;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+}
+
+/* Тёмная тема: по настройке системы, если UI не задал тему явно */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1C1916; --surface: #2A2521; --surface-2: #362F29; --line: #4A4038;
+    --text: #F5EEE6; --muted: #C9BDB0;
+    --ok: #5CC98E; --ok-soft: #1E3A2A; --err: #F08A78; --err-soft: #43231C;
+    --accent: #F0B45C; --star: #F2B233;
+    --on-ok: #10281B; --on-err: #2E0F09; --focus: #8AB4FF;
+    --shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+  }
+}
+/* Тёмная тема явно: <html data-theme="dark"> */
+:root[data-theme="dark"] {
+  --bg: #1C1916; --surface: #2A2521; --surface-2: #362F29; --line: #4A4038;
+  --text: #F5EEE6; --muted: #C9BDB0;
+  --ok: #5CC98E; --ok-soft: #1E3A2A; --err: #F08A78; --err-soft: #43231C;
+  --accent: #F0B45C; --star: #F2B233;
+  --on-ok: #10281B; --on-err: #2E0F09; --focus: #8AB4FF;
+  --shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* Людям, у которых включено «уменьшить движение», — без пульсаций */
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-fast: 0ms; --dur: 0ms; }
+}
+
+/* ——— Базовые стили-примеры (можно копировать в styles/main.css) ——— */
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: var(--weight-regular) var(--fs-body) / var(--line-height) var(--font);
+}
+.q-title { font-size: var(--fs-title); font-weight: var(--weight-bold); margin: 0 0 var(--space-3); }
+.q-hint {
+  font-size: var(--fs-hint); font-weight: var(--weight-bold);
+  padding: var(--space-3) var(--space-4); border-radius: var(--radius);
+  background: var(--surface); box-shadow: var(--shadow);
+}
+.q-hint--err { background: var(--err-soft); color: var(--text); border-left: 10px solid var(--err); }
+.q-hint--ok  { background: var(--ok-soft);  color: var(--text); border-left: 10px solid var(--ok); }
+.q-badge-ok  { background: var(--ok); color: var(--on-ok); border-radius: var(--radius-pill); padding: var(--space-1) var(--space-3); font-weight: var(--weight-bold); }
+.q-on-video  { background: var(--scrim); color: var(--on-scrim); border-radius: var(--radius); padding: var(--space-2) var(--space-3); }
+.q-counter   { font-size: var(--fs-counter); font-weight: var(--weight-bold); font-variant-numeric: tabular-nums; }
+:focus-visible { outline: 4px solid var(--focus); outline-offset: 4px; }

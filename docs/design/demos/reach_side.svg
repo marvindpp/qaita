@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" width="200" height="240" role="img" aria-labelledby="t d">
+  <title id="t">Звезда в сторону</title>
+  <desc id="d">Прямая рука отводится в сторону до уровня плеча, держим, опускаем. Цикл 3 секунды. Вид как в зеркале: рабочая рука справа. Для левой руки отразите: style="transform: scaleX(-1)".</desc>
+  <!-- стул: спинка, сиденье, ножки -->
+  <g style="fill:var(--demo-chair,#E3D6C6);stroke:var(--demo-chair-line,#B9A58F)" stroke-width="2">
+    <rect x="72" y="84" width="56" height="70" rx="8"/>
+    <rect x="58" y="150" width="84" height="12" rx="4"/>
+    <line x1="64" y1="162" x2="64" y2="222"/><line x1="136" y1="162" x2="136" y2="222"/>
+  </g>
+  <!-- тело: голова, шея, туловище, ноги (неподвижны) -->
+  <g style="stroke:var(--demo-body,#5E554D);fill:none" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M100 78 V150"/>
+    <path d="M78 88 H122"/>
+    <path d="M92 150 L88 170 L86 216 M108 150 L112 170 L114 216"/>
+    <path d="M80 218 H92 M108 218 H120" stroke-width="7"/>
+    <!-- нерабочая рука лежит на колене -->
+    <path d="M78 88 L72 120 L80 148"/>
+  </g>
+  <circle cx="100" cy="58" r="19" style="fill:var(--demo-skin,#F3D9BF);stroke:var(--demo-body,#5E554D)" stroke-width="4"/>
+  <circle cx="93" cy="56" r="2" style="fill:var(--demo-body,#5E554D)"/><circle cx="107" cy="56" r="2" style="fill:var(--demo-body,#5E554D)"/>
+  <path d="M94 66 Q100 70 106 66" style="stroke:var(--demo-body,#5E554D);fill:none" stroke-width="2" stroke-linecap="round"/>
+  <!-- спина прямая: пунктир-подсказка «корпус не двигается» -->
+  <line x1="100" y1="30" x2="100" y2="150" style="stroke:var(--demo-guide,#1F7A4D)" stroke-width="1.5" stroke-dasharray="3 5" opacity=".35"/>
+<g class="star"><polygon points="186.0,73.0 188.9,80.0 196.5,80.6 190.7,85.5 192.5,92.9 186.0,89.0 179.5,92.9 181.3,85.5 175.5,80.6 183.1,80.0" style="fill:var(--demo-star,#F2B233);stroke:var(--demo-star-line,#9A5B13)" stroke-width="1.5" stroke-linejoin="round">
+    <animate attributeName="opacity" dur="3s" repeatCount="indefinite" keyTimes="0;0.33;0.4;0.53;0.6;1" values="0.55;0.55;1;1;0.55;0.55"/></polygon></g>  <!-- рабочая рука: плечо неподвижно, двигаются локоть и кисть -->
+  <g style="stroke:var(--demo-arm,#1F7A4D);fill:none" stroke-width="10" stroke-linecap="round">
+    <line x1="122" y1="88" x2="125" y2="118"><animate attributeName="x2" dur="3s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.17;0.33;0.53;0.7;0.86;1" keySplines=".42 0 .58 1; .42 0 .58 1; .42 0 .58 1; .42 0 .58 1; .42 0 .58 1; .42 0 .58 1" values="125;143;152;152;143;125;125"/><animate attributeName="y2" dur="3s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.17;0.33;0.53;0.7;0.86;1" keySplines=".42 0 .58 1; .42 0 .58 1; .42 0 .58 1; .42 0 .58 1; .42 0 .58 1; .42 0 .58 1" values="118;109;87;87;109;118;118"/></line>
+    <line x1="125" y1="118" x2="126" y2="148"><animate attributeName="x1" dur="3s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.17;0.33;0.53;0.7;0.86;1" keySplines=".42 0 .58 1; .42 0 .58 1; .42 0 .58 1; .42 0 .58 1; .42 0 .58 1; .42 0 .58 1" values="125;143;152;152;143;125;125"/><animate attributeName="y1" dur="3s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.17;0.33;0.53;0.7;0.86;1" keySplines=".42 0 .58 1; .42 0 .58 1; .42 0 .58 1; .42 0 .58 1; .42 0 .58 1; .42 0 .58 1" values="118;109;87;87;109;118;118"/><animate attributeName="x2" dur="3s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.17;0.33;0.53;0.7;0.86;1" keySplines=".42 0 .58 1; .42 0 .58 1; .42 0 .58 1; .42 0 .58 1; .42 0 .58 1; .42 0 .58 1" values="126;163;180;180;163;126;126"/><animate attributeName="y2" dur="3s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.17;0.33;0.53;0.7;0.86;1" keySplines=".42 0 .58 1; .42 0 .58 1; .42 0 .58 1; .42 0 .58 1; .42 0 .58 1; .42 0 .58 1" values="148;130;86;86;130;148;148"/></line>
+  </g>
+  <g>
+    <animateTransform attributeName="transform" type="translate" dur="3s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.17;0.33;0.53;0.7;0.86;1" keySplines=".42 0 .58 1; .42 0 .58 1; .42 0 .58 1; .42 0 .58 1; .42 0 .58 1; .42 0 .58 1" values="126 148;163 130;180 86;180 86;163 130;126 148;126 148"/>
+    <circle r="7" style="fill:var(--demo-skin,#F3D9BF);stroke:var(--demo-arm,#1F7A4D)" stroke-width="3"><animate attributeName="r" dur="3s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.17;0.33;0.53;0.7;0.86;1" keySplines=".42 0 .58 1; .42 0 .58 1; .42 0 .58 1; .42 0 .58 1; .42 0 .58 1; .42 0 .58 1" values="7;7;7;7;7;7;7"/></circle>
+  </g>
+  <circle cx="122" cy="88" r="5" style="fill:var(--demo-arm,#1F7A4D)"/>
+</svg>

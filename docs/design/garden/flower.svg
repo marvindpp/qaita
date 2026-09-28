@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 160" width="120" height="160" role="img" aria-labelledby="t">
+  <title id="t">Цветок — чистый повтор</title>
+  <style>
+    /* Вырастает один раз при появлении (0,8 с). prefers-reduced-motion — сразу готовый цветок. */
+    .grow { transform-origin: 60px 150px; animation: grow .8s cubic-bezier(.2,.8,.2,1) both; }
+    .bloom { transform-origin: 60px 58px; animation: bloom .5s .5s cubic-bezier(.3,1.6,.5,1) both; }
+    @keyframes grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+    @keyframes bloom { from { transform: scale(0); } to { transform: scale(1); } }
+    @media (prefers-reduced-motion: reduce) { .grow, .bloom { animation: none; } }
+  </style>
+  <ellipse cx="60" cy="152" rx="34" ry="6" fill="#B9A58F" opacity=".45"/>
+  <g class="grow">
+    <path d="M60 150 C58 120 62 95 60 66" fill="none" stroke="#2F8A57" stroke-width="6" stroke-linecap="round"/>
+    <path d="M60 118 C44 116 34 104 32 92 C46 92 58 102 60 118 Z" fill="#4FB27A"/>
+    <path d="M60 104 C74 100 86 90 88 78 C74 78 62 88 60 104 Z" fill="#4FB27A"/>
+  </g>
+  <g class="bloom">
+    <g fill="#F4A6B8" stroke="#D9728C" stroke-width="2">
+      <ellipse cx="60" cy="36" rx="12" ry="18"/>
+      <ellipse cx="60" cy="36" rx="12" ry="18" transform="rotate(72 60 58)"/>
+      <ellipse cx="60" cy="36" rx="12" ry="18" transform="rotate(144 60 58)"/>
+      <ellipse cx="60" cy="36" rx="12" ry="18" transform="rotate(216 60 58)"/>
+      <ellipse cx="60" cy="36" rx="12" ry="18" transform="rotate(288 60 58)"/>
+    </g>
+    <circle cx="60" cy="58" r="11" fill="#F2B233" stroke="#C98A12" stroke-width="2"/>
+  </g>
+</svg>
