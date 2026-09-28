@@ -74,6 +74,8 @@ export function createVoice() {
     setMuted(v) { muted = Boolean(v); if (muted) synth?.cancel(); for (const cb of listeners) cb({ blocked, muted }); },
     get muted() { return muted; },
     get blocked() { return blocked; },
+    /** Говорит сейчас или есть очередь фраз. */
+    get speaking() { return Boolean(synth && !muted && !blocked && (synth.speaking || synth.pending)); },
     get available() { return Boolean(synth); },
     onChange(cb) { listeners.add(cb); return () => listeners.delete(cb); },
   };

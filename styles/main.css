@@ -742,3 +742,4 @@ p { text-wrap: pretty; }
 .dose-bar { width: 44px; height: 44px; }
 .dose-bar::after { inset: 7px; }
 .btn-family { padding: 10px 18px; font-size: 22px; }
+.btn-start[hidden] { display: none; }

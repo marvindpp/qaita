@@ -35,7 +35,13 @@ export default function welcome(ctx) {
   el.querySelector('.ring-slot').replaceWith(ring.el);
   // Браузер не даёт голосу говорить, пока на странице ни разу не нажали. Жюри и родственник, открывший ссылку,
   // нажмут кнопку — и голос включится сразу (app.js разблокирует звук на любое нажатие). Жест ладонью тоже работает.
-  el.querySelector('.btn-start').addEventListener('click', () => ctx.go('prep'));
+  const startBtn = el.querySelector('.btn-start');
+  startBtn.addEventListener('click', () => ctx.go('prep'));
+  // Кнопку показываем, только если браузер реально не даёт звук (Chrome помнит сайты, где звук уже разрешали).
+  const syncStart = () => { startBtn.hidden = !(ctx.voice.blocked || ctx.sound.blocked); };
+  syncStart();
+  const offVoice = ctx.voice.onChange(syncStart);
+  const startTimer = setInterval(syncStart, 700);
   const label = el.querySelector('.ring-label');
   const sub = el.querySelector('.ring-sub');
 
@@ -77,6 +83,6 @@ export default function welcome(ctx) {
     },
     onStatus: syncReady,
     onGesture: (g) => ring.handle(g),
-    destroy() { alive = false; clearTimeout(helpTimer); ring.destroy(); },
+    destroy() { alive = false; clearTimeout(helpTimer); clearInterval(startTimer); offVoice?.(); ring.destroy(); },
   };
 }

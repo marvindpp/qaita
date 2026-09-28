@@ -1,7 +1,7 @@
 // Приложение [E]: роутер экранов + раздача событий движка текущему экрану. UI ничего не считает сам —
 // только показывает и озвучивает то, что пришло по контракту (docs/CONTRACT.md).
 import { createCamera } from './components/camera.js';
-import { setRingFireHook } from './components/ring.js';
+import { setRingFireHook, setRingBusyHook } from './components/ring.js';
 import { createVoice } from './voice.js';
 import { createSound } from './sound.js';
 import { prefersReducedMotion, esc } from './dom.js';
@@ -38,6 +38,7 @@ export function createApp({ engine, video, mock = false }) {
   const sound = createSound();
   sound.unlock();
   setRingFireHook(() => sound.confirm());
+  setRingBusyHook(() => voice.speaking);
   const ctx = { engine, camera, state, go, voice, sound, say: (text, opts) => voice.say(text, opts) };
 
   // Звук: если браузер не дал говорить без нажатия — маленькая подсказка в углу. Нажатие необязательное:
@@ -48,6 +49,29 @@ export function createApp({ engine, video, mock = false }) {
   const unlock = () => { voice.unlock(); sound.unlock(); setTimeout(syncAudioChip, 50); };
   for (const ev of ['pointerdown', 'keydown', 'touchstart']) window.addEventListener(ev, unlock, { passive: true });
   setTimeout(syncAudioChip, 1500);
+
+  // Каждый экран должен целиком помещаться на любом устройстве без прокрутки (живой тест 29.09: низкое окно
+  // браузера на ноутбуке). Если не влез — уменьшаем весь экран целиком (CSS zoom), но не меньше 55%.
+  function fit(el) {
+    if (!el?.isConnected) return;
+    el.style.zoom = '';
+    const ratio = el.clientHeight / el.scrollHeight;
+    if (ratio < 0.995) {
+      let z = Math.max(0.55, ratio);
+      el.style.zoom = String(z);
+      // Ещё проходы: при уменьшении стало шире — текст мог перенестись иначе.
+      for (let i = 0; i < 3 && z > 0.55; i += 1) {
+        const again = el.clientHeight / el.scrollHeight;
+        if (again >= 0.995) break;
+        z = Math.max(0.55, z * again * 0.99);
+        el.style.zoom = String(z);
+      }
+    }
+  }
+  let fitTimer = null;
+  window.addEventListener('resize', () => { clearTimeout(fitTimer); fitTimer = setTimeout(() => fit(current?.el), 120); });
+  // Картинки/шрифты догружаются позже — перепроверяем через полсекунды.
+  const refit = () => setTimeout(() => fit(current?.el), 500);
 
   function go(name, params = {}) {
     const make = SCREENS[name] ?? SCREENS.soon;
@@ -62,6 +86,8 @@ export function createApp({ engine, video, mock = false }) {
     current = next;
     next.enter?.();
     updateToast();
+    fit(next.el);
+    refit();
 
     const reduce = prefersReducedMotion();
     next.el.animate(
