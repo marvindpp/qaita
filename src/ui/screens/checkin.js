@@ -6,7 +6,8 @@ import { createRing } from '../components/ring.js';
 import { pendingTask, answerTask, goalById } from '../life.js';
 
 export default function checkin(ctx) {
-  const t = pendingTask();
+  // В демо-режиме (?mock=1) показываем пример задания, даже если вчера не занимались — чтобы экран можно было увидеть.
+  const t = pendingTask() ?? (ctx.state.mock ? { goal: 'cup', text: 'Возьмите чашку больной рукой 3 раза (можно пустую)', day: 'demo' } : null);
   const g = goalById(t?.goal);
   const el = html(`
     <section class="checkin" aria-labelledby="checkin-title">
