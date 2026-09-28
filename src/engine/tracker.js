@@ -3,11 +3,14 @@
 import { PRIORITY } from './mistakes.js';
 
 export const TRACKER_TIMING = { onMs: 300, offMs: 500 };
+// Кадры не шли дольше этого (пауза, человек вышел) — неподтверждённые нарушения начинаем отсчитывать заново.
+const MAX_GAP_MS = 250;
 
 export function createMistakeTracker({ onMs, offMs } = TRACKER_TIMING) {
   const state = new Map(); // code → { since, falseSince, active, payload }
   let current = null;
   let corrected = 0;
+  let lastT = null;
   const counts = {};
 
   return {
@@ -21,6 +24,10 @@ export function createMistakeTracker({ onMs, offMs } = TRACKER_TIMING) {
     update(candidates, t) {
       const events = [];
       const seen = new Set();
+      if (lastT != null && t - lastT > MAX_GAP_MS) {
+        for (const s of state.values()) if (!s.active) s.since = t;
+      }
+      lastT = t;
       for (const c of candidates) {
         seen.add(c.code);
         const s = state.get(c.code) ?? { since: t, falseSince: null, active: false, payload: c };

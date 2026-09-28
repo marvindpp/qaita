@@ -9,6 +9,7 @@ import { createCalibration } from './calibration.js';
 import { createExerciseSession } from './session.js';
 import { checkFraming } from './framing.js';
 import { detectGesture, createGestureHold } from './gestures.js';
+import { buildSummary } from './summary.js';
 
 // Какие жесты слушаем в каком режиме: во время упражнения ладонь = часть движения, поэтому только пауза и «палец вверх».
 const GESTURES_IDLE = new Set(['PALM_HOLD', 'THUMBS_UP', 'PAUSE', 'RAISE_LEFT', 'RAISE_RIGHT']);
@@ -141,6 +142,8 @@ export async function createEngine({ video }) {
     },
     setSide(s) { side = s === 'left' ? 'left' : 'right'; },
     calibrate() {
+      // Повторная калибровка посреди сессии не должна стирать уже сделанные повторы из итогов.
+      if (exercise) finished.push(exercise.result());
       exercise = null;
       return new Promise((resolve) => { calibration = { calib: createCalibration(side), resolve }; });
     },
@@ -154,26 +157,7 @@ export async function createEngine({ video }) {
     resume() { paused = false; },
     getSummary() {
       const all = [...finished, ...(exercise ? [exercise.result()] : [])];
-      // Одно упражнение могли пройти несколько раз — сливаем по id.
-      const byId = new Map();
-      for (const r of all) {
-        const acc = byId.get(r.id) ?? { id: r.id, reps: 0, qualitySum: 0, bestRomDeg: 0, mistakes: {} };
-        acc.reps += r.reps;
-        acc.qualitySum += r.quality * r.reps;
-        acc.bestRomDeg = Math.max(acc.bestRomDeg, r.bestRomDeg);
-        for (const [code, n] of Object.entries(r.mistakes)) acc.mistakes[code] = (acc.mistakes[code] ?? 0) + n;
-        byId.set(r.id, acc);
-      }
-      const exercises = [...byId.values()].map(({ qualitySum, ...e }) => ({ ...e, quality: e.reps ? qualitySum / e.reps : 0 }));
-      const totalReps = exercises.reduce((s, e) => s + e.reps, 0);
-      return {
-        side,
-        durationSec: Math.round((performance.now() - startedAt) / 1000),
-        exercises,
-        totalReps,
-        accuracy: totalReps ? exercises.reduce((s, e) => s + e.quality * e.reps, 0) / totalReps : 0,
-        mistakesCorrected: all.reduce((s, r) => s + r.corrected, 0),
-      };
+      return buildSummary(all, { side, durationSec: Math.round((performance.now() - startedAt) / 1000) });
     },
   };
   return engine;

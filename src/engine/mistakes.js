@@ -26,6 +26,9 @@ export const THRESHOLDS = {
 // Порядок = приоритет показа (одна подсказка за раз).
 export const PRIORITY = ['WRONG_HAND', 'TRUNK_LEAN_FORWARD', 'TRUNK_LEAN_SIDE', 'SHOULDER_HIKE', 'ELBOW_BENT', 'TOO_FAST', 'INCOMPLETE_ROM', 'FINGERS_NOT_OPEN'];
 
+// Меньшее по модулю из двух смещений, если они в одну сторону; иначе 0.
+const minSameSign = (a, b) => (Math.sign(a) !== Math.sign(b) ? 0 : Math.abs(a) < Math.abs(b) ? a : b);
+
 const cmText = (cm) => (cm >= 3 ? ` на ${Math.round(cm)} см` : '');
 
 /**
@@ -57,8 +60,12 @@ export function detectMistakes(m, base, ctx) {
     });
   }
 
-  // Корпус вбок: смещаются центр плеч и голова.
-  const shift = (m.shMid.x - base.shMid.x) / unit;
+  // Корпус вбок: смещаются оба плеча и голова. Точка плеча рабочей стороны «едет» за поднятой рукой
+  // (как с шириной плеч 28.09), поэтому берём меньшее из смещений центра плеч и НЕрабочего плеча:
+  // при настоящем наклоне они равны, при «поехавшей» точке одно из них ≈ 0.
+  const otherNow = base.side === 'left' ? m.rsh : m.lsh;
+  const otherBase = 2 * base.shMid.x - base.sh.x;
+  const shift = minSameSign((m.shMid.x - base.shMid.x) / unit, (otherNow.x - otherBase) / unit);
   const noseShift = m.nose && base.nose ? (m.nose.x - base.nose.x) / unit : 0;
   if (Math.abs(shift) > T.leanSideShift || Math.abs(noseShift) > T.leanSideNoseShift) {
     const main = Math.abs(noseShift) > Math.abs(shift) ? noseShift : shift;
