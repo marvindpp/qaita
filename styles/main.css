@@ -206,6 +206,20 @@ p { text-wrap: pretty; }
 .prep-go { display: flex; align-items: center; justify-content: center; gap: 24px; }
 .prep-go .ring { --size: 132px; }
 .prep-go .ring-label, .prep-go .ring-sub { text-align: left; }
+/* Ноутбук (высота ≤ 920px): 6 правил + видео + кольцо должны влезть без прокрутки и не наезжать друг на друга.
+   Видео — по оставшейся высоте, правила компактные, мелкая подпись правила — только у того, что надо поправить. */
+@media (min-width: 861px) and (orientation: landscape) and (max-height: 920px) {
+  .prep { gap: 12px; }
+  .prep h1 { font-size: clamp(36px, 2.6vw + 8px, 52px); }
+  .prep-main .cam { width: min(100%, calc((100dvh - 330px) * 4 / 3)); }
+  .rules { gap: 8px; }
+  .rule { grid-template-columns: 48px 1fr 40px; padding: 8px 14px; }
+  .rule .ico { width: 48px; height: 48px; border-radius: 14px; }
+  .rule .ico svg { width: 30px; height: 30px; }
+  .rule .tick { width: 40px; height: 40px; }
+  .rule:not([data-state='bad']) small { display: none; }
+  .prep-go .ring { --size: 112px; }
+}
 
 /* Появление элементов экрана каскадом (только при входе, коротко). */
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
@@ -297,6 +311,9 @@ p { text-wrap: pretty; }
 .hud { grid-row: 1; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
 .hud-left { grid-column: 1; align-items: flex-start; }
 .hud-right { grid-column: 3; align-items: flex-end; text-align: right; }
+/* В игре звезда часто у верхнего края кадра — бейдж «Вижу вас» уводим вниз, чтобы он её не закрывал. */
+.play .cam-badge { top: auto; bottom: 14px; left: 14px; font-size: 20px; padding: 6px 14px 6px 10px; }
+.play .cam-badge svg { width: 22px; height: 22px; }
 .hud-ex { font-size: var(--fs-small); font-weight: 800; color: var(--green); text-transform: uppercase; letter-spacing: 0.05em; }
 .hud-count { display: flex; align-items: baseline; gap: 10px; font-weight: 800; line-height: 1; }
 .hud-count b { font-size: clamp(72px, 7vw, 128px); letter-spacing: -0.04em; display: inline-block; }
@@ -438,13 +455,17 @@ p { text-wrap: pretty; }
 
 /* ——— Подсказка «звук после нажатия» (только если браузер заблокировал звук) ——— */
 .audio-chip {
-  position: absolute; right: var(--gutter); bottom: var(--gutter); z-index: 15;
-  display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 999px;
-  background: var(--surface); box-shadow: var(--shadow); color: var(--ink-2); font-size: 22px; font-weight: 700;
-  opacity: 0; transform: translateY(8px); pointer-events: none;
+  /* Сверху справа, маленькая: внизу у всех экранов кольцо «ладонь» и его подпись — их закрывать нельзя. */
+  position: absolute; right: var(--gutter); top: max(12px, env(safe-area-inset-top)); z-index: 15;
+  display: flex; align-items: center; gap: 8px; padding: 8px 14px 8px 12px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78); backdrop-filter: blur(16px) saturate(160%); -webkit-backdrop-filter: blur(16px) saturate(160%);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, var(--shadow); color: var(--ink-2); font-size: 18px; font-weight: 700;
+  opacity: 0; transform: translateY(-8px); pointer-events: none;
   transition: opacity var(--dur) ease, transform var(--dur) var(--ease-out);
 }
-.audio-chip svg { width: 26px; height: 26px; }
+.audio-chip svg { width: 22px; height: 22px; }
+/* Пока плашка видна, счёт в игре опускаем под неё. */
+.app:has(.audio-chip[data-show='true']) .hud-right { padding-top: 52px; }
 .audio-chip[data-show='true'] { opacity: 1; transform: none; }
 
 /* ——— Телефон и узкие экраны: всё в одну колонку ——— */
@@ -494,6 +515,7 @@ p { text-wrap: pretty; }
 
 /* ——— Телефон ~375px: ничего не вылезает вбок (body overflow: hidden — вылезшее просто обрезается) ——— */
 @media (max-width: 520px) {
+  .audio-chip { font-size: 16px; white-space: nowrap; }
   /* Подготовка: длинный статус («Отодвиньтесь назад») переносится, а не уходит за край */
   .prep-go > div { min-width: 0; }
   .prep-go .ring-label { font-size: 26px; overflow-wrap: anywhere; }
