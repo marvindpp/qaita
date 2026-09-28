@@ -457,7 +457,8 @@ p { text-wrap: pretty; }
 .garden-scene {
   /* Сцена «Сад Qaita»: небо с солнцем (высота солнца = дни подряд, до 7), холм с садом прошлых дней, грядки сегодня. */
   /* 5 грядок × 3 растения должны встать в один ряд на ноутбуке */
-  --plant: clamp(40px, min(4.3vw, 8.5dvh), 88px);
+  /* потолок 60px: сцена не шире 1180px, а 5 грядок × 3 растения по 88px на 1920 вылезали за края */
+  --plant: clamp(40px, min(4.3vw, 8.5dvh), 60px);
   --horizon: 46%;
   position: relative; width: min(100%, 1180px); flex: 1; min-height: 240px; max-height: 50dvh;
   border-radius: calc(var(--radius) * 1.3); overflow: hidden; isolation: isolate;
@@ -501,9 +502,8 @@ p { text-wrap: pretty; }
 .garden-plants svg { width: 100%; display: block; }
 .garden-bed figcaption {
   position: relative; margin-top: calc(var(--plant) * 0.28 + 8px); padding: 2px 12px; border-radius: 999px;
-  background: rgba(255, 255, 255, 0.82); font-size: var(--fs-small); font-weight: 800; color: var(--ink-2);
-  /* не шире грядки: на 1280–1366 длинные подписи в одну строку не влезали и обрезались по краям сцены */
-  max-width: calc(var(--plant) * 3 + 24px); text-align: center; line-height: 1.15;
+  /* сцена не шире 1180px: при 24px пять подписей в одну строку не влезали и обрезались по краям сцены */
+  background: rgba(255, 255, 255, 0.82); font-size: min(var(--fs-small), 1.5vw, 20px); font-weight: 800; color: var(--ink-2); white-space: nowrap;
 }
 .garden-chips { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; align-items: center; }
 .badge { display: inline-flex; align-items: center; gap: 12px; padding: 8px 18px 8px 10px; border-radius: 20px; background: var(--surface); box-shadow: var(--shadow); text-align: left; }
