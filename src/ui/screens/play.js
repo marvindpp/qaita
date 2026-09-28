@@ -1,5 +1,6 @@
-// Экран 6 — Игра [E]. Видео + упрощённый скелет (плечи и рабочая рука) + пульсирующая ★ + пунктир «тянись сюда»
-// + «тень-тренер» (полупрозрачная рука из плеча показывает путь, пока человек в покое) + огромная подсказка.
+// Экран 6 — Игра [E]. Видео + тонкие линии (плечи и рабочая рука) + пульсирующая ★ + пунктир «тянись сюда» от ЛАДОНИ
+// + искры за ладонью и взрыв звезды на повторе (engine/fx.js) + пока человек в покое — тень «Вы вчера»
+// (путь лучшего повтора из истории) или, если истории нет, «тень-тренер» + огромная подсказка.
 // Всё, что «знает о теле», приходит событиями движка; здесь только показ, звук, голос и очки по правилам игры.
 import { html } from '../dom.js';
 import { icons } from '../icons.js';
@@ -7,11 +8,12 @@ import { createGame } from '../game.js';
 import { createRing } from '../components/ring.js';
 import { EXERCISE_INFO, TARGET_REPS, SESSION_PLAN } from '../exercises.js';
 import { demoFigure } from '../demo-figure.js';
+import { bestRepFor, bestRepLabel, saveBestRep } from '../storage.js';
+import { createSparkles, drawYesterday } from '../../engine/fx.js';
 
 const IDX = { left: { sh: 11, el: 13, wr: 15, other: 12 }, right: { sh: 12, el: 14, wr: 16, other: 11 } };
-// Цикл тени 6,5 с: 40% подъём (2,6 с), 25% держим, 35% опускаем — как src/engine/debug.js.
-// Быстрее нельзя: тень показывала бы рывок, за который движок ругает «Слишком быстро».
-const GHOST_MS = 6500;
+const GHOST_MS = 6500;      // цикл тени: вверх 40% → держим 25% → вниз 35%. Медленно — иначе тень сама «делает рывок» (engine/debug.js)
+const HAND_EXT = 0.3;       // ладонь = запястье + 0,3 ширины плеч по предплечью (как engine/body.js)
 const REP_MESSAGE_MS = 1100;
 // Подсказки, которые движок снимает сам по таймеру, а не потому что человек исправился (src/engine/tracker.js).
 const SELF_EXPIRING = new Set(['INCOMPLETE_ROM', 'TOO_FAST']);
@@ -93,7 +95,12 @@ export default function play(ctx, { index = 0 } = {}) {
   let mistake = null;         // текущая подсказка движка
   let paused = false, done = false, alive = true;
   let lastRepAt = -Infinity, hintTimer = null;
-  let bursts = [];            // вспышки-звёздочки на повторе
+  let bursts = [];            // взрывы звезды на повторе: { x, y, clean } — нормированные, рисуем в draw()
+  const fx = createSparkles();
+  // «Вы вчера»: путь ладони лучшего повтора из истории. Нет истории — возьмём лучший сегодняшний после чистого повтора.
+  let yesterday = id === 'open_hand' ? null : bestRepFor(id);
+  let yesterdayLabel = bestRepLabel(yesterday);
+  const fromHistory = Boolean(yesterday);
 
   const resumeRing = createRing({ onFire: resume });
   $('.pause-go .ring-slot').replaceWith(resumeRing.el);
@@ -188,7 +195,11 @@ export default function play(ctx, { index = 0 } = {}) {
     setScore();
     floatPoints(`+${res.points}`);
     flash.animate([{ opacity: 0.55 }, { opacity: 0 }], { duration: 450, easing: 'ease-out' });
-    if (target) bursts.push({ t0: performance.now(), x: target.x, y: target.y });
+    if (target) bursts.push({ x: target.x, y: target.y, clean: res.clean });
+    if (!fromHistory && res.clean && id !== 'open_hand') {
+      const best = todayBest();
+      if (best) { yesterday = best; yesterdayLabel = 'Ваш лучший'; }
+    }
     ctx.sound.rep();
     if (res.comboUp) {
       ctx.sound.combo(res.multiplier);
@@ -210,7 +221,19 @@ export default function play(ctx, { index = 0 } = {}) {
     ctx.sound.done();
     const result = game.result();
     ctx.state.session?.results.push(result);
-    setTimeout(() => { if (alive) ctx.go('exercise-done', { index, result }); }, 1200);
+    const best = todayBest();
+    if (best && id !== 'open_hand') saveBestRep(id, best); // только путь (числа) — картинки остаются в памяти
+    const moments = summaryOf()?.moments;                 // стоп-кадры «до/после» → на экран итогов
+    setTimeout(() => { if (alive) ctx.go('exercise-done', { index, result, moments }); }, 1200);
+  }
+
+  // Необязательные поля итогов движка (CONTRACT.md): мок или старый движок может их не отдавать.
+  function summaryOf() {
+    try { return ctx.engine.getSummary()?.exercises?.find((e) => e.id === id) ?? null; } catch { return null; }
+  }
+  function todayBest() {
+    const b = summaryOf()?.bestRep;
+    return b?.pts?.length && b.ms > 0 ? b : null;
   }
 
   // ——— пауза: две ладони; продолжить — ладонь ———
@@ -236,32 +259,52 @@ export default function play(ctx, { index = 0 } = {}) {
   }
 
   // ——— рисование поверх видео ———
+  // Меньше линий (PLAN §9б): только плечи и рабочая рука тонкой линией, светящаяся точка на ЛАДОНИ, звезда, пунктир.
   function draw({ ctx: g, toPx, frame, w }) {
     const now = performance.now();
     const pose = frame?.pose;
     const unit = Math.max(8, w / 120);
-    const sh = pose && vis(pose[idx.sh]) ? toPx(pose[idx.sh]) : null;
-    const other = pose && vis(pose[idx.other]) ? toPx(pose[idx.other]) : null;
-    const el_ = pose && vis(pose[idx.el]) ? toPx(pose[idx.el]) : null;
-    const wr = pose && vis(pose[idx.wr]) ? toPx(pose[idx.wr]) : null;
+    const P = (i) => (pose && vis(pose[i]) ? toPx(pose[i]) : null);
+    const sh = P(idx.sh), other = P(idx.other), el_ = P(idx.el), wr = P(idx.wr);
     const S = sh && other ? Math.hypot(sh.x - other.x, sh.y - other.y) : w * 0.18;
-    // Звезду «берёт» ладонь: запястье + продолжение предплечья (локоть→запястье) на 0,3 ширины плеч (как в движке).
-    const from = el_ ?? sh;
-    const palm = wr && from ? (() => {
-      const dx = wr.x - from.x, dy = wr.y - from.y;
-      const n = Math.hypot(dx, dy) || 1;
-      return { x: wr.x + (dx / n) * 0.3 * S, y: wr.y + (dy / n) * 0.3 * S };
-    })() : wr;
+    // Ладонь = запястье + 0,3 ширины плеч по линии предплечья (локоть → запястье). Ей движок «берёт» звезду.
+    let palm = null;
+    if (wr) {
+      const from = el_ ?? sh;
+      const dx = from ? wr.x - from.x : 0, dy = from ? wr.y - from.y : 0, n = Math.hypot(dx, dy);
+      palm = n ? { x: wr.x + (dx / n) * HAND_EXT * S, y: wr.y + (dy / n) * HAND_EXT * S } : wr;
+    }
     const bad = new Set(mistake?.landmarks ?? []);
-    const star = target ? { ...toPx(target), r: Math.max(26, target.radius * toPx(target).scale) } : null;
+    const live = !paused && !done;
+    // После «упражнение готово» движок молчит — звезду, тень и пунктир прячем.
+    const star = target && !done ? { ...toPx(target), r: Math.max(26, target.radius * toPx(target).scale) } : null;
+    const outSign = side === 'left' ? -1 : 1;
 
-    // Тень-тренер: пока рука внизу и никто не ошибается — показываем путь «старт → звезда → держим → вниз».
-    const armDown = sh && wr && wr.y - sh.y > 0.55 * S;
-    const showGhost = star && sh && !paused && !done && !mistake && armDown && now - lastRepAt > 900;
-    if (showGhost) drawGhost(g, now, sh, S, star, unit);
+    // Пока рука внизу и никто не ошибается: «Вы вчера» (путь лучшего повтора) или тень-тренер.
+    const armDown = sh && palm && palm.y - sh.y > 0.55 * S;
+    const calm = star && sh && live && !mistake && armDown && now - lastRepAt > 900;
+    if (calm) {
+      if (yesterday && other) {
+        drawYesterday(g, yesterday, now, { shoulder: sh, S, outSign }, ''); // подпись рисуем сами — крупнее
+        const ball = yesterdayBall(yesterday, now, sh, S, outSign);
+        if (ball) {
+          g.save();
+          g.globalAlpha = ball.fade;
+          label(g, yesterdayLabel, ball.x, ball.y - S * 0.42, Math.max(28, unit * 3.6));
+          g.restore();
+        }
+      } else {
+        drawGhost(g, now, sh, S, star, unit);
+      }
+    }
 
-    // Пунктир от кисти к звезде: «тянись сюда». Точки бегут к звезде.
-    if (star && palm && id !== 'open_hand' && !done) {
+    // Искры за ладонью, пока рука идёт к звезде.
+    if (star && palm && live && !armDown && id !== 'open_hand' && Math.hypot(star.x - palm.x, star.y - palm.y) > star.r) {
+      fx.trail(palm.x, palm.y, now);
+    }
+
+    // Пунктир от ладони к звезде: «тянись сюда». Точки бегут к звезде.
+    if (star && palm && id !== 'open_hand') {
       const d = Math.hypot(star.x - palm.x, star.y - palm.y);
       if (d > star.r * 1.1) {
         const k = (d - star.r) / d;
@@ -281,8 +324,8 @@ export default function play(ctx, { index = 0 } = {}) {
       }
     }
 
-    // Звезда: мягкое свечение + пульс. На паузе приглушена, после exercise-done не рисуется (движок уже молчит).
-    if (star && !done) {
+    // Звезда: мягкое свечение + пульс. На паузе — приглушена.
+    if (star) {
       const pulse = 1 + 0.07 * Math.sin(now / 320);
       const r = star.r * pulse;
       g.save();
@@ -307,34 +350,35 @@ export default function play(ctx, { index = 0 } = {}) {
       g.restore();
     }
 
-    // Упрощённый скелет: линия плеч + рабочая рука. Точки ошибки — красные и пульсируют.
+    // Тонкие линии: плечи + рабочая рука до ладони. Без точек-суставов. Участок с ошибкой — красный.
     if (sh && other) {
+      const thin = Math.max(3, unit * 0.5);
       const seg = (a, b, ia, ib) => {
         if (!a || !b) return;
         const red = bad.has(ia) && bad.has(ib);
-        g.strokeStyle = 'rgba(20,28,24,.35)';
-        g.lineWidth = unit * 1.6;
-        g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke();
-        g.strokeStyle = red ? RED : '#fff';
-        g.lineWidth = unit;
+        g.strokeStyle = red ? RED : 'rgba(255,255,255,.6)';
+        g.lineWidth = red ? thin * 1.6 : thin;
         g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke();
       };
       g.save();
       g.lineCap = 'round';
+      g.shadowColor = 'rgba(0,0,0,.3)';
+      g.shadowBlur = 3;
       seg(other, sh, idx.other, idx.sh);
       seg(sh, el_, idx.sh, idx.el);
       seg(el_, wr, idx.el, idx.wr);
       seg(wr, palm, idx.wr, idx.wr);
-      for (const [p, i] of [[other, idx.other], [sh, idx.sh], [el_, idx.el], [palm, idx.wr]]) {
-        if (!p) continue;
-        g.beginPath();
-        g.arc(p.x, p.y, unit * 0.95, 0, Math.PI * 2);
-        g.fillStyle = bad.has(i) ? RED : '#fff';
-        g.fill();
-        g.lineWidth = unit * 0.4;
-        g.strokeStyle = bad.has(i) ? '#fff' : GREEN;
-        g.stroke();
-      }
+      g.restore();
+    }
+    // Точка на ладони — то, чем «берём» звезду.
+    if (palm && !done) {
+      g.save();
+      g.fillStyle = 'rgba(255,255,255,.95)';
+      g.shadowColor = '#ffd76a';
+      g.shadowBlur = unit * 2;
+      g.beginPath();
+      g.arc(palm.x, palm.y, Math.max(8, S * 0.07), 0, Math.PI * 2);
+      g.fill();
       g.restore();
     }
     if (pose && bad.size) {
@@ -354,22 +398,24 @@ export default function play(ctx, { index = 0 } = {}) {
       g.restore();
     }
 
-    // Вспышка звёздочек на повторе.
-    bursts = bursts.filter((b) => now - b.t0 < 700);
+    // Взрыв звезды на повторе: чистый (🌸) — богаче, с зеленью и кольцом.
     for (const b of bursts) {
-      const k = (now - b.t0) / 700;
       const c = toPx(b);
-      g.save();
-      g.globalAlpha = 1 - k;
-      for (let i = 0; i < 10; i += 1) {
-        const a = (i / 10) * Math.PI * 2 + 0.3;
-        const d = ease(k) * unit * 11;
-        starPath(g, c.x + Math.cos(a) * d, c.y + Math.sin(a) * d, unit * (1.3 - k * 0.6));
-        g.fillStyle = i % 2 ? GOLD : GREEN;
-        g.fill();
-      }
-      g.restore();
+      fx.burst(c.x, c.y, now, b.clean);
     }
+    bursts = [];
+    fx.draw(g, now);
+  }
+
+  // Где сейчас шар «Вы вчера» (тот же расчёт, что в engine/fx.js drawYesterday) — чтобы подписать его крупно.
+  function yesterdayBall(rep, now, sh, S, outSign) {
+    const REST_MS = 1000;
+    const t = now % (rep.ms + REST_MS);
+    if (t > rep.ms) return null;
+    let i = rep.pts.findIndex((p) => p[0] > t);
+    if (i < 0) i = rep.pts.length - 1;
+    const [, o, u] = rep.pts[i];
+    return { x: sh.x + o * S * outSign, y: sh.y - u * S, fade: Math.max(0, Math.min(1, t / 250, (rep.ms - t) / 250)) };
   }
 
   function drawGhost(g, now, sh, S, star, unit) {

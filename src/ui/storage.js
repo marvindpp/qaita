@@ -46,3 +46,43 @@ export function amplitudeOf(session) {
   const side = ex.find((e) => e.id === 'reach_side')?.bestRomDeg;
   return up || side || null;
 }
+
+// «Вы вчера»: лучший повтор каждого упражнения — только путь ладони (числа), без картинок и видео.
+const BEST_KEY = 'qaita.best.v1';
+
+export function loadBestReps() {
+  try {
+    const all = JSON.parse(localStorage.getItem(BEST_KEY) ?? '{}');
+    return all && typeof all === 'object' ? all : {};
+  } catch {
+    return {};
+  }
+}
+
+/** @returns {{ day, ms, quality, romDeg, side, pts } | null} */
+export function bestRepFor(id) {
+  const r = loadBestReps()[id];
+  return r?.pts?.length && r.ms > 0 ? r : null;
+}
+
+/** После упражнения: запомнить путь лучшего повтора (картинки moments сюда НЕ кладём — CONTRACT.md). */
+export function saveBestRep(id, rep) {
+  if (!rep?.pts?.length) return false;
+  const { ms, quality, romDeg, side, pts } = rep;
+  const all = loadBestReps();
+  all[id] = { day: dayKey(), ms, quality, romDeg, side, pts };
+  try {
+    localStorage.setItem(BEST_KEY, JSON.stringify(all));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Подпись тени: сегодняшний — «Ваш лучший», вчерашний — «Вы вчера», старше — «Вы в прошлый раз». */
+export function bestRepLabel(rep, today = new Date()) {
+  if (!rep?.day || rep.day === dayKey(today)) return 'Ваш лучший';
+  const y = new Date(today);
+  y.setDate(y.getDate() - 1);
+  return rep.day === dayKey(y) ? 'Вы вчера' : 'Вы в прошлый раз';
+}

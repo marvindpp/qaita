@@ -402,6 +402,25 @@ p { text-wrap: pretty; }
 .xdone-bed li { width: var(--plant); transform-origin: 50% 100%; }
 .xdone-bed svg { width: 100%; display: block; }
 .xdone-points { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.xdone-main { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+/* «До / после»: две крупные карточки со стоп-кадрами. На широком экране — справа от звёзд, на узком — под ними. */
+.xdone[data-moments='true'] { justify-content: safe center; }
+.xdone-moments { display: flex; gap: clamp(12px, 2vw, 28px); justify-content: center; }
+.moment { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 10px; width: min(42vw, 320px); }
+.moment img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 20px; border: 6px solid; background: #222; }
+.moment[data-kind='mistake'] img { border-color: var(--red-bright); }
+.moment[data-kind='good'] img { border-color: var(--green-bright); }
+.moment figcaption { font-size: var(--fs-body); font-weight: 800; line-height: 1.2; text-align: center; text-wrap: balance; }
+.moment[data-kind='mistake'] figcaption { color: var(--red); }
+.moment[data-kind='good'] figcaption { color: var(--green); }
+.moment-mark { display: inline-grid; vertical-align: 0.1em; margin-right: 0.35em; place-items: center; width: 1.5em; height: 1.5em; border-radius: 50%; color: #fff; font-size: 0.9em; }
+.moment[data-kind='mistake'] .moment-mark { background: var(--red-bright); }
+.moment[data-kind='good'] .moment-mark { background: var(--green-bright); }
+@media (min-width: 1100px) {
+  .xdone[data-moments='true'] { flex-direction: row; gap: clamp(24px, 3vw, 64px); }
+  .xdone[data-moments='true'] .big-star { width: clamp(72px, 7vw, 120px); }
+  .xdone[data-moments='true'] .moment { width: clamp(200px, 19vw, 380px); }
+}
 .pill { display: inline-flex; align-items: center; gap: 10px; padding: 10px 20px; border-radius: 999px; font-size: 26px; font-weight: 800; }
 .pill svg { width: 28px; height: 28px; }
 .pill-gold { background: var(--gold-soft); color: var(--ink); }
