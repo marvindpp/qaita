@@ -5,6 +5,8 @@ import { icons } from '../icons.js';
 import { createRing } from '../components/ring.js';
 import { EXERCISE_INFO } from '../exercises.js';
 import { loadSessions, saveSession, streakDays, dayKey, amplitudeOf } from '../storage.js';
+import { loadGoal, giveTask, addDose, doseToday, DAILY_DOSE, lifeFlowers, loadVoice, saveVoice, recordVoice } from '../life.js';
+import { makeCard, shareCard } from '../share.js';
 
 const plural = (n, one, few, many) => {
   const m10 = n % 10, m100 = n % 100;
@@ -40,7 +42,11 @@ function recordSession(ctx) {
     maxStars: results.length * 3,
     beds: results.map((r) => ({ id: r.exercise, plants: r.plants })),
   };
-  if (results.length) saveSession(record); // пустую сессию (сразу открыли экран) в историю не пишем
+  if (results.length) {
+    saveSession(record); // пустую сессию (сразу открыли экран) в историю не пишем
+    addDose(record.totalReps);
+    giveTask(loadGoal()); // задание из жизни на сегодня — спросим о нём на следующем занятии
+  }
   session.record = record;
   session.history = history;
   ctx.state.session = session;
@@ -52,6 +58,9 @@ export default function garden(ctx) {
   const all = [...history, record];
   const prev = history[history.length - 1];
   const streak = streakDays(all);
+  const goal = loadGoal();
+  const dose = doseToday();
+  const life = lifeFlowers();
   const clean = record.beds.length > 0 && record.beds.every((b) => b.plants.every((p) => p === 'flower'));
   const badges = [
     history.length === 0 && { icon: icons.flower, title: 'Первый шаг', text: 'Первая тренировка' },
@@ -83,6 +92,15 @@ export default function garden(ctx) {
         ${streak < 3 ? `<span class="pill pill-green">${icons.sun}${streak} ${plural(streak, 'день', 'дня', 'дней')} подряд</span>` : ''}
         ${badges.map((b) => `<span class="badge">${b.icon}<span><b>${b.title}</b><small>${b.text}</small></span></span>`).join('')}
       </div>
+      <div class="garden-life">
+        ${goal ? `<p class="life-task"><span class="life-ico" aria-hidden="true">${goal.emoji}</span><span><b>Задание на сегодня</b>${esc(goal.task)}</span></p>` : ''}
+        <p class="life-dose"><span class="dose-bar" style="--p:${Math.min(1, dose / DAILY_DOSE)}"></span><span><b>${dose} из ${DAILY_DOSE}</b> повторов сегодня${dose < DAILY_DOSE ? ' — ещё 3 минуты после обеда' : ' — норма дня!'}</span></p>
+        ${life ? `<p class="pill pill-green">💐 ${life} ${plural(life, 'раз', 'раза', 'раз')} рука помогла в жизни</p>` : ''}
+        <div class="life-family">
+          <button type="button" class="btn-family" data-act="share">📤 Отправить детям</button>
+          <button type="button" class="btn-family" data-act="voice">🎙 Голос внуков</button>
+        </div>
+      </div>
       <div class="garden-go">
         <div class="ring-slot"></div>
         <div><p class="ring-label">Показать врачу</p><p class="ring-sub">покажите ладонь</p></div>
@@ -90,6 +108,51 @@ export default function garden(ctx) {
     </section>`);
 
   const ring = createRing({ onFire: () => ctx.go('doctor') });
+  let alive = true, voiceAudio = null;
+
+  // ——— Семья (PLAN §9г) ———
+  const plantsAll = record.beds.flatMap((b) => b.plants);
+  el.querySelector('[data-act="share"]').addEventListener('click', async (e) => {
+    const b = e.currentTarget;
+    b.disabled = true;
+    const blob = await makeCard({
+      flowers: plantsAll.filter((p) => p === 'flower').length, sprouts: plantsAll.filter((p) => p === 'sprout').length,
+      reps: record.totalReps, words: compareWords(amplitudeOf(record), amplitudeOf(prev), !prev), goal, streak, lifeDone: life,
+    });
+    const r = await shareCard(blob, `Я сегодня позанимался(ась) рукой: ${record.totalReps} повторов 🌸`);
+    b.disabled = false;
+    if (r !== 'cancelled') ctx.say('Отправлено. Близкие будут рады', { interrupt: true });
+  });
+
+  // Голос близких: нет записи — записываем (это делает внук/дочь), есть — проигрываем. Хранится только здесь.
+  const voiceBtn = el.querySelector('[data-act="voice"]');
+  let recorder = null;
+  async function playVoice() {
+    const blob = await loadVoice();
+    if (!blob || !alive) return false;
+    voiceAudio?.pause();
+    voiceAudio = new Audio(URL.createObjectURL(blob));
+    voiceBtn.textContent = '💌 Послание от близких ▶';
+    voiceBtn.dataset.playing = 'true';
+    voiceAudio.onended = () => { voiceBtn.dataset.playing = 'false'; };
+    await voiceAudio.play().catch(() => {});
+    return true;
+  }
+  loadVoice().then((b) => { if (b && alive) voiceBtn.textContent = '💌 Послание от близких ▶'; });
+  voiceBtn.addEventListener('click', async () => {
+    if (recorder) {
+      const blob = await recorder.stop();
+      recorder = null;
+      if (blob && await saveVoice(blob)) { voiceBtn.textContent = '💌 Сохранено! Нажмите — послушать'; voiceBtn.dataset.rec = 'false'; }
+      return;
+    }
+    if (await loadVoice() && voiceBtn.dataset.rerecord !== 'true') { voiceBtn.dataset.rerecord = 'true'; playVoice(); return; }
+    try {
+      recorder = await recordVoice(15000);
+      voiceBtn.dataset.rec = 'true';
+      voiceBtn.textContent = '⏺ Говорите… (нажмите, чтобы закончить)';
+    } catch { voiceBtn.textContent = 'Нет доступа к микрофону'; }
+  });
   el.querySelector('.ring-slot').replaceWith(ring.el);
 
   return {
@@ -112,9 +175,11 @@ export default function garden(ctx) {
       ));
       ctx.sound.done();
       const words = compareWords(amplitudeOf(record), amplitudeOf(prev), !prev);
+      // Если близкие записали послание — оно звучит после слов тренера (самое тёплое — в конце).
+      setTimeout(() => { if (alive) playVoice(); }, 9000);
       ctx.say(`Ваш сад. ${words}. ${record.stars} ${plural(record.stars, 'звезда', 'звезды', 'звёзд')}. Покажите ладонь, чтобы открыть отчёт для врача`, { interrupt: true, hint: true });
     },
     onGesture: (g) => ring.handle(g),
-    destroy: () => ring.destroy(),
+    destroy: () => { alive = false; voiceAudio?.pause(); recorder?.stop(); ring.destroy(); },
   };
 }

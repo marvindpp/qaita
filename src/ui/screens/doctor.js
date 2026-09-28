@@ -165,6 +165,10 @@ export default function doctor(ctx) {
           <h2>Ошибки по типам</h2>
           ${mistakesByType(s, hist)}
         </section>` : ''}
+        <aside class="stroke-signs" aria-label="Признаки инсульта">
+          <h2>Признаки инсульта — звоните <b>103</b></h2>
+          <p><b>Лицо</b> перекосилось · <b>Рука</b> не поднимается · <b>Речь</b> невнятная · <b>Время</b> — звонить сразу, не ждать</p>
+        </aside>
         <p class="report-note">${icons.lock}Данные хранятся только на этом устройстве. Qaita не ставит диагноз и не заменяет врача.</p>
       </article>
     </section>`);

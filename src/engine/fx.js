@@ -23,6 +23,14 @@ export function createSparkles() {
       }
     },
     /** Взрыв звезды: чистый повтор — золото с зеленью и кольцо, иначе скромнее. */
+    /** Брызги воды из чашки: рывок или наклон с «чашкой» в руке — вода расплёскивается (понятно без слов). */
+    splash(x, y, now) {
+      for (let i = 0; i < 26; i += 1) {
+        const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.2;
+        const v = 140 + Math.random() * 200;
+        add({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, born: now, life: 700 + Math.random() * 300, r: 3 + Math.random() * 4, c: Math.random() < 0.7 ? [110, 180, 255] : WHITE });
+      }
+    },
     burst(x, y, now, clean = true) {
       const n = clean ? 46 : 20;
       for (let i = 0; i < n; i += 1) {

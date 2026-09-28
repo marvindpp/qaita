@@ -95,6 +95,8 @@ export default function play(ctx, { index = 0 } = {}) {
   let mistake = null;         // текущая подсказка движка
   let paused = false, done = false, alive = true;
   let lastRepAt = -Infinity, hintTimer = null;
+  let splashes = 0;           // сколько раз плеснуть водой из чашки (hand_to_mouth + рывок/наклон)
+  let lastPalm = null;
   let bursts = [];            // взрывы звезды на повторе: { x, y, clean } — нормированные, рисуем в draw()
   const fx = createSparkles();
   // «Вы вчера»: путь ладони лучшего повтора из истории. Нет истории — возьмём лучший сегодняшний после чистого повтора.
@@ -161,6 +163,7 @@ export default function play(ctx, { index = 0 } = {}) {
   function onMistake(m) {
     if (done) return;
     mistake = m;
+    if (id === 'hand_to_mouth' && ['TOO_FAST', 'TRUNK_LEAN_FORWARD', 'TRUNK_LEAN_SIDE'].includes(m.code)) splashes += 1;
     // «Не хватило N см» — про прошлую попытку: следующий повтор из-за неё не должен стать ростком.
     if (m.code !== 'INCOMPLETE_ROM') game.mistake();
     clearTimeout(hintTimer);
@@ -424,6 +427,17 @@ export default function play(ctx, { index = 0 } = {}) {
       fx.burst(c.x, c.y, now, b.clean);
     }
     bursts = [];
+    // «Чашка ко рту»: настоящая чашка в руке. Дёрнулся или наклонился — вода плеснула.
+    if (id === 'hand_to_mouth' && palm && live) {
+      lastPalm = palm;
+      const size = Math.max(40, S * 0.55);
+      g.save();
+      g.font = `${Math.round(size)}px system-ui, sans-serif`;
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText('☕', palm.x, palm.y - size * 0.15);
+      g.restore();
+    }
+    for (; splashes > 0; splashes -= 1) if (lastPalm) fx.splash(lastPalm.x, lastPalm.y - S * 0.3, now);
     fx.draw(g, now);
   }
 

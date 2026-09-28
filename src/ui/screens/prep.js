@@ -4,6 +4,7 @@
 import { html } from '../dom.js';
 import { icons } from '../icons.js';
 import { createRing } from '../components/ring.js';
+import { pendingTask } from '../life.js';
 
 const RULES = [
   { id: 'chair', icon: icons.chair, title: 'Сядьте на стул', hint: 'Лучше без подлокотников' },
@@ -56,7 +57,7 @@ export default function prep(ctx) {
     </section>`);
 
   const camSlot = el.querySelector('.cam-slot');
-  const ring = createRing({ onFire: () => ctx.go('hand') });
+  const ring = createRing({ onFire: () => ctx.go(pendingTask() ? 'checkin' : 'hand') });
   el.querySelector('.ring-slot').replaceWith(ring.el);
   const label = el.querySelector('.ring-label');
   const sub = el.querySelector('.ring-sub');

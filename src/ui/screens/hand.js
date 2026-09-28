@@ -18,6 +18,7 @@ export default function hand(ctx) {
         <div class="cam-slot"></div>
         <div class="hand-pick" data-side="right"><div class="ring-slot"></div><p class="ring-label">Правую</p></div>
       </div>
+      <button class="btn-mirror" type="button" aria-pressed="false">🪞 Рука совсем не поднимается? Зеркальная тренировка</button>
     </section>`);
 
   const rings = {};
@@ -31,11 +32,26 @@ export default function hand(ctx) {
     el.querySelector(`.hand-pick[data-side="${side}"] .ring-slot`).replaceWith(ring.el);
   }
 
+  // Зеркальная терапия (PLAN §9г): человек двигает ЗДОРОВОЙ рукой, на экране её отражение — на месте больной.
+  // Движок отслеживает здоровую руку, камера отражает картинку. Для тех, кто иначе выпал бы из любого тренажёра.
+  let mirror = false;
+  const btn = el.querySelector('.btn-mirror');
+  btn.addEventListener('click', () => {
+    mirror = !mirror;
+    btn.setAttribute('aria-pressed', String(mirror));
+    el.querySelector('#hand-title').textContent = mirror ? 'Какая рука ЗДОРОВАЯ?' : 'Какую руку тренируем?';
+    el.querySelector('.hand-head .lead').textContent = mirror ? 'Поднимите здоровую руку — на экране она станет больной' : 'Поднимите её вверх и подержите';
+    ctx.say(mirror ? 'Зеркальная тренировка. Поднимите здоровую руку и подержите' : 'Какую руку тренируем? Поднимите её вверх и подержите', { interrupt: true, force: true });
+  });
+
   function pick(side) {
     ctx.state.side = side;
+    ctx.state.mirror = mirror;
     ctx.engine.setSide(side);
-    ctx.say(`Тренируем ${NAME[side].toLowerCase()} руку`, { force: true });
-    ctx.go('calibration');
+    ctx.camera.setMirror(mirror ? side : null);
+    const other = side === 'left' ? 'right' : 'left';
+    ctx.say(mirror ? `Зеркало включено. Двигайте ${NAME[side].toLowerCase()} рукой — мозг увидит, что работает ${NAME[other].toLowerCase()}` : `Тренируем ${NAME[side].toLowerCase()} руку`, { force: true });
+    ctx.go('goal');
   }
 
   return {

@@ -672,3 +672,73 @@ p { text-wrap: pretty; }
   *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; }
   .ring-fill { transition: none; }
 }
+
+/* ——— «Из тренажёра — в жизнь» (PLAN §9г): зеркало, цель, задание дня, семья ——— */
+.btn-mirror {
+  align-self: center; border: 2px solid var(--green); background: var(--surface); color: var(--green);
+  font: inherit; font-size: var(--fs-small); font-weight: 800; padding: 12px 24px; border-radius: 999px; cursor: pointer;
+}
+.btn-mirror[aria-pressed='true'] { background: var(--green); color: #fff; }
+
+.goal { gap: 14px; }
+.goal-head { text-align: center; }
+.goal h1 { font-size: clamp(40px, 3.4vw + 10px, 64px); }
+.goal .lead { font-size: var(--fs-lead); color: var(--ink-2); font-weight: 600; margin-top: 6px; }
+.goal-main { flex: 1; min-height: 0; display: grid; place-items: center; }
+.goal-main .cam-slot { width: 100%; height: 100%; display: grid; place-items: center; min-height: 0; }
+.goal-main .cam { width: min(100%, 62dvh * 4 / 3); aspect-ratio: 4 / 3; }
+.goal-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.goal-btn {
+  display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 999px; padding: 10px 20px;
+  background: var(--surface); box-shadow: var(--shadow); font: inherit; font-size: var(--fs-small); font-weight: 800; color: var(--ink); cursor: pointer;
+}
+.goal-btn span { font-size: 30px; }
+.goal-btn[data-saved='true'] { outline: 3px solid var(--green); }
+
+.checkin { align-items: center; justify-content: center; text-align: center; gap: 18px; }
+.checkin h1 { font-size: var(--fs-title); }
+.checkin-task { font-size: var(--fs-lead); font-weight: 800; color: var(--green); max-width: 22ch; text-wrap: balance; }
+.checkin .lead { font-size: var(--fs-lead); color: var(--ink-2); font-weight: 600; }
+.checkin-go { display: flex; gap: clamp(24px, 6vw, 96px); margin-top: 8px; }
+.checkin-opt { display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer; }
+.checkin-opt .ring { --size: clamp(140px, 13vw, 200px); }
+
+.xdone-goal { font-size: var(--fs-lead); font-weight: 800; color: var(--green); text-align: center; text-wrap: balance; max-width: 28ch; }
+
+.garden-life { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 16px; width: min(100%, 1180px); }
+.life-task, .life-dose {
+  display: flex; align-items: center; gap: 12px; margin: 0; padding: 10px 18px; border-radius: 18px;
+  background: var(--surface); box-shadow: var(--shadow); font-size: var(--fs-small); line-height: 1.2;
+}
+.life-task b, .life-dose b { display: block; }
+.life-ico { font-size: 40px; }
+.dose-bar { position: relative; flex: none; width: 54px; height: 54px; border-radius: 50%;
+  background: conic-gradient(var(--green) calc(var(--p) * 360deg), var(--bg-deep) 0); }
+.dose-bar::after { content: ''; position: absolute; inset: 9px; border-radius: 50%; background: var(--surface); }
+.life-family { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.btn-family {
+  border: 0; border-radius: 999px; padding: 12px 22px; background: var(--green); color: #fff;
+  font: inherit; font-size: var(--fs-small); font-weight: 800; cursor: pointer; box-shadow: var(--shadow);
+}
+.btn-family:disabled { opacity: 0.6; }
+.btn-family[data-rec='true'] { background: #e0553f; animation: rec-pulse 1s ease-in-out infinite; }
+.btn-family[data-playing='true'] { background: #d48f0f; }
+@keyframes rec-pulse { 50% { transform: scale(1.05); } }
+@media (max-width: 860px), (orientation: portrait) {
+  .garden-life { gap: 8px; }
+  .life-task, .life-dose { font-size: 20px; padding: 8px 12px; }
+}
+.stroke-signs { margin-top: 14px; padding: 14px 18px; border-radius: 16px; background: #fdeceb; border: 2px solid #e0553f; }
+.stroke-signs h2 { font-size: var(--fs-body); color: #b23a28; margin: 0 0 4px; }
+.stroke-signs p { font-size: var(--fs-small); margin: 0; }
+.btn-mirror { position: relative; z-index: 2; }
+/* Сад с блоком «жизнь»: всё должно влезть в экран ноутбука вместе с кольцом «Показать врачу». */
+.garden:has(.garden-life) .garden-scene { max-height: 34dvh; min-height: 180px; }
+.garden:has(.garden-life) .garden-head .lead { margin-top: 0; }
+.garden:has(.garden-life) { gap: 10px; }
+.life-task, .life-dose { text-align: left; font-size: 20px; padding: 8px 14px; max-width: 520px; }
+.life-task b, .life-dose b { font-size: 22px; }
+.life-ico { font-size: 34px; }
+.dose-bar { width: 44px; height: 44px; }
+.dose-bar::after { inset: 7px; }
+.btn-family { padding: 10px 18px; font-size: 22px; }

@@ -23,6 +23,10 @@ export function createCamera(video, park) {
   let lastFrame = null;
   let drawExtra = null;   // экран может дорисовать своё (звезда, подсветка)
   let w = 0, h = 0, dpr = 1;
+  // Цифровое зеркало (зеркальная терапия, PLAN §9г): здоровая половина тела отражается на место больной.
+  // healthy — сторона человека, которой он двигает (её и отслеживает движок).
+  let mirror = null;      // null | 'left' | 'right'
+  let midX = null;        // линия зеркала (середина плеч) в пикселях, сглаженная
 
   const ro = new ResizeObserver(() => resize());
   ro.observe(el);
@@ -67,12 +71,47 @@ export function createCamera(video, park) {
     ctx.restore();
   }
 
+  function drawMirror() {
+    const pose = lastFrame?.pose;
+    const l = pose?.[11], r = pose?.[12];
+    if (l && r && (l.visibility ?? 1) > 0.5 && (r.visibility ?? 1) > 0.5) {
+      const m = (toPx(l).x + toPx(r).x) / 2;
+      midX = midX == null ? m : midX * 0.8 + m * 0.2;
+    }
+    if (midX == null || !video.videoWidth) return;
+    const vw = video.videoWidth, vh = video.videoHeight;
+    const s = Math.max(w / vw, h / vh);
+    const dw = vw * s, dh = vh * s, dx = (w - dw) / 2, dy = (h - dh) / 2;
+    // Зеркальные координаты: +x = правая сторона человека. Здоровая левая → слева от линии, больная — справа.
+    const affectedRight = mirror === 'left';
+    ctx.save();
+    ctx.beginPath();
+    if (affectedRight) ctx.rect(midX, 0, w - midX, h); else ctx.rect(0, 0, midX, h);
+    ctx.clip();
+    // Видео на экране отражено CSS (scaleX(-1)); отражение ещё раз вокруг midX = обычная картинка со сдвигом.
+    ctx.translate(2 * midX - w, 0);
+    ctx.drawImage(video, dx, dy, dw, dh);
+    ctx.restore();
+    // Сама «плоскость зеркала» — тонкая мягкая линия.
+    const g = ctx.createLinearGradient(midX - 10, 0, midX + 10, 0);
+    g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.5, 'rgba(255,255,255,.55)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(midX - 10, 0, 20, h);
+  }
+
+  /** В режиме зеркала всё, что рисуют экраны (звезда, ладонь), переносится на сторону больной руки. */
+  function drawPx(p) {
+    const q = toPx(p);
+    return mirror && midX != null ? { ...q, x: 2 * midX - q.x } : q;
+  }
+
   function draw() {
     if (!w) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
+    if (mirror) drawMirror();
     if (overlay === 'guide') drawGuide();
-    if (drawExtra) drawExtra({ ctx, toPx, frame: lastFrame, w, h });
+    if (drawExtra) drawExtra({ ctx, toPx: drawPx, frame: lastFrame, w, h });
   }
 
   return {
@@ -100,6 +139,8 @@ export function createCamera(video, park) {
       draw();
     },
     setWaitText(text) { wait.textContent = text; },
+    /** healthy: 'left' | 'right' — какой рукой человек реально двигает; null — выключить зеркало. */
+    setMirror(healthy) { mirror = healthy || null; midX = null; el.dataset.mirror = String(Boolean(mirror)); draw(); },
     toPx,
   };
 }
