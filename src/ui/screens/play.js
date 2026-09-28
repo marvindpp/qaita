@@ -6,6 +6,7 @@ import { icons } from '../icons.js';
 import { createGame } from '../game.js';
 import { createRing } from '../components/ring.js';
 import { EXERCISE_INFO, TARGET_REPS, SESSION_PLAN } from '../exercises.js';
+import { demoFigure } from '../demo-figure.js';
 
 const IDX = { left: { sh: 11, el: 13, wr: 15, other: 12 }, right: { sh: 12, el: 14, wr: 16, other: 11 } };
 const GHOST_MS = 3200;      // цикл тени: вверх → держим → вниз (как в прототипе Даулета)
@@ -52,6 +53,7 @@ export default function play(ctx, { index = 0 } = {}) {
         <p class="hud-ex">${info.title}</p>
         <p class="hud-count" aria-live="polite"><b>0</b><span>из ${TARGET_REPS}</span></p>
         <ol class="bed" aria-label="Грядка">${Array.from({ length: TARGET_REPS }, () => '<li class="plot"></li>').join('')}</ol>
+        <div class="hud-demo" aria-hidden="true">${demoFigure(id, side)}</div>
       </aside>
       <div class="play-cam"><div class="cam-slot"></div><div class="flash" aria-hidden="true"></div></div>
       <aside class="hud hud-right">
