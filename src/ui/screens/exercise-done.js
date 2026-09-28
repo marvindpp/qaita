@@ -43,8 +43,8 @@ export default function exerciseDone(ctx, { index = 0, result }) {
         { duration: 420, delay: 150 + i * 160, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', fill: 'backwards' },
       ));
       el.querySelectorAll('.xdone-bed li').forEach((p, i) => p.animate(
-        [{ transform: 'translateY(30%) scale(0.5)', opacity: 0 }, { transform: 'none', opacity: 1 }],
-        { duration: 380, delay: 650 + i * 110, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', fill: 'backwards' },
+        [{ transform: 'scale(0.6, 0.05)', opacity: 0 }, { opacity: 1, offset: 0.3 }, { transform: 'none', opacity: 1 }],
+        { duration: 520, delay: 650 + i * 110, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'backwards' },
       ));
       const fix = r.corrected ? ` Плюс ${r.bonus} очков за исправление.` : '';
       ctx.say(`${SAY[r.stars]}.${fix} ${next ? 'Покажите ладонь, чтобы перейти дальше' : 'Покажите ладонь, чтобы увидеть ваш сад'}`, { interrupt: true, hint: true });
