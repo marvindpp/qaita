@@ -13,6 +13,8 @@ const IDX = { left: { sh: 11, el: 13, wr: 15, other: 12 }, right: { sh: 12, el: 
 // Быстрее нельзя: тень показывала бы рывок, за который движок ругает «Слишком быстро».
 const GHOST_MS = 6500;
 const REP_MESSAGE_MS = 1100;
+// Подсказки, которые движок снимает сам по таймеру, а не потому что человек исправился (src/engine/tracker.js).
+const SELF_EXPIRING = new Set(['INCOMPLETE_ROM', 'TOO_FAST']);
 const WORDS = ['Раз!', 'Два!', 'Три!', 'Четыре!', 'Пять!', 'Шесть!'];
 
 const GOLD = '#f2b42a', GOLD_DEEP = '#d48f0f', RED = '#e0553f', GREEN = '#2ea36e';
@@ -149,7 +151,8 @@ export default function play(ctx, { index = 0 } = {}) {
   function onMistake(m) {
     if (done) return;
     mistake = m;
-    game.mistake();
+    // «Не хватило N см» — про прошлую попытку: следующий повтор из-за неё не должен стать ростком.
+    if (m.code !== 'INCOMPLETE_ROM') game.mistake();
     clearTimeout(hintTimer);
     setHint('mistake', m.message);
     ctx.sound.mistake();
@@ -158,7 +161,10 @@ export default function play(ctx, { index = 0 } = {}) {
 
   function onMistakeCleared() {
     if (!mistake || done) return;
+    const expired = SELF_EXPIRING.has(mistake.code);
     mistake = null;
+    // «Не хватило N см» и «Слишком быстро» гаснут сами по таймеру движка — это не исправление, +50 не даём.
+    if (expired) { idleHint(); return; }
     const pts = game.cleared();
     setScore();
     floatPoints(`+${pts}`);
@@ -222,8 +228,10 @@ export default function play(ctx, { index = 0 } = {}) {
     ctx.engine.resume();
     pauseEl.dataset.show = 'false';
     pauseEl.setAttribute('aria-hidden', 'true');
-    mistake = null;
-    idleHint();
+    // Подсказку не сбрасываем: движок на паузе её помнит и не засчитает звезду, пока человек не исправится.
+    // Сбросить её здесь = человек видит «Поднимите руку…», а звезда молча не берётся.
+    if (mistake) setHint('mistake', mistake.message);
+    else idleHint();
     ctx.say('Продолжаем', { interrupt: true, force: true });
   }
 
@@ -416,7 +424,7 @@ export default function play(ctx, { index = 0 } = {}) {
       } catch (err) {
         console.warn(err);
         // Упражнение ещё не реализовано в движке — тихо идём дальше по плану.
-        setTimeout(() => ctx.go(index + 1 < SESSION_PLAN.length ? 'demo' : 'garden', { index: index + 1 }), 0);
+        setTimeout(() => { if (alive) ctx.go(index + 1 < SESSION_PLAN.length ? 'demo' : 'garden', { index: index + 1 }); }, 0);
       }
     },
     onTarget,

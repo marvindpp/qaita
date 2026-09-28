@@ -27,7 +27,9 @@ function amplitudeChart(sessions) {
   if (pts.length < 2) {
     return `<p class="chart-empty">${pts.length ? `Сегодня: <b>${pts[0].v}°</b>. ` : ''}График появится после второй тренировки.</p>`;
   }
-  const W = 800, H = 260, L = 56, R = 64, T = 28, B = 44;
+  // На телефоне SVG сжимается до ширины экрана: берём узкую «бумагу», чтобы подписи не стали мельче 14px.
+  const narrow = typeof innerWidth === 'number' && innerWidth < 600;
+  const W = narrow ? 440 : 800, H = narrow ? 240 : 260, L = 56, R = narrow ? 40 : 64, T = 28, B = 44;
   const vals = pts.map((p) => p.v);
   const lo = Math.max(0, Math.floor((Math.min(...vals) - 10) / 10) * 10);
   const hi = Math.min(180, Math.ceil((Math.max(...vals) + 10) / 10) * 10);
