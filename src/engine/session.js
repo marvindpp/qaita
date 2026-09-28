@@ -1,6 +1,12 @@
 // Одно упражнение от начала до конца: оценка кадра → ошибки → повторы → события контракта.
 // Чистый модуль без DOM: его же гоняют unit-тесты.
-import { detectMistakes } from './mistakes.js';
+import { detectMistakes, THRESHOLDS, SHOULDER_CM } from './mistakes.js';
+import { FINGER_NAMES } from './body.js';
+import { LM, sideIndex } from './geometry.js';
+
+const HAND_NAME = { left: 'левую', right: 'правую' };
+// Эти подсказки не мешают засчитать следующий повтор: они про прошлое движение или про другую руку.
+const NON_BLOCKING = new Set(['INCOMPLETE_ROM', 'WRONG_HAND']);
 import { createMistakeTracker } from './tracker.js';
 import { createRepCounter } from './reps.js';
 import { createExercise } from './exercises.js';
@@ -16,6 +22,60 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
   // Адаптивная сложность: цель «догоняет» реальную руку и растёт за чистые повторы,
   // но не больше +40% от калибровки за сессию (пожилым резкий рост сложности мешает — PLAN §9).
   const MAX_GROWTH = 1.4;
+  let peakAny = 0;                 // максимум досягаемости за повтор (для «не хватило N см»)
+  let lastWrist = null;
+  const speeds = [];               // скорости запястья за последние 5 кадров, ширин плеч в секунду
+  let tooFastUntil = -Infinity, incomplete = null, reachingSince = null;
+  const idx = sideIndex(baseline.side);
+  const otherSide = baseline.side === 'left' ? 'right' : 'left';
+
+  // Ошибки, которые видны не по позе одного кадра, а по времени, скорости или другой руке.
+  function extraMistakes(m, f, phaseNow, now) {
+    const out = [];
+    const moving = phaseNow === 'REACHING' || phaseNow === 'HOLD';
+
+    if (!ex.handExercise && m?.wrist) {
+      if (lastWrist) {
+        const dt = (now - lastWrist.t) / 1000;
+        if (dt > 0 && dt < 0.2) {
+          speeds.push(Math.hypot(m.wrist.x - lastWrist.x, m.wrist.y - lastWrist.y) / baseline.S / dt);
+          if (speeds.length > 5) speeds.shift();
+        }
+      }
+      lastWrist = { ...m.wrist, t: now };
+      // Рывок = быстро 3 кадра из 5. Одиночный скачок точки (глюк трекинга) — не рывок.
+      const fastFrames = speeds.filter((v) => v > THRESHOLDS.tooFastSpeed).length;
+      if (moving && fastFrames >= 3) tooFastUntil = now + 700; // «липкая»: рывок короткий, а debounce 300 мс
+    } else { lastWrist = null; speeds.length = 0; }
+    if (now < tooFastUntil) {
+      out.push({ code: 'TOO_FAST', severity: 1, landmarks: [idx.sh, idx.el, idx.wr], message: 'Слишком быстро. Медленнее!' });
+    }
+
+    if (incomplete && now < incomplete.until) out.push(incomplete.payload);
+
+    // Не та рука: другая рука поднята, а рабочая отдыхает.
+    if (!ex.handExercise && m?.otherWrist && f.atRest) {
+      const otherSh = otherSide === 'left' ? m.lsh : m.rsh;
+      if ((otherSh.y - m.otherWrist.y) / m.S > THRESHOLDS.wrongHandUp) {
+        out.push({ code: 'WRONG_HAND', severity: 3, landmarks: [sideIndex(otherSide).wr], message: `Не та рука! Тренируем ${HAND_NAME[baseline.side]}` });
+      }
+    }
+
+    // Ладонь раскрыта не полностью: называем, какие пальцы согнуты.
+    if (ex.handExercise && m?.fingers) {
+      const open = m.fingers.filter(Boolean).length;
+      if (phaseNow === 'REACHING' && open >= 2 && open < 4) {
+        reachingSince ??= now;
+        if (now - reachingSince > THRESHOLDS.fingersGraceMs) {
+          const bent = FINGER_NAMES.filter((_, i) => !m.fingers[i]);
+          const what = bent.length === 1 ? `${cap(bent[0])} согнут` : `${cap(bent.join(' и '))} согнуты`;
+          out.push({ code: 'FINGERS_NOT_OPEN', severity: 1, landmarks: [idx.wr], message: `${what}. Раскройте ладонь!` });
+        }
+      } else if (phaseNow !== 'REACHING') reachingSince = null;
+    }
+    return out;
+  }
+  const cap = (s) => s[0].toUpperCase() + s.slice(1);
 
   return {
     id,
@@ -28,11 +88,22 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
       const f = ex.evaluate(m);
       // Фаза для детекторов — по ТЕКУЩЕМУ кадру: рука уже пошла, значит проверяем с первого кадра движения.
       const phaseNow = !f.atRest && reps.phase === 'REST' ? 'REACHING' : reps.phase;
-      const raw = detectMistakes(m, baseline, { exercise: id, phase: phaseNow });
+      if (phaseNow === 'REACHING' && reps.phase === 'REST') incomplete = null; // новый повтор — старую подсказку снимаем
+      const raw = [...detectMistakes(m, baseline, { exercise: id, phase: phaseNow }), ...extraMistakes(m, f, phaseNow, now)];
       for (const e of tracker.update(raw, now)) events.push(e);
       // Подсказку показываем после debounce, а удержание блокируем сразу по «сырому» сигналу —
       // иначе быстрый повтор с компенсацией успевает засчитаться за 300 мс фильтра.
-      const r = reps.update({ ...f, blocked: raw.length > 0 || tracker.activeCodes().length > 0, t: now });
+      const blocking = raw.some((c) => !NON_BLOCKING.has(c.code)) || tracker.activeCodes().some((c) => !NON_BLOCKING.has(c));
+      const r = reps.update({ ...f, blocked: blocking, t: now });
+      if (r.phase !== 'REST') peakAny = Math.max(peakAny, ex.reachOf(m));
+      if (r.incomplete && !ex.handExercise) {
+        const cm = Math.min(THRESHOLDS.maxShownCm, Math.max(0, ((ex.targetLen() - ex.radius - peakAny) / baseline.S) * SHOULDER_CM));
+        incomplete = {
+          until: now + 1800,
+          payload: { code: 'INCOMPLETE_ROM', severity: 1, landmarks: [idx.wr], valueCm: Math.round(cm), message: cm >= 3 ? `Не хватило ${Math.round(cm)} см. Ещё чуть-чуть!` : 'Почти! Ещё чуть-чуть!' },
+        };
+      }
+      if (r.phase === 'REST') peakAny = 0;
       if (r.phase !== 'REST' && m?.elevationDeg != null) peakRom = Math.max(peakRom, Math.round(m.elevationDeg));
       if (r.phase !== 'REST' && raw.length === 0 && tracker.activeCodes().length === 0) peakReach = Math.max(peakReach, ex.reachOf(m));
 
@@ -49,7 +120,7 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
         if (peakReach > want) want = peakReach * 1.02;
         if (cleanStreak > 0 && cleanStreak % 3 === 0) want *= 1.05;
         want = Math.min(want, startLen * MAX_GROWTH);
-        if (!done && count < targetReps && ex.moveTo(want)) events.push({ type: 'target', payload: ex.targetEvent() });
+        if (ex.adaptive && !done && count < targetReps && ex.moveTo(want)) events.push({ type: 'target', payload: ex.targetEvent() });
         peakReach = 0;
         if (count >= targetReps) {
           done = true;

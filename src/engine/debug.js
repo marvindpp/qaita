@@ -123,7 +123,7 @@ export function runDebugScenario(engine, bus, overlay, params) {
   bus.on('mistake-cleared', () => say('Отлично! ✓', '#9ff5c9'));
   bus.on('rep', ({ count, targetReps, quality }) => say(`${quality >= 0.9 ? '🌸' : '🌱'} ${count} из ${targetReps}`, '#9ff5c9'));
 
-  const NAMES = { reach_up: 'Рукой вверх до ★', reach_side: 'Рукой в сторону до ★' };
+  const NAMES = { reach_up: 'Рукой вверх до ★', reach_side: 'Рукой в сторону до ★', hand_to_mouth: 'Кисть ко рту, как чашку', reach_across: 'Рукой к другому плечу', open_hand: 'Кулак → раскрыть ладонь' };
   (async () => {
     say('✋ Покажите ладонь');
     await waitGesture(['PALM_HOLD'], '○○○○○○○○○○');
@@ -135,7 +135,8 @@ export function runDebugScenario(engine, bus, overlay, params) {
     await new Promise((r) => setTimeout(r, 1500));
     const base = await engine.calibrate();
     console.log('[qaita] baseline', base);
-    for (const id of ['reach_up', 'reach_side']) {
+    const list = (params.get('ex') ?? 'reach_up,reach_side,hand_to_mouth,reach_across,open_hand').split(',');
+    for (const id of list) {
       say(`${NAMES[id]} · ✋ готов?`);
       await waitGesture(['PALM_HOLD'], '○○○○○○○○○○');
       ring.textContent = '✋✋ = пауза';

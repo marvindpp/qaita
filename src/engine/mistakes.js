@@ -18,6 +18,9 @@ export const THRESHOLDS = {
   shoulderHikeExtraAtTop: 0.15,  // ... плюс до 15% допуска, когда рука выше 90° (плечо естественно чуть поднимается)
   elbowBentDeg: 150,             // локоть согнут сильнее, чем на 150°
   elbowCheckReach: 1.0,          // локоть проверяем, когда запястье дальше 1 ширины плеч от плеча (рука вытянута)
+  tooFastSpeed: 4.5,             // запястье быстрее 4,5 ширины плеч в секунду — рывок
+  fingersGraceMs: 1200,          // столько даём раскрыть ладонь, прежде чем назвать согнутые пальцы
+  wrongHandUp: 0.3,              // другая рука выше своего плеча на 0,3 ширины плеч — работает не та рука
 };
 
 // Порядок = приоритет показа (одна подсказка за раз).
@@ -81,7 +84,8 @@ export function detectMistakes(m, base, ctx) {
   }
 
   // Локоть согнут, когда рука уже вытянута к цели (там 2D-угол надёжен).
-  const straightArm = ['reach_up', 'reach_side', 'reach_across'].includes(ctx.exercise);
+  // reach_across идёт к камере — 2D-угол локтя там врёт (ошибка 8° против 1°, PLAN §9), не проверяем.
+  const straightArm = ['reach_up', 'reach_side'].includes(ctx.exercise);
   const reach = m.wristRel ? Math.hypot(m.wristRel.out, m.wristRel.up) : 0;
   if (straightArm && m.elbowDeg != null && reach > T.elbowCheckReach && m.elbowDeg < T.elbowBentDeg) {
     out.push({

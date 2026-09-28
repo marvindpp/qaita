@@ -27,13 +27,37 @@ export const EXERCISE_DEFS = {
   reach_side: {
     target: (base, aspect) => targetFromRel(base, base.maxSide, aspect),
   },
+  // «Чашка ко рту» — функциональная задача (её изучали в статье про компенсации). Цель — рот, не растёт.
+  hand_to_mouth: {
+    adaptive: false,
+    target: (base, aspect) => {
+      const { outSign } = sideIndex(base.side);
+      const mouth = base.nose ? { x: base.nose.x, y: base.nose.y + 0.18 * base.S } : { x: base.sh.x - 0.5 * base.S * outSign, y: base.sh.y - 0.6 * base.S };
+      const edge = EDGE + RADIUS_MAX;
+      return { x: clamp(mouth.x, edge * aspect, (1 - edge) * aspect), y: clamp(mouth.y, edge * aspect, 1 - edge) };
+    },
+    radiusScale: 0.7,
+  },
+  // «Через себя» — ладонью к противоположному плечу. Движение частично к камере → локоть не проверяем (2D врёт).
+  reach_across: {
+    target: (base, aspect) => targetFromRel(base, { out: -1.15, up: 0.25 }, aspect),
+  },
+  // «Раскрыть ладонь» — кулак → ладонь. Ключевое для кисти после инсульта. Цель — «покажите ладонь здесь».
+  open_hand: {
+    adaptive: false,
+    hand: true,
+    target: (base, aspect) => {
+      const { outSign } = sideIndex(base.side);
+      return { x: base.sh.x - 0.2 * base.S * outSign, y: base.sh.y + 0.35 * base.S };
+    },
+  },
 };
 
 export function createExercise(id, base, aspect) {
   const def = EXERCISE_DEFS[id];
   if (!def) return null;
   let target = def.target(base, aspect);
-  const radius = clamp(TARGET_RADIUS_S * base.S, RADIUS_MIN * aspect, RADIUS_MAX * aspect);
+  const radius = clamp(TARGET_RADIUS_S * base.S * (def.radiusScale ?? 1), RADIUS_MIN * aspect, RADIUS_MAX * aspect);
   const restUp = -0.4; // запястье ниже плеча на 0,4 ширины плеч (или не видно) = рука опущена
   // Направление «плечо → цель»: по нему считаем, насколько далеко человек дотянулся.
   const dir0 = { x: target.x - base.sh.x, y: target.y - base.sh.y };
@@ -48,6 +72,8 @@ export function createExercise(id, base, aspect) {
 
   return {
     id,
+    adaptive: def.adaptive !== false,
+    handExercise: Boolean(def.hand),
     get target() { return target; },
     radius,
     /** Для события `target` по контракту: нормированные координаты, radius — доля ширины кадра. */
@@ -59,6 +85,7 @@ export function createExercise(id, base, aspect) {
     reachOf(m) { return m?.wrist ? alongOf(m.wrist) : 0; },
     /** Отодвинуть цель на длину len от плеча (в пределах кадра). @returns true, если цель сдвинулась */
     moveTo(len) {
+      if (def.adaptive === false) return false;
       const next = clampToFrame({ x: base.sh.x + unit.x * len, y: base.sh.y + unit.y * len });
       if (dist(next, target) < radius * 0.25) return false;
       target = next;
@@ -66,6 +93,10 @@ export function createExercise(id, base, aspect) {
     },
     targetLen,
     evaluate(m) {
+      if (def.hand) {
+        const open = m?.fingers ? m.fingers.filter(Boolean).length : 0;
+        return { atRest: !m?.fingers || open <= 1, inTarget: open === 4, progress: open / 4 };
+      }
       const w = m?.wristRel;
       const atRest = !w || w.up < restUp;
       const wristS = m?.wrist;

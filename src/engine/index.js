@@ -95,7 +95,7 @@ export async function createEngine({ video }) {
     if (frameNo % 2 === 0) hands = (models.hand.detectForVideo(video, now).landmarks ?? []).map(mirror);
 
     sampleBrightness(now);
-    const m = measure(pose, side, aspect());
+    const m = measure(pose, side, aspect(), hands);
     const framing = checkFraming(pose, m, brightness);
     if (pose) lastPoseAt = now;
     const personLost = !pose && now - lastPoseAt > NO_PERSON_MS;
