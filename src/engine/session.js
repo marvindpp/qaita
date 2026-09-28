@@ -13,6 +13,7 @@ import { createExercise } from './exercises.js';
 
 // «Чистый» повтор — как в игре «Сад Qaita» (docs/TASKS.md): quality ≥ 0.9.
 export const CLEAN_QUALITY = 0.9;
+const PATH_STEP_MS = 40; // точка пути ладони раз в 40 мс (≈ 25 точек в секунду, повтор ~3 с = ~75 точек)
 // «Не дотянулся» — словами по доле пути до звезды, без сантиметров.
 const INCOMPLETE = ['Почти! Ещё чуть-чуть!', 'Не хватило немного. Дальше!', 'Далеко до звезды. Тянитесь!'];
 
@@ -23,6 +24,10 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
   const reps = createRepCounter();
   let count = 0, cleanReps = 0, qualitySum = 0, bestRomDeg = 0, peakRom = 0, done = false;
   let peakPoint = null, cleanStreak = 0;
+  // «Ты вчерашний»: путь ладони лучшего повтора — [мс от старта, наружу, вверх] в ширинах плеч от плеча.
+  // UI сохраняет его в историю и завтра показывает как тень, за которой надо повторить.
+  let path = [], repStart = null, bestRep = null, restBuf = [];
+  const outSign = sideIndex(baseline.side).outSign;
   // Адаптивная сложность: цель «догоняет» реальную руку и растёт за чистые повторы,
   // но не больше +40% от калибровки за сессию (пожилым резкий рост сложности мешает — PLAN §9).
   const MAX_STEP_DEG = 25; // за один повтор звезда не прыгает больше чем на 25° (плавная сложность, PLAN §9)
@@ -85,6 +90,8 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
   return {
     id,
     get done() { return done; },
+    /** Стоп-кадры «до/после» кладёт сюда index.js (у него есть видео): { mistake?, good? }. */
+    moments: {},
     targetEvent: () => ex.targetEvent(),
     get tracker() { return tracker; },
     /** @returns {{events: Array<{type:string,payload:object}>, info: object}} */
@@ -114,6 +121,21 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
         };
       }
       if (r.phase === 'REST') peakAny = 0;
+      const rel = m.handPt ? [+(((m.handPt.x - baseline.sh.x) / baseline.S) * outSign).toFixed(3), +((baseline.sh.y - m.handPt.y) / baseline.S).toFixed(3)] : null;
+      if (r.phase === 'REST' && rel) { // «разгон»: последние 0,8 с в покое — чтобы тень стартовала от опущенной руки
+        restBuf.push([now, ...rel]);
+        while (restBuf.length && now - restBuf[0][0] > 800) restBuf.shift();
+      }
+      if (r.phase !== 'REST' && rel) {
+        if (repStart == null) {
+          repStart = restBuf.length ? restBuf[0][0] : now;
+          path = restBuf.map(([t, o, u]) => [Math.round(t - repStart), o, u]);
+        }
+        const last = path[path.length - 1];
+        if (!last || now - repStart - last[0] >= PATH_STEP_MS) {
+          path.push([Math.round(now - repStart), ...rel]);
+        }
+      }
       if (r.phase !== 'REST' && m?.elevationDeg != null) peakRom = Math.max(peakRom, Math.round(m.elevationDeg));
       // Самая «амплитудная» точка чистого движения (без компенсаций) — туда может переехать звезда.
       if (r.phase !== 'REST' && m?.handPt && raw.length === 0 && tracker.activeCodes().length === 0 && (!peakPoint || ex.romOf(m.handPt) > ex.romOf(peakPoint))) peakPoint = { ...m.handPt };
@@ -124,6 +146,9 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
         if (r.rep.quality >= CLEAN_QUALITY) cleanReps += 1;
         bestRomDeg = Math.max(bestRomDeg, peakRom);
         events.push({ type: 'rep', payload: { exercise: id, count, targetReps, quality: r.rep.quality, romDeg: peakRom } });
+        if (path.length >= 4 && (!bestRep || r.rep.quality > bestRep.quality || (r.rep.quality === bestRep.quality && peakRom > bestRep.romDeg))) {
+          bestRep = { quality: r.rep.quality, romDeg: peakRom, ms: Math.round(now - repStart), side: baseline.side, pts: path };
+        }
         peakRom = 0;
         cleanStreak = r.rep.quality >= CLEAN_QUALITY ? cleanStreak + 1 : 0;
         // Звезда всегда на длине прямой руки, поэтому «сложнее» = выше по углу, а не дальше.
@@ -140,6 +165,7 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
           events.push({ type: 'exercise-done', payload: { exercise: id, reps: count, quality: qualitySum / count } });
         }
       }
+      if (r.phase === 'REST' && repStart != null) { path = []; repStart = null; restBuf = []; }
       return {
         events,
         info: { ex: id, phase: r.phase, hold: r.holdProgress, reps: `${count}/${targetReps}`, mistake: tracker.current ?? '—' },
@@ -147,7 +173,7 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
     },
     get done() { return done; },
     result() {
-      return { id, reps: count, quality: count ? qualitySum / count : 0, cleanReps, bestRomDeg, mistakes: tracker.counts, corrected: tracker.corrected };
+      return { id, reps: count, quality: count ? qualitySum / count : 0, cleanReps, bestRomDeg, mistakes: tracker.counts, corrected: tracker.corrected, bestRep, moments: this.moments };
     },
   };
 }

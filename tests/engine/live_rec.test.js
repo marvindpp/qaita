@@ -34,3 +34,16 @@ describe('hints without centimeters (28.09: camera does not know the real distan
     for (const e of events) if (e.type === 'mistake') expect(e.payload.message).not.toMatch(/\d\s*см/);
   });
 });
+
+describe('«вы вчера»: путь лучшего повтора', () => {
+  it('each arm exercise keeps its best rep path, starting near the rest pose and going up', () => {
+    for (const r of summary.filter((x) => x.id !== 'open_hand')) {
+      const b = r.bestRep;
+      expect(b, r.id).toBeTruthy();
+      expect(b.pts.length, r.id).toBeGreaterThan(10);
+      expect(b.ms, r.id).toBeGreaterThan(500);
+      const maxUp = Math.max(...b.pts.map((p) => p[2]));
+      expect(maxUp, r.id).toBeGreaterThan(b.pts[0][2]); // рука поднималась
+    }
+  });
+});

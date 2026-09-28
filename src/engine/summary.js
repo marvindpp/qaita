@@ -8,11 +8,14 @@ export function buildSummary(results, { side, durationSec }) {
   // Одно упражнение могли пройти несколько раз — сливаем по id.
   const byId = new Map();
   for (const r of results) {
-    const acc = byId.get(r.id) ?? { id: r.id, reps: 0, cleanReps: 0, qualitySum: 0, bestRomDeg: 0, mistakes: {} };
+    const acc = byId.get(r.id) ?? { id: r.id, reps: 0, cleanReps: 0, qualitySum: 0, bestRomDeg: 0, mistakes: {}, bestRep: null, moments: {} };
     acc.reps += r.reps;
     acc.cleanReps += r.cleanReps ?? 0;
     acc.qualitySum += r.quality * r.reps;
     acc.bestRomDeg = Math.max(acc.bestRomDeg, r.bestRomDeg);
+    // Необязательные поля (29.09, «вау»): путь лучшего повтора и стоп-кадры «до/после».
+    if (r.bestRep && (!acc.bestRep || r.bestRep.quality > acc.bestRep.quality || (r.bestRep.quality === acc.bestRep.quality && r.bestRep.romDeg > acc.bestRep.romDeg))) acc.bestRep = r.bestRep;
+    if (r.moments) acc.moments = { ...r.moments, ...acc.moments };
     for (const [code, n] of Object.entries(r.mistakes)) acc.mistakes[code] = (acc.mistakes[code] ?? 0) + n;
     byId.set(r.id, acc);
   }

@@ -10,6 +10,7 @@ import { createExerciseSession } from './session.js';
 import { checkFraming } from './framing.js';
 import { detectGesture, createGestureHold } from './gestures.js';
 import { buildSummary } from './summary.js';
+import { snapshot } from './moments.js';
 
 // Какие жесты слушаем в каком режиме: во время упражнения ладонь = часть движения, поэтому только пауза и «палец вверх».
 const GESTURES_IDLE = new Set(['PALM_HOLD', 'THUMBS_UP', 'PAUSE', 'RAISE_LEFT', 'RAISE_RIGHT']);
@@ -77,8 +78,27 @@ export async function createEngine({ video }) {
     }
   }
 
-  function stepExercise(m, now) {
+  // «До/после»: первый серьёзный промах (severity ≥ 2) и лучший чистый повтор — стоп-кадрами в итоги.
+  let pendingGood = null;
+  function captureMoments(pose, events, info) {
+    const mo = exercise.moments;
+    if (lastInfo.phase === 'HOLD' && info.phase === 'RETURNING' && pose) {
+      pendingGood = snapshot(video, pose, { kind: 'good', side, target: exercise.targetEvent() });
+    }
+    for (const e of events) {
+      if (e.type === 'mistake' && e.payload.severity >= 2 && !mo.mistake && pose) {
+        mo.mistake = { code: e.payload.code, message: e.payload.message, image: snapshot(video, pose, { kind: 'mistake', side, landmarks: e.payload.landmarks }) };
+      }
+      if (e.type === 'rep') {
+        if (pendingGood && e.payload.quality >= 0.9 && (!mo.good || e.payload.romDeg > mo.good.romDeg)) mo.good = { image: pendingGood, romDeg: e.payload.romDeg };
+        pendingGood = null;
+      }
+    }
+  }
+
+  function stepExercise(m, now, pose) {
     const { events, info } = exercise.step(m, now);
+    try { captureMoments(pose, events, info); } catch (err) { console.warn('[qaita] snapshot', err); }
     for (const e of events) bus.emit(e.type, e.payload);
     lastInfo = {
       ...info, elev: m?.elevationDeg, elbow: m?.elbowDeg,
@@ -109,7 +129,7 @@ export async function createEngine({ video }) {
 
     // На паузе упражнение стоит, но жесты видны — иначе паузу не снять без мыши.
     if (!paused && calibration) stepCalibration(m, now, framing);
-    else if (!paused && exercise && baseline) stepExercise(m, now);
+    else if (!paused && exercise && baseline) stepExercise(m, now, pose);
 
     const allow = paused ? GESTURES_IDLE : calibration ? GESTURES_NONE : exercise && !exercise.done ? GESTURES_EXERCISE : GESTURES_IDLE;
     for (const g of gestureHold.update(detectGesture({ hands, m, allow }), now)) bus.emit('gesture', g);

@@ -5,6 +5,7 @@ const HAND_EDGES = [[0, 1], [1, 2], [2, 3], [3, 4], [0, 5], [5, 6], [6, 7], [7, 
 // Цикл: 40% подъём (2,6 с), 25% держим, 35% опускаем. Тень сама двигается МЕДЛЕННО — иначе она показывает
 // рывок, за который движок ругает «Слишком быстро» (живой тест 28.09: подъём был 1,3 с).
 const GHOST_MS = 6500;
+import { createSparkles, drawYesterday } from './fx.js';
 
 function drawGhost(ctx, pose, side, target, ex, w, h) {
   const sh = pose[side === 'left' ? 11 : 12];
@@ -76,8 +77,18 @@ export function createDebugOverlay(video, { showNumbers = false } = {}) {
   const ctx = canvas.getContext('2d');
 
   const line = (a, b, w, h) => { ctx.beginPath(); ctx.moveTo(a.x * w, a.y * h); ctx.lineTo(b.x * w, b.y * h); ctx.stroke(); };
+  // Чистый вид (debug=1): только своё видео, рабочая рука тонко, ладонь, звезда, искры, «вы вчера».
+  // Технический вид (debug=2): весь скелет, кисти, номера точек, цифры.
+  const clean = !showNumbers;
+  const fx = createSparkles();
+  let yesterday = null, yesterdayLabel = 'Вы вчера';
+  let lastStarPx = null, lastPalmPx = null;
 
   return {
+    /** Путь лучшего повтора (bestRep из итогов) — его проходит тень «вы вчера». */
+    setYesterday(rep, label = 'Вы вчера') { yesterday = rep; yesterdayLabel = label; },
+    /** На засчитанный повтор — взрыв искр у звезды. */
+    onRep({ quality }) { const p = lastStarPx ?? lastPalmPx; if (p) fx.burst(p.x, p.y, performance.now(), quality >= 0.9); },
     draw({ pose, hands, fps, delegate, info = {}, target, framing, side = 'right', showGuide = false }) {
       const r = video.getBoundingClientRect();
       Object.assign(canvas.style, { left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px` });
@@ -86,7 +97,29 @@ export function createDebugOverlay(video, { showNumbers = false } = {}) {
       const w = canvas.width, h = canvas.height;
       ctx.clearRect(0, 0, w, h);
       ctx.lineWidth = 3 * devicePixelRatio;
-      if (pose) {
+      const now = performance.now();
+      const I = side === 'left' ? { sh: 11, el: 13, wr: 15, o: 12 } : { sh: 12, el: 14, wr: 16, o: 11 };
+      const V = (i) => pose?.[i] && pose[i].visibility > 0.5;
+      const Spx = pose && V(I.sh) && V(I.o) ? Math.hypot((pose[I.sh].x - pose[I.o].x) * w, (pose[I.sh].y - pose[I.o].y) * h) : 0;
+      // Ладонь = запястье + 0,3 ширины плеч по предплечью (как в движке, body.js HAND_EXT).
+      lastPalmPx = null;
+      if (V(I.wr)) {
+        const wr = { x: pose[I.wr].x * w, y: pose[I.wr].y * h };
+        const from = V(I.el) ? { x: pose[I.el].x * w, y: pose[I.el].y * h } : { x: pose[I.sh].x * w, y: pose[I.sh].y * h };
+        const dx = wr.x - from.x, dy = wr.y - from.y, n = Math.hypot(dx, dy) || 1;
+        lastPalmPx = { x: wr.x + (dx / n) * 0.3 * Spx, y: wr.y + (dy / n) * 0.3 * Spx };
+      }
+      if (pose && clean) {
+        // Рабочая рука — одна мягкая линия, без точек и номеров.
+        ctx.save();
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = Math.max(4, Spx * 0.06);
+        const arm = [I.sh, I.el, I.wr].filter(V).map((i) => ({ x: pose[i].x * w, y: pose[i].y * h }));
+        if (lastPalmPx) arm.push(lastPalmPx);
+        ctx.beginPath(); arm.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y))); ctx.stroke();
+        ctx.restore();
+      }
+      if (pose && !clean) {
         ctx.strokeStyle = '#46c38b';
         for (const [a, b] of POSE_EDGES) if (pose[a].visibility > 0.5 && pose[b].visibility > 0.5) line(pose[a], pose[b], w, h);
         ctx.fillStyle = '#ffffff';
@@ -121,8 +154,34 @@ export function createDebugOverlay(video, { showNumbers = false } = {}) {
       }
       // «Тень-тренер»: полупрозрачная рука растёт из ТВОЕГО плеча и показывает путь старт → звезда → назад.
       // Видна, пока человек в покое; как только сам пошёл — исчезает (не мешает).
-      if (target && pose && info.phase === 'REST') drawGhost(ctx, pose, side, target, info.ex, w, h);
-      if (target) {
+      if (target && pose && info.phase === 'REST') {
+        if (yesterday && Spx && info.ex !== 'open_hand') drawYesterday(ctx, yesterday, now, { shoulder: { x: pose[I.sh].x * w, y: pose[I.sh].y * h }, S: Spx, outSign: side === 'left' ? -1 : 1 }, yesterdayLabel);
+        else drawGhost(ctx, pose, side, target, info.ex, w, h);
+      }
+      if (target && lastPalmPx && info.phase === 'REACHING') fx.trail(lastPalmPx.x, lastPalmPx.y, now);
+      lastStarPx = target ? { x: target.x * w, y: target.y * h } : null;
+      if (target && clean) {
+        // Звезда: мягкое свечение + золотая звезда, круг не рисуем (лишняя линия).
+        const cx = target.x * w, cy = target.y * h, R = target.radius * w;
+        const pulse = 1 + 0.08 * Math.sin(now / 220);
+        const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.3 * pulse);
+        glow.addColorStop(0, 'rgba(255,220,120,.55)'); glow.addColorStop(1, 'rgba(255,220,120,0)');
+        ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(cx, cy, R * 1.3 * pulse, 0, Math.PI * 2); ctx.fill();
+        ctx.save();
+        ctx.fillStyle = '#f2b42a'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 3 * devicePixelRatio;
+        ctx.beginPath();
+        for (let i = 0; i < 10; i += 1) { const a = -Math.PI / 2 + (i * Math.PI) / 5, rr = (i % 2 ? 0.26 : 0.6) * R * pulse; ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); }
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.restore();
+      }
+      if (lastPalmPx && clean && target) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.shadowColor = '#ffd76a'; ctx.shadowBlur = 18 * devicePixelRatio;
+        ctx.beginPath(); ctx.arc(lastPalmPx.x, lastPalmPx.y, Math.max(8, Spx * 0.07), 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
+      fx.draw(ctx, now);
+      if (target && !clean) {
         // Пунктир от кисти рабочей руки к звезде — «тянись сюда».
         const wr0 = pose?.[side === 'left' ? 15 : 16], el = pose?.[side === 'left' ? 13 : 14];
         const shp = pose?.[side === 'left' ? 11 : 12], osh = pose?.[side === 'left' ? 12 : 11];
@@ -157,7 +216,7 @@ export function createDebugOverlay(video, { showNumbers = false } = {}) {
       }
       ctx.lineWidth = 3 * devicePixelRatio;
       ctx.strokeStyle = '#ffb347';
-      for (const hand of hands ?? []) for (const [a, b] of HAND_EDGES) line(hand[a], hand[b], w, h);
+      if (!clean) for (const hand of hands ?? []) for (const [a, b] of HAND_EDGES) line(hand[a], hand[b], w, h);
       const rows = [`FPS ${fps}  ${delegate}`, `pose ${pose ? 'yes' : 'no'}  hands ${hands?.length ?? 0}`];
       for (const [k, v] of Object.entries(info)) rows.push(`${k}: ${typeof v === 'number' ? v.toFixed(3) : v}`);
       panel.textContent = rows.join('\n');
@@ -213,7 +272,36 @@ export function runDebugScenario(engine, bus, overlay, params, recorder = null) 
   bus.on('calibration', ({ message }) => say(message));
   bus.on('mistake', ({ message }) => say(message, '#ff8a80'));
   bus.on('mistake-cleared', () => say('Отлично! ✓', '#9ff5c9'));
-  bus.on('rep', ({ count, targetReps, quality }) => say(`${quality >= 0.9 ? '🌸' : '🌱'} ${count} из ${targetReps}`, '#9ff5c9'));
+  bus.on('rep', (p) => {
+    say(`${p.quality >= 0.9 ? '🌸' : '🌱'} ${p.count} из ${p.targetReps}`, '#9ff5c9');
+    overlay.onRep?.(p);
+    // Вчерашнего пути нет — тенью становится ваш лучший повтор сегодня (сразу видно, как это работает).
+    if (!yesterdayOf(currentId)) {
+      const best = engine.getSummary().exercises.find((e) => e.id === currentId)?.bestRep;
+      if (best) overlay.setYesterday?.(best, 'Ваш лучший');
+    }
+  });
+
+  // «Вы вчера»: лучший повтор каждого упражнения храним в браузере (только путь ладони, без видео).
+  const KEY = 'qaita-debug-best';
+  const loadBest = () => { try { return JSON.parse(localStorage.getItem(KEY)) ?? {}; } catch { return {}; } };
+  const yesterdayOf = (id) => loadBest()[id] ?? null; // путь в «наружу/вверх» — подходит для любой руки
+  const saveBest = (id, rep) => { try { const all = loadBest(); all[id] = rep; localStorage.setItem(KEY, JSON.stringify(all)); } catch { /* приватный режим */ } };
+  let currentId = null;
+
+  // «До / после»: две карточки со стоп-кадрами после упражнения.
+  const cards = document.createElement('div');
+  Object.assign(cards.style, { position: 'fixed', left: '50%', bottom: '16px', transform: 'translateX(-50%)', zIndex: 10000, display: 'none', gap: '16px', padding: '14px', borderRadius: '18px', background: 'rgba(0,0,0,.8)' });
+  document.body.append(cards);
+  const card = (img, title, color) => `<figure style="margin:0;text-align:center;color:${color};font:700 clamp(16px,2.2vw,26px)/1.2 system-ui"><img src="${img}" style="display:block;width:min(38vw,360px);border-radius:12px;border:4px solid ${color}"><figcaption style="margin-top:8px">${title}</figcaption></figure>`;
+  function showMoments(id) {
+    const mo = engine.getSummary().exercises.find((e) => e.id === id)?.moments ?? {};
+    const parts = [];
+    if (mo.mistake?.image) parts.push(card(mo.mistake.image, `✗ ${mo.mistake.message.split('.')[0]}`, '#ff8a80'));
+    if (mo.good?.image) parts.push(card(mo.good.image, '✓ Так правильно!', '#9ff5c9'));
+    cards.innerHTML = parts.join('');
+    cards.style.display = parts.length ? 'flex' : 'none';
+  }
 
   const NAMES = { reach_up: 'Рукой вверх до ★', reach_side: 'Рукой в сторону до ★', hand_to_mouth: 'Кисть ко рту, как чашку', reach_across: 'Рукой к другому плечу', open_hand: 'Кулак → раскрыть ладонь' };
   (async () => {
@@ -235,11 +323,18 @@ export function runDebugScenario(engine, bus, overlay, params, recorder = null) 
       say(`${NAMES[id]} · ✋ готов?`);
       await waitGesture(['PALM_HOLD'], '○○○○○○○○○○');
       ring.textContent = '✋✋ = пауза';
+      cards.style.display = 'none';
+      currentId = id;
+      const y = yesterdayOf(id);
+      overlay.setYesterday?.(y, 'Вы вчера');
       engine.setExercise(id, { targetReps: Number(params.get('reps')) || 3 });
       mark('exercise', { id, targetReps: Number(params.get('reps')) || 3 });
       say(`${NAMES[id]} · повторяйте за тенью`);
       await new Promise((r) => { const off = bus.on('exercise-done', () => { off(); r(); }); });
       say('★★★ Готово!', '#9ff5c9');
+      const best = engine.getSummary().exercises.find((e) => e.id === id)?.bestRep;
+      if (best) saveBest(id, best);
+      showMoments(id);
       await new Promise((r) => setTimeout(r, 1500));
     }
     const s = engine.getSummary();
