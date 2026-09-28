@@ -98,3 +98,47 @@ describe('live 28.09: «Почти! Ещё чуть-чуть!», когда ла
     expect(mistakesOf('reach_up').filter((e) => e.payload.code === 'INCOMPLETE_ROM')).toEqual([]);
   });
 });
+
+// ── Ночь 3 (30.09): после дневных коммитов 29.09 («Отдохните», «Новый рекорд») — регрессия на той же записи ──
+describe('live 28.09 на main после 29.09: новых подсказок нет', () => {
+  // Таймлайн replay побайтно совпал с тем, что был после PR 15 (commit 051b2da).
+  it('нет «Отдохните» (rest): двух тяжёлых повторов подряд нет, попытки короче 12 с', () => {
+    expect(events.filter((e) => e.type === 'rest')).toEqual([]);
+  });
+  it('подсказки ровно те же, что после ночи 2: локоть ×3, плечо ×4, больше ничего', () => {
+    const codes = {};
+    for (const e of events) if (e.type === 'mistake') codes[e.payload.code] = (codes[e.payload.code] ?? 0) + 1;
+    expect(codes).toEqual({ ELBOW_BENT: 3, SHOULDER_HIKE: 4 });
+  });
+});
+
+describe('replay: перекалибровка посреди упражнения (кнопка «Ещё раз» на плейтесте)', () => {
+  // Движок (index.js calibrate()) закрывает текущее упражнение; replay раньше продолжал кормить его кадрами.
+  it('после метки calibrate упражнение закрыто: его событий больше нет, итог сохранён', () => {
+    // Склейка: начало reach_side (3 с) → вставляем кадры настоящей калибровки → остаток записи.
+    const markT = (type, id) => rec.marks.find((mk) => mk.type === type && (!id || mk.id === id)).t;
+    const at = markT('exercise', 'reach_side') + 3000;
+    const [c0, c1] = [markT('calibrate'), markT('calibrated') + 500];
+    const calFrames = rec.frames.filter(([t]) => t >= c0 && t <= c1).map(([t, ...r]) => [t - c0 + at + 1, ...r]);
+    const shift = c1 - c0 + 1;
+    const frames = [...rec.frames.filter(([t]) => t <= at), ...calFrames, ...rec.frames.filter(([t]) => t > at).map(([t, ...r]) => [t + shift, ...r])];
+    const marks = [...rec.marks.filter((mk) => mk.t <= at), { t: at + 1, type: 'calibrate' }, ...rec.marks.filter((mk) => mk.t > at).map((mk) => ({ ...mk, t: mk.t + shift }))];
+    const r2 = replay({ ...rec, frames, marks });
+    expect(r2.lines.filter((l) => l.includes('✔ calibrated'))).toHaveLength(2);
+    const late = r2.events.filter((e) => e.ex === 'reach_side' && e.t > at - rec.frames[0][0]);
+    expect(late).toEqual([]);
+    expect(r2.summary.map((s) => s.id)).toEqual(['reach_up', 'reach_side', 'hand_to_mouth', 'reach_across', 'open_hand']);
+  });
+});
+
+describe('replay-all: сводная таблица по всем записям', () => {
+  it('строка на каждое упражнение, подсказки по кодам, человек из имени файла', async () => {
+    const { rowsOf, personOf, table } = await import('../replay-all.mjs');
+    expect(personOf('tests/fixtures/rec-mama-54.json')).toBe('mama-54');
+    expect(personOf('qaita-rec-2026-09-29-16-10.json')).toBe('2026-09-29-16-10');
+    const { rows } = rowsOf(rec, 'daulet');
+    expect(rows.map((r) => [r.ex, r.reps, r.target])).toEqual([['reach_up', 3, 3], ['reach_side', 3, 3], ['hand_to_mouth', 3, 3], ['reach_across', 3, 3], ['open_hand', 3, 3]]);
+    expect(rows[0].hints).toEqual({ ELBOW_BENT: 2, SHOULDER_HIKE: 4 });
+    expect(table(rows)).toContain('| daulet | reach_up | 3/3 |');
+  });
+});
