@@ -11,8 +11,9 @@ const plural = (n, one, few, many) => {
   return m10 === 1 && m100 !== 11 ? one : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? few : many;
 };
 
-function compareWords(now, prev) {
-  if (prev == null || now == null) return 'Первая тренировка — сад посажен!';
+function compareWords(now, prev, first) {
+  if (first) return 'Первая тренировка — сад посажен!';
+  if (prev == null || now == null) return 'Вы снова занимались — сад растёт!';
   if (now > prev + 2) return 'Рука поднялась выше, чем в прошлый раз!';
   if (now >= prev - 2) return 'Рука поднимается так же высоко — стабильно!';
   return 'Сегодня чуть ниже — это нормально. Главное — без боли';
@@ -64,7 +65,7 @@ export default function garden(ctx) {
     <section class="garden" aria-labelledby="garden-title">
       <div class="garden-head stagger">
         <h1 id="garden-title">Ваш сад</h1>
-        <p class="lead">${esc(compareWords(amplitudeOf(record), amplitudeOf(prev)))}</p>
+        <p class="lead">${esc(compareWords(amplitudeOf(record), amplitudeOf(prev), !prev))}</p>
       </div>
       <div class="garden-scene" style="--sun: ${Math.min(streak, 7) / 7}">
         <div class="garden-sky" aria-hidden="true"><span class="garden-sun"></span><span class="garden-hill garden-hill-back"></span><span class="garden-hill garden-hill-front"></span></div>
@@ -110,7 +111,7 @@ export default function garden(ctx) {
         { duration: 360, delay: 500 + i * 70 + k * 140, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', fill: 'backwards' },
       ));
       ctx.sound.done();
-      const words = compareWords(amplitudeOf(record), amplitudeOf(prev));
+      const words = compareWords(amplitudeOf(record), amplitudeOf(prev), !prev);
       ctx.say(`Ваш сад. ${words}. ${record.stars} ${plural(record.stars, 'звезда', 'звезды', 'звёзд')}. Покажите ладонь, чтобы открыть отчёт для врача`, { interrupt: true, hint: true });
     },
     onGesture: (g) => ring.handle(g),
