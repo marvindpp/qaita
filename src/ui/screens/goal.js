@@ -26,7 +26,7 @@ export default function goal(ctx) {
   const side = ctx.state.side ?? 'right';
   const idx = IDX[side];
   const outSign = side === 'left' ? -1 : 1;
-  let hover = null, hoverSince = 0, chosen = null, alive = true;
+  let hover = null, hoverSince = 0, chosen = null, alive = true, mockTimer = null;
   let bubbles = [];
 
   function choose(id) {
@@ -108,7 +108,9 @@ export default function goal(ctx) {
     enter() {
       ctx.camera.mount(el.querySelector('.cam-slot'), { extra: draw });
       ctx.say('Ради чего вы занимаетесь? Дотянитесь рукой до своей цели и подержите', { hint: true });
+      // ?mock=1: виртуальный пациент к пузырям не тянется — цель выбираем сами, чтобы сценарий шёл без рук (&manual — ждём клик).
+      if (ctx.state.mock && !new URLSearchParams(location.search).has('manual')) mockTimer = setTimeout(() => { if (alive) choose(saved?.id ?? GOALS[0].id); }, 4000);
     },
-    destroy() { alive = false; },
+    destroy() { alive = false; clearTimeout(mockTimer); },
   };
 }
