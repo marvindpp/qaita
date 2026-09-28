@@ -82,7 +82,11 @@ export function detectMistakes(m, base, ctx) {
     shift = minSameSign(shift, minSameSign((m.shMid.x - rest.shMidX) / unit, (otherNow.x - rest.otherX) / unit));
     if (m.nose && rest.noseX != null) noseShift = minSameSign(noseShift, (m.nose.x - rest.noseX) / unit);
   }
-  if (Math.abs(shift) > T.leanSideShift || Math.abs(noseShift) > T.leanSideNoseShift) {
+  // Голова одна — не корпус: при наклоне корпуса плечи тоже едут в ту же сторону. Одна точка носа «прыгает»,
+  // когда кисть у рта закрывает лицо (живая запись 28.09, 145–146 с: нос −0,3, левое плечо +0,03).
+  // Поэтому голова срабатывает, только если плечи сдвинулись туда же хотя бы на половину своего порога.
+  const headLean = Math.abs(noseShift) > T.leanSideNoseShift && Math.sign(noseShift) === Math.sign(shift) && Math.abs(shift) > T.leanSideShift / 2;
+  if (Math.abs(shift) > T.leanSideShift || headLean) {
     const main = Math.abs(noseShift) > Math.abs(shift) ? noseShift : shift;
     const dir = main > 0 ? 'вправо' : 'влево'; // зеркальный кадр: +x = правая сторона человека
     const cm = Math.min(T.maxShownCm, Math.abs(main) * SHOULDER_CM);
