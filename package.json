@@ -1,0 +1,20 @@
+{
+  "name": "qaita",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Qaita — реабилитолог в каждой вебкамере. ADMIT Hackathon «Motion» 2026, команда «Хастлеры».",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "^1.0.1"
+  },
+  "devDependencies": {
+    "vite": "^8.3.1",
+    "vitest": "^5.0.2"
+  }
+}

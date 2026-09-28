@@ -1,0 +1,9 @@
+:root { --bg: #fbf8f3; --text: #1f2a27; --accent: #1f8a5b; }
+@media (prefers-color-scheme: dark) { :root { --bg: #141a18; --text: #eef3f0; --accent: #46c38b; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 24px/1.4 system-ui, sans-serif; }
+.hello { max-width: 720px; margin: 0 auto; padding: 24px 16px; text-align: center; }
+.hello h1 { margin: 0; font-size: 56px; color: var(--accent); }
+.tagline { margin: 4px 0 20px; }
+#camera { width: 100%; border-radius: 16px; transform: scaleX(-1); background: #000; }
+#status { font-size: 28px; }
