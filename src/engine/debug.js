@@ -24,11 +24,18 @@ function drawGhost(ctx, pose, side, target, ex, w, h) {
     label(ctx, k > 0.5 ? 'Раскройте' : 'Сожмите', target.x * w, (target.y - 0.14) * h, w);
     return;
   }
-  // Кисть тени идёт по дуге (чуть наружу), локоть — между плечом и кистью, слегка наружу.
-  const hand = { x: rest.x + (target.x - rest.x) * k, y: rest.y + (target.y - rest.y) * k };
-  const bow = Math.sin(k * Math.PI) * 0.35 * S * out;
-  hand.x += bow;
-  const elbow = { x: (sh.x + hand.x) / 2 + 0.06 * S * out, y: (sh.y + hand.y) / 2 };
+  // ПРЯМАЯ рука: поворачивается вокруг плеча от «вниз» к звезде, длина постоянная (как у звезды).
+  const toPx = (p) => ({ x: p.x * w, y: p.y * h });
+  const s = toPx(sh), a0 = toPx(rest), a1 = toPx(target);
+  const ang0 = Math.atan2(a0.y - s.y, a0.x - s.x), ang1 = Math.atan2(a1.y - s.y, a1.x - s.x);
+  let dAng = ang1 - ang0;
+  if (dAng > Math.PI) dAng -= 2 * Math.PI;
+  if (dAng < -Math.PI) dAng += 2 * Math.PI;
+  const R = Math.hypot(a1.x - s.x, a1.y - s.y);
+  const ang = ang0 + dAng * k;
+  const hand = { x: (s.x + Math.cos(ang) * R) / w, y: (s.y + Math.sin(ang) * R) / h };
+  const elbow = { x: (sh.x + hand.x) / 2, y: (sh.y + hand.y) / 2 };
+  rest.x = (s.x + Math.cos(ang0) * R) / w; rest.y = (s.y + Math.sin(ang0) * R) / h;
 
   ctx.save();
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
@@ -149,7 +156,28 @@ export function createDebugOverlay(video, { showNumbers = false } = {}) {
 }
 
 // Сценарий для проверки движка без UI: ?debug=1&auto=1 (это НЕ интерфейс продукта — его делает Ерсултан).
-export function runDebugScenario(engine, bus, overlay, params) {
+// Запись сессии (?rec=1): точки скелета + шаги сценария → JSON-файл. Потом `node tests/replay.mjs файл.json`
+// прогоняет его через движок без камеры — Claude тестирует изменения на реальных движениях сам.
+const r3 = (v) => Math.round(v * 1000) / 1000;
+export function createRecorder(video) {
+  const frames = [], marks = [];
+  return {
+    frame(t, pose, hands) {
+      frames.push([Math.round(t), pose ? pose.slice(0, 17).map((p) => [r3(p.x), r3(p.y), r3(p.visibility)]) : null, hands.map((h) => h.map((p) => [r3(p.x), r3(p.y)]))]);
+    },
+    mark(t, type, data = {}) { marks.push({ t: Math.round(t), type, ...data }); },
+    download() {
+      const blob = new Blob([JSON.stringify({ v: 1, aspect: video.videoWidth / video.videoHeight, marks, frames })], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `qaita-rec-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.json`;
+      a.click();
+    },
+  };
+}
+
+export function runDebugScenario(engine, bus, overlay, params, recorder = null) {
+  const mark = (type, data) => recorder?.mark(performance.now(), type, data);
   const banner = document.createElement('div');
   Object.assign(banner.style, {
     position: 'fixed', top: '12px', left: '50%', transform: 'translateX(-50%)', zIndex: 10000,
@@ -184,10 +212,13 @@ export function runDebugScenario(engine, bus, overlay, params) {
     say('Поднимите руку для тренировки');
     const raised = await waitGesture(['RAISE_LEFT', 'RAISE_RIGHT'], '○○○○○○○○○○');
     engine.setSide(raised === 'RAISE_LEFT' ? 'left' : 'right');
+    mark('side', { side: raised === 'RAISE_LEFT' ? 'left' : 'right' });
     ring.textContent = '';
     say('Опустите руку');
     await new Promise((r) => setTimeout(r, 1500));
+    mark('calibrate');
     const base = await engine.calibrate();
+    mark('calibrated');
     console.log('[qaita] baseline', base);
     const list = (params.get('ex') ?? 'reach_up,reach_side,hand_to_mouth,reach_across,open_hand').split(',');
     for (const id of list) {
@@ -195,6 +226,7 @@ export function runDebugScenario(engine, bus, overlay, params) {
       await waitGesture(['PALM_HOLD'], '○○○○○○○○○○');
       ring.textContent = '✋✋ = пауза';
       engine.setExercise(id, { targetReps: Number(params.get('reps')) || 3 });
+      mark('exercise', { id, targetReps: Number(params.get('reps')) || 3 });
       say(`${NAMES[id]} · повторяйте за тенью`);
       await new Promise((r) => { const off = bus.on('exercise-done', () => { off(); r(); }); });
       say('★★★ Готово!', '#9ff5c9');
@@ -202,6 +234,7 @@ export function runDebugScenario(engine, bus, overlay, params) {
     }
     const s = engine.getSummary();
     console.log('[qaita] summary', s);
+    if (recorder) { recorder.download(); say('🌸 Готово! Файл записи скачан — отправь его Claude', '#9ff5c9'); return; }
     say(`🌸 Повторов: ${s.totalReps} · исправлено: ${s.mistakesCorrected}`, '#9ff5c9');
     ring.textContent = '';
   })();

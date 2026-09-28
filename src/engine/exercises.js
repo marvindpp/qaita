@@ -9,11 +9,15 @@ const RADIUS_MIN = 0.05, RADIUS_MAX = 0.11; // радиус цели в доля
 
 // Точка цели в аспектном пространстве от НОРМЫ плеча (калибровка), а не от текущего:
 // если человек дотягивается наклоном корпуса — это компенсация, её поймают детекторы.
-function targetFromRel(base, rel, aspect) {
+// Цель — на расстоянии ПРЯМОЙ руки (armLen) по направлению личного максимума: иначе до звезды
+// приходится тянуться согнутой рукой, и сыпятся ошибки «локоть согнут» (живой тест 28.09).
+function targetFromRel(base, rel, aspect, { straight = true } = {}) {
   const { outSign } = sideIndex(base.side);
+  const len = Math.hypot(rel.out, rel.up) || 1;
+  const reach = straight ? (base.armLen ?? 1.5) * 0.95 : len * STRETCH;
   const p = {
-    x: base.sh.x + rel.out * STRETCH * base.S * outSign,
-    y: base.sh.y - rel.up * STRETCH * base.S,
+    x: base.sh.x + (rel.out / len) * reach * base.S * outSign,
+    y: base.sh.y - (rel.up / len) * reach * base.S,
   };
   const edge = EDGE + RADIUS_MAX; // весь круг, а не только центр, внутри кадра
   return { x: clamp(p.x, edge * aspect, (1 - edge) * aspect), y: clamp(p.y, edge * aspect, 1 - edge) };
@@ -40,7 +44,7 @@ export const EXERCISE_DEFS = {
   },
   // «Через себя» — ладонью к противоположному плечу. Движение частично к камере → локоть не проверяем (2D врёт).
   reach_across: {
-    target: (base, aspect) => targetFromRel(base, { out: -1.15, up: 0.25 }, aspect),
+    target: (base, aspect) => targetFromRel(base, { out: -1.15, up: 0.25 }, aspect, { straight: false }),
   },
   // «Раскрыть ладонь» — кулак → ладонь. Ключевое для кисти после инсульта. Цель — «покажите ладонь здесь».
   open_hand: {
@@ -92,6 +96,37 @@ export function createExercise(id, base, aspect) {
       return true;
     },
     targetLen,
+    /** Амплитуда точки: угол от «рука вниз» (0°) до направления на точку (180° = прямо вверх). */
+    romOf(p) {
+      const v = { x: p.x - base.sh.x, y: p.y - base.sh.y };
+      const n = Math.hypot(v.x, v.y) || 1;
+      return (Math.acos(clamp(v.y / n, -1, 1)) * 180) / Math.PI;
+    },
+    /** Повернуть звезду вокруг плеча на направление точки p, длина прежняя. @returns true, если сдвинулась */
+    rotateToward(p) {
+      if (def.adaptive === false) return false;
+      const v = { x: p.x - base.sh.x, y: p.y - base.sh.y };
+      const n = Math.hypot(v.x, v.y) || 1;
+      const len = targetLen();
+      const next = clampToFrame({ x: base.sh.x + (v.x / n) * len, y: base.sh.y + (v.y / n) * len });
+      if (dist(next, target) < radius * 0.25) return false;
+      target = next;
+      return true;
+    },
+    /** Повернуть звезду на deg градусов в сторону большей амплитуды (от «рука вниз»). */
+    rotateBy(deg) {
+      if (def.adaptive === false) return false;
+      const v = { x: target.x - base.sh.x, y: target.y - base.sh.y };
+      // В экранных координатах y вниз; «больше амплитуды» = дальше от вектора (0, 1).
+      const ang = Math.atan2(v.y, v.x);
+      const away = Math.sign(v.x || 1); // по часовой или против — туда, где угол к «вниз» растёт
+      const next = ang - away * (deg * Math.PI) / 180;
+      const len = Math.hypot(v.x, v.y);
+      const p = clampToFrame({ x: base.sh.x + Math.cos(next) * len, y: base.sh.y + Math.sin(next) * len });
+      if (this.romOf(p) <= this.romOf(target) || dist(p, target) < radius * 0.25) return false;
+      target = p;
+      return true;
+    },
     evaluate(m) {
       if (def.hand) {
         const open = m?.fingers ? m.fingers.filter(Boolean).length : 0;

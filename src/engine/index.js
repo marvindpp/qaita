@@ -26,7 +26,7 @@ export async function createEngine({ video }) {
   const poseSmoother = createSmoother(0.5);
   const measureFps = createFpsMeter();
 
-  let stream = null, models = null, stopLoop = null, overlay = null;
+  let stream = null, models = null, stopLoop = null, overlay = null, recorder = null;
   let side = 'right';
   let paused = false;
   let status = null;
@@ -95,6 +95,7 @@ export async function createEngine({ video }) {
     if (frameNo % 2 === 0) hands = (models.hand.detectForVideo(video, now).landmarks ?? []).map(mirror);
 
     sampleBrightness(now);
+    recorder?.frame(now, pose, hands);
     const m = measure(pose, side, aspect(), hands);
     const framing = checkFraming(pose, m, brightness);
     if (pose) lastPoseAt = now;
@@ -128,9 +129,10 @@ export async function createEngine({ video }) {
       }
       models = await loadModels();
       if (debug) {
-        const { createDebugOverlay, runDebugScenario } = await import('./debug.js');
+        const { createDebugOverlay, runDebugScenario, createRecorder } = await import('./debug.js');
         overlay = createDebugOverlay(video, { showNumbers: params.get('debug') === '2' });
-        if (params.has('auto')) runDebugScenario(engine, bus, overlay, params);
+        if (params.has('rec')) recorder = createRecorder(video);
+        if (params.has('auto')) runDebugScenario(engine, bus, overlay, params, recorder);
       }
       stopLoop = startLoop(video, onFrame);
     },

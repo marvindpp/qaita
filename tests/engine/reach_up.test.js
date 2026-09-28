@@ -206,17 +206,26 @@ describe('adaptive target', () => {
 
   it('star moves up to where the hand really reached', () => {
     const s = createExerciseSession('reach_up', base, ASPECT, { targetReps: 5 });
-    const y0 = s.targetEvent().y;
+    const s0 = s.targetEvent(); const y0 = s0.y;
     const ev = run(s, [[makePose(), 300], [up(1.6), 900], [makePose(), 400]]);
     const moved = ev.filter((e) => e.type === 'target');
     expect(moved).toHaveLength(1);
-    expect(moved[0].payload.y).toBeLessThan(y0); // выше на экране
+    // Звезда повернулась ближе к вертикали: по высоте не ниже, по X ближе к плечу (правая рука → меньше x).
+    expect(moved[0].payload.y).toBeLessThanOrEqual(y0);
+    expect(moved[0].payload.x).toBeLessThan(s0.x);
   });
   it('reach gained by compensation does NOT raise the star', () => {
     const s = createExerciseSession('reach_up', base, ASPECT, { targetReps: 5 });
     const ev = run(s, [[makePose(), 300], [up(1.6, { hike: 0.45 }), 900], [up(1.05), 1300], [makePose(), 400]]);
     expect(ev.filter((e) => e.type === 'rep')).toHaveLength(1);
     expect(ev.filter((e) => e.type === 'target')).toHaveLength(0);
+  });
+  it('the star sits at straight-arm length (not at the elbow)', () => {
+    const s = createExerciseSession('reach_up', base, ASPECT);
+    const t = s.targetEvent();
+    const sh = { x: (ASPECT / 2 + 0.15) / ASPECT, y: 0.62 };
+    const lenS = Math.hypot((t.x - sh.x) * ASPECT, t.y - sh.y) / 0.3;
+    expect(lenS).toBeGreaterThan(1.2); // рука ~1,5 ширины плеч; локоть был бы ~0,75
   });
   it('growth is capped at +40% of the calibrated reach', () => {
     const s = createExerciseSession('reach_up', base, ASPECT, { targetReps: 10 });

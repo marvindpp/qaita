@@ -17,11 +17,10 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
   const tracker = createMistakeTracker();
   const reps = createRepCounter();
   let count = 0, qualitySum = 0, bestRomDeg = 0, peakRom = 0, done = false;
-  let peakReach = 0, cleanStreak = 0;
-  const startLen = ex.targetLen();
+  let peakPoint = null, cleanStreak = 0;
   // Адаптивная сложность: цель «догоняет» реальную руку и растёт за чистые повторы,
   // но не больше +40% от калибровки за сессию (пожилым резкий рост сложности мешает — PLAN §9).
-  const MAX_GROWTH = 1.4;
+  const MAX_STEP_DEG = 25; // за один повтор звезда не прыгает больше чем на 25° (плавная сложность, PLAN §9)
   let peakAny = 0;                 // максимум досягаемости за повтор (для «не хватило N см»)
   let lastWrist = null;
   const speeds = [];               // скорости запястья за последние 5 кадров, ширин плеч в секунду
@@ -105,7 +104,8 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
       }
       if (r.phase === 'REST') peakAny = 0;
       if (r.phase !== 'REST' && m?.elevationDeg != null) peakRom = Math.max(peakRom, Math.round(m.elevationDeg));
-      if (r.phase !== 'REST' && raw.length === 0 && tracker.activeCodes().length === 0) peakReach = Math.max(peakReach, ex.reachOf(m));
+      // Самая «амплитудная» точка чистого движения (без компенсаций) — туда может переехать звезда.
+      if (r.phase !== 'REST' && m?.wrist && raw.length === 0 && tracker.activeCodes().length === 0 && (!peakPoint || ex.romOf(m.wrist) > ex.romOf(peakPoint))) peakPoint = { ...m.wrist };
 
       if (r.rep && !done) {
         count += 1;
@@ -114,14 +114,15 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
         events.push({ type: 'rep', payload: { exercise: id, count, targetReps, quality: r.rep.quality, romDeg: peakRom } });
         peakRom = 0;
         cleanStreak = r.rep.quality >= 0.9 ? cleanStreak + 1 : 0;
-        // Дотянулся дальше звезды без компенсаций → следующая звезда там, где рука реально была.
-        // Три чистых подряд → ещё +5%.
-        let want = ex.targetLen();
-        if (peakReach > want) want = peakReach * 1.02;
-        if (cleanStreak > 0 && cleanStreak % 3 === 0) want *= 1.05;
-        want = Math.min(want, startLen * MAX_GROWTH);
-        if (ex.adaptive && !done && count < targetReps && ex.moveTo(want)) events.push({ type: 'target', payload: ex.targetEvent() });
-        peakReach = 0;
+        // Звезда всегда на длине прямой руки, поэтому «сложнее» = выше по углу, а не дальше.
+        // Прямой рукой без компенсаций поднял выше звезды → звезда переезжает туда (+3° за 3 чистых подряд).
+        if (ex.adaptive && !done && count < targetReps && peakPoint) {
+          const bonus = cleanStreak > 0 && cleanStreak % 3 === 0 ? 3 : 0;
+          const gain = ex.romOf(peakPoint) - ex.romOf(ex.target);
+          if (gain > 3 && gain <= MAX_STEP_DEG && ex.rotateToward(peakPoint)) events.push({ type: 'target', payload: ex.targetEvent() });
+          else if (bonus && ex.rotateBy(bonus)) events.push({ type: 'target', payload: ex.targetEvent() });
+        }
+        peakPoint = null;
         if (count >= targetReps) {
           done = true;
           events.push({ type: 'exercise-done', payload: { exercise: id, reps: count, quality: qualitySum / count } });

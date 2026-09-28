@@ -30,7 +30,7 @@ export function createCalibration(side) {
   let elapsed = 0;
   let lastT = null;
   const neutral = { S: [], Sx: [], shMidX: [], shMidY: [], shX: [], shY: [], tilt: [], noseX: [], noseY: [], earSh: [], earShRaw: [], headW: [] };
-  let maxUp = null, maxSide = null, maxUpDeg = 0;
+  let maxUp = null, maxSide = null, maxUpDeg = 0, armLen = 0;
 
   function collect(phase, m) {
     if (phase === 'neutral') {
@@ -42,7 +42,9 @@ export function createCalibration(side) {
     } else if (phase === 'max_up' && m.wristRel) {
       if (!maxUp || m.wristRel.up > maxUp.up) maxUp = { ...m.wristRel };
       maxUpDeg = Math.max(maxUpDeg, m.elevationDeg ?? 0);
-    } else if (phase === 'max_side' && m.wristRel) {
+    }
+    if (phase !== 'neutral' && m.wristRel) armLen = Math.max(armLen, Math.hypot(m.wristRel.out, m.wristRel.up));
+    if (phase === 'max_side' && m.wristRel) {
       if (!maxSide || m.wristRel.out > maxSide.out) maxSide = { ...m.wristRel };
     }
   }
@@ -63,6 +65,8 @@ export function createCalibration(side) {
       maxUp: maxUp ?? DEFAULT_MAX_UP,
       maxSide: maxSide ?? DEFAULT_MAX_SIDE,
       maxUpDeg: Math.round(maxUpDeg),
+      // Длина прямой руки (плечо→запястье) в ширинах плеч. Взрослый ≈ 1,5; если руку не увидели — 1,5.
+      armLen: armLen >= 0.8 ? armLen : 1.5,
     };
   }
 
