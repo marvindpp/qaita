@@ -149,11 +149,17 @@ export async function createEngine({ video }) {
         return;
       }
       models = await loadModels();
-      if (debug) {
+      if (debug || params.has('rec')) {
         const { createDebugOverlay, runDebugScenario, createRecorder } = await import('./debug.js');
-        overlay = createDebugOverlay(video, { showNumbers: params.get('debug') === '2' });
-        if (params.has('rec')) recorder = createRecorder(video);
-        if (params.has('auto')) runDebugScenario(engine, bus, overlay, params, recorder);
+        if (params.has('rec')) {
+          recorder = createRecorder(video);
+          // Плейтест на настоящем интерфейсе (?rec=1 без debug): запись скачивается клавишей S.
+          if (!params.has('auto')) addEventListener('keydown', (e) => { if (e.key === 's' || e.key === 'S' || e.key === 'ы' || e.key === 'Ы') recorder.download(); });
+        }
+        if (debug) {
+          overlay = createDebugOverlay(video, { showNumbers: params.get('debug') === '2' });
+          if (params.has('auto')) runDebugScenario(engine, bus, overlay, params, recorder);
+        }
       }
       stopLoop = startLoop(video, onFrame);
     },
@@ -162,17 +168,19 @@ export async function createEngine({ video }) {
       stream?.getTracks().forEach((t) => t.stop());
       stream = null;
     },
-    setSide(s) { side = s === 'left' ? 'left' : 'right'; },
+    setSide(s) { side = s === 'left' ? 'left' : 'right'; if (!params.has('auto')) recorder?.mark(performance.now(), 'side', { side }); },
     calibrate() {
       // Повторная калибровка посреди сессии не должна стирать уже сделанные повторы из итогов.
       if (exercise) finished.push(exercise.result());
       exercise = null;
+      if (!params.has('auto')) recorder?.mark(performance.now(), 'calibrate');
       return new Promise((resolve) => { calibration = { calib: createCalibration(side), resolve }; });
     },
     setExercise(id, opts = {}) {
       if (!baseline) throw new Error('setExercise: сначала calibrate()');
       if (exercise) finished.push(exercise.result());
       exercise = createExerciseSession(id, baseline, aspect(), opts);
+      if (!params.has('auto')) recorder?.mark(performance.now(), 'exercise', { id, targetReps: opts.targetReps ?? 5 });
       bus.emit('target', exercise.targetEvent());
     },
     pause() { paused = true; },
