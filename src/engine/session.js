@@ -13,6 +13,7 @@ import { createExercise } from './exercises.js';
 
 // «Чистый» повтор — как в игре «Сад Qaita» (docs/TASKS.md): quality ≥ 0.9.
 export const CLEAN_QUALITY = 0.9;
+const STRUGGLE_MS = 12000; // тянется к звезде дольше 12 с и не берёт — пора отдохнуть
 const PATH_STEP_MS = 40; // точка пути ладони раз в 40 мс (≈ 25 точек в секунду, повтор ~3 с = ~75 точек)
 // «Не дотянулся» — словами по доле пути до звезды, без сантиметров.
 const INCOMPLETE = ['Почти! Ещё чуть-чуть!', 'Не хватило немного. Дальше!', 'Далеко до звезды. Тянитесь!'];
@@ -41,6 +42,13 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
   // ладонь (живая запись 28.09: старт reach_up на 66,1 с при руке 171°). Пока руку не опустили хоть раз,
   // не судим и не считаем — иначе сыпались «наклон», «плечо», «быстро», «Почти!» за опускание руки после жеста.
   let seenRest = false;
+  // «Отдохните»: усталость видна раньше боли — компенсации растут, рука «не доходит». Предлагаем паузу один раз
+  // за упражнение: 2 повтора подряд с сильной компенсацией (quality < 0.6) или попытка дольше 12 с без повтора.
+  let heavyStreak = 0, attemptSince = null, restSuggested = false;
+  const suggestRest = (reason) => {
+    restSuggested = true;
+    return { type: 'rest', payload: { exercise: id, reason, message: 'Устали? Отдохните немного' } };
+  };
   // Поза покоя перед повтором (последние ~0,6 с с опущенной рукой): от неё меряем, сдвинулся ли корпус за повтор.
   const restFrames = [];
   let restPose = null;
@@ -169,6 +177,7 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
         count += 1;
         qualitySum += r.rep.quality;
         if (r.rep.quality >= CLEAN_QUALITY) cleanReps += 1;
+        heavyStreak = r.rep.quality < 0.6 ? heavyStreak + 1 : 0;
         bestRomDeg = Math.max(bestRomDeg, peakRom);
         events.push({ type: 'rep', payload: { exercise: id, count, targetReps, quality: r.rep.quality, romDeg: peakRom } });
         if (path.length >= 4 && !pathGap && (!bestRep || r.rep.quality > bestRep.quality || (r.rep.quality === bestRep.quality && peakRom > bestRep.romDeg))) {
@@ -185,11 +194,14 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
           else if (bonus && ex.rotateBy(bonus)) events.push({ type: 'target', payload: ex.targetEvent() });
         }
         peakPoint = null;
+        if (!restSuggested && heavyStreak >= 2 && count < targetReps) events.push(suggestRest('compensation'));
         if (count >= targetReps) {
           done = true;
           events.push({ type: 'exercise-done', payload: { exercise: id, reps: count, quality: qualitySum / count } });
         }
       }
+      if (r.phase === 'REST') attemptSince = null; else attemptSince ??= now;
+      if (!restSuggested && attemptSince != null && now - attemptSince > STRUGGLE_MS) { attemptSince = now; events.push(suggestRest('struggle')); }
       if (r.phase === 'REST' && repStart != null) { path = []; repStart = null; restBuf = []; pathGap = false; }
       // Попытка кончилась без повтора — её амплитуда не должна достаться следующему повтору (и отчёту врачу).
       if (r.phase === 'REST') peakRom = 0;

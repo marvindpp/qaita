@@ -77,6 +77,7 @@ export const EVENTS = ['frame', 'status', 'calibration', 'target', 'rep', 'mista
 | `mistake-cleared` | `{ code }` | Пользователь исправился: UI показывает «Отлично, так правильно!» |
 | `gesture` | `{ type: Gesture, progress: 0..1, fired: boolean }` | `progress` для кольца hold, `fired: true` = команда сработала |
 | `exercise-done` | `{ exercise, reps, quality }` | Выполнено `targetReps` |
+| `rest` | `{ exercise, reason: 'compensation'\|'struggle', message }` | *(29.09, добавлено)* Похоже на усталость: 2 повтора подряд с сильной компенсацией или попытка > 12 с. Один раз за упражнение. UI ставит паузу «Отдохните» |
 
 ## `Summary` (для экрана итогов)
 

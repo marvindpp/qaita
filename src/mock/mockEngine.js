@@ -508,6 +508,7 @@ export async function createEngine({ video } = {}) {
       return forcedMistake;
     },
     toggleAuto() { auto = !auto; return auto; },
+    rest() { if (ex) bus.emit('rest', { exercise: ex.id, reason: 'compensation', message: 'Устали? Отдохните немного' }); return 'rest'; },
     get auto() { return auto; },
     get state() { return { mode, paused, side, status, speed }; },
   };

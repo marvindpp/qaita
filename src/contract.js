@@ -12,4 +12,4 @@ export const STATUSES = ['OK', 'NO_CAMERA', 'NO_PERSON', 'TOO_CLOSE', 'TOO_FAR',
 
 export const GESTURES = ['PALM_HOLD', 'THUMBS_UP', 'PAUSE', 'RAISE_LEFT', 'RAISE_RIGHT'];
 
-export const EVENTS = ['frame', 'status', 'calibration', 'target', 'rep', 'mistake', 'mistake-cleared', 'gesture', 'exercise-done'];
+export const EVENTS = ['frame', 'status', 'calibration', 'target', 'rep', 'mistake', 'mistake-cleared', 'gesture', 'exercise-done', 'rest'];

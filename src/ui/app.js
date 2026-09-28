@@ -20,7 +20,7 @@ import soon from './screens/soon.js';
 const SCREENS = { welcome, prep, hand, calibration, demo, play, 'exercise-done': exerciseDone, garden, doctor, soon };
 
 // Какие события движка экран может получать (метод on<Event> у экрана).
-const ROUTED = ['frame', 'status', 'calibration', 'target', 'rep', 'mistake', 'mistake-cleared', 'gesture', 'exercise-done'];
+const ROUTED = ['frame', 'status', 'calibration', 'target', 'rep', 'mistake', 'mistake-cleared', 'gesture', 'exercise-done', 'rest'];
 const handlerName = (ev) => `on${ev.replace(/(^|-)(\w)/g, (_, __, c) => c.toUpperCase())}`;
 
 export function createApp({ engine, video, mock = false }) {

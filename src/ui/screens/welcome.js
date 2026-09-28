@@ -21,6 +21,7 @@ export default function welcome(ctx) {
           <div class="ring-slot"></div>
           <p class="ring-label">Покажите ладонь</p>
           <p class="ring-sub">и подержите секунду — начнём</p>
+          <button class="btn-start" type="button">${icons.play ?? '▶'} Начать со звуком</button>
         </div>
       </div>
       <footer class="welcome-foot">
@@ -32,6 +33,9 @@ export default function welcome(ctx) {
   const camSlot = html('<div class="ring-cam"></div>');
   const ring = createRing({ center: camSlot, onFire: () => ctx.go('prep') });
   el.querySelector('.ring-slot').replaceWith(ring.el);
+  // Браузер не даёт голосу говорить, пока на странице ни разу не нажали. Жюри и родственник, открывший ссылку,
+  // нажмут кнопку — и голос включится сразу (app.js разблокирует звук на любое нажатие). Жест ладонью тоже работает.
+  el.querySelector('.btn-start').addEventListener('click', () => ctx.go('prep'));
   const label = el.querySelector('.ring-label');
   const sub = el.querySelector('.ring-sub');
 

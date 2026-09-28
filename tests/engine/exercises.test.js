@@ -119,3 +119,33 @@ describe('open_hand + FINGERS_NOT_OPEN', () => {
     expect(r.reps).toBe(0);
   });
 });
+
+describe('rest suggestion («Отдохните»)', () => {
+  it('two heavily compensated reps in a row → one rest event', async () => {
+    const { createExerciseSession } = await import('../../src/engine/session.js');
+    const { measure } = await import('../../src/engine/body.js');
+    const { createCalibration } = await import('../../src/engine/calibration.js');
+    const { makePose, frames, ASPECT } = await import('./synth.js');
+    const calib = createCalibration('right'); let r;
+    for (const [pose, t] of frames([[makePose(), 6200], [makePose({ wrist: { out: 0.2, up: 1.5 } }), 6200], [makePose({ wrist: { out: 1.5, up: 0.1 } }), 6200]])) r = calib.push(measure(pose, 'right', ASPECT), t);
+    const s = createExerciseSession('reach_up', r.baseline, ASPECT, { targetReps: 5 });
+    const t = s.targetEvent(), sh = { x: ASPECT / 2 + 0.15, y: 0.62 };
+    const d = { out: t.x * ASPECT - sh.x, up: sh.y - t.y }, n = Math.hypot(d.out, d.up);
+    const at = (extra = {}) => makePose({ wrist: { out: (d.out / n) * 1.6, up: (d.up / n) * 1.6 }, ...extra });
+    // Повтор: долго с поднятым плечом, в конце исправился → засчитан, но качество низкое.
+    const rep = [[makePose(), 400], [at({ hike: 0.45 }), 2500], [at(), 1500], [makePose(), 500]];
+    const events = [];
+    for (const [pose, tt] of frames([...rep, ...rep, ...rep], 20000)) events.push(...s.step(measure(pose, 'right', ASPECT), tt).events);
+    const reps = events.filter((e) => e.type === 'rep');
+    expect(reps.length).toBeGreaterThanOrEqual(2);
+    expect(reps[0].payload.quality).toBeLessThan(0.6);
+    expect(events.filter((e) => e.type === 'rest')).toHaveLength(1);
+  });
+  it('clean reps → no rest event', async () => {
+    const { replay } = await import('../replay.mjs');
+    const { readFileSync } = await import('node:fs');
+    const rec = JSON.parse(readFileSync(new URL('../fixtures/rec-2026-09-28-daulet.json', import.meta.url), 'utf8'));
+    const { events } = replay(rec);
+    expect(events.filter((e) => e.type === 'rest').length).toBeLessThanOrEqual(1);
+  });
+});

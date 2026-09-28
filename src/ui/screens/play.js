@@ -8,7 +8,7 @@ import { createGame } from '../game.js';
 import { createRing } from '../components/ring.js';
 import { EXERCISE_INFO, TARGET_REPS, SESSION_PLAN } from '../exercises.js';
 import { demoFigure } from '../demo-figure.js';
-import { bestRepFor, bestRepLabel, saveBestRep } from '../storage.js';
+import { bestRepFor, bestRepLabel, saveBestRep, loadSessions } from '../storage.js';
 import { createSparkles, drawYesterday } from '../../engine/fx.js';
 
 const IDX = { left: { sh: 11, el: 13, wr: 15, other: 12 }, right: { sh: 12, el: 14, wr: 16, other: 11 } };
@@ -101,6 +101,9 @@ export default function play(ctx, { index = 0 } = {}) {
   let yesterday = id === 'open_hand' ? null : bestRepFor(id);
   let yesterdayLabel = bestRepLabel(yesterday);
   const fromHistory = Boolean(yesterday);
+  // «Новый рекорд!»: лучший угол этого упражнения за все прошлые занятия. Побил на 3°+ — отдельный праздник (один раз).
+  const prevBest = id === 'open_hand' ? 0 : Math.max(0, ...loadSessions().flatMap((s) => (s.exercises ?? []).filter((e) => e.id === id).map((e) => e.bestRomDeg ?? 0)));
+  let recordShown = false;
 
   const resumeRing = createRing({ onFire: resume });
   $('.pause-go .ring-slot').replaceWith(resumeRing.el);
@@ -205,6 +208,14 @@ export default function play(ctx, { index = 0 } = {}) {
       ctx.sound.combo(res.multiplier);
       comboEl.animate([{ transform: 'scale(1.35) rotate(-4deg)' }, { transform: 'none' }], { duration: 360, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' });
     }
+    if (prevBest && !recordShown && r.romDeg >= prevBest + 3) {
+      recordShown = true;
+      if (target) bursts.push({ x: target.x, y: target.y, clean: true });
+      ctx.sound.done();
+      hintFor(2600, 'rep', 'Новый рекорд! Выше, чем раньше', `+${res.points}`);
+      ctx.say('Новый рекорд! Рука поднялась выше, чем раньше', { interrupt: true, force: true });
+      return;
+    }
     if (!mistake) {
       const word = WORDS[r.count - 1] ?? 'Есть!';
       hintFor(REP_MESSAGE_MS, 'rep', res.comboUp ? `${word} Комбо ×${res.multiplier}!` : word, `+${res.points}`);
@@ -237,14 +248,23 @@ export default function play(ctx, { index = 0 } = {}) {
   }
 
   // ——— пауза: две ладони; продолжить — ладонь ———
-  function pause() {
+  function pause(tired = false) {
     if (paused || done) return;
     paused = true;
     ctx.engine.pause();
     pauseEl.dataset.show = 'true';
     pauseEl.setAttribute('aria-hidden', 'false');
+    pauseEl.querySelector('h2').textContent = tired ? 'Отдохните' : 'Пауза';
+    pauseEl.querySelector('.pause-card > p').innerHTML = tired ? 'Рука устала — это нормально.<br>Опустите её и подышите.' : 'Больно? Отдохните.<br>Не занимайтесь через боль.';
     resumeRing.reset();
-    ctx.say('Пауза. Если больно — отдохните. Не занимайтесь через боль. Покажите ладонь, чтобы продолжить', { interrupt: true, force: true, hint: true });
+    ctx.say(tired
+      ? 'Похоже, рука устала. Это нормально. Опустите руку и отдохните. Покажите ладонь, когда будете готовы'
+      : 'Пауза. Если больно — отдохните. Не занимайтесь через боль. Покажите ладонь, чтобы продолжить', { interrupt: true, force: true, hint: true });
+  }
+  // Движок заметил усталость (компенсации подряд или долгая попытка) — сам ставим паузу «Отдохните».
+  function onRest(r) {
+    if (r.exercise !== id || done || paused) return;
+    pause(true);
   }
   function resume() {
     paused = false;
@@ -477,6 +497,7 @@ export default function play(ctx, { index = 0 } = {}) {
     onMistake,
     onMistakeCleared,
     onRep,
+    onRest,
     onExerciseDone,
     onGesture(g) {
       if (g.type === 'PAUSE' && g.fired && !paused) { pause(); return true; }

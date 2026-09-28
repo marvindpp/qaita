@@ -8,6 +8,7 @@ const KEYS = [
   { key: 'p', label: 'P', text: 'Две ладони (пауза)', run: (c) => c.gesture('PAUSE') },
   { key: 'm', label: 'M', text: 'Ошибка в след. повторе', run: (c) => `ошибка: ${c.forceMistake()}` },
   { key: 's', label: 'S', text: 'Сменить статус кадра', run: (c) => `статус: ${c.cycleStatus()}` },
+  { key: 'r', label: 'R', text: 'Усталость («Отдохните»)', run: (c) => c.rest() },
   { key: 'a', label: 'A', text: 'Автопациент вкл/выкл', run: (c) => `автопациент: ${c.toggleAuto() ? 'вкл' : 'выкл'}` },
 ];
 
