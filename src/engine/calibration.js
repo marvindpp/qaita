@@ -9,14 +9,14 @@ export const CALIBRATION_PHASES = [
   { id: 'max_side', prepMs: 3000, ms: 3000, needsWrist: true },
 ];
 
-const HAND_NAME = { left: 'левую', right: 'правую' };
+const HAND_CAP = { left: 'Левую', right: 'Правую' };
 
 export function phaseMessage(phase, side) {
   switch (phase) {
-    case 'neutral': return 'Сядьте ровно, спина прямая. Руки опустите и смотрите в камеру — 3 секунды';
-    case 'max_up': return `Поднимите ${HAND_NAME[side]} руку вверх как можно выше — без боли`;
-    case 'max_side': return `Теперь отведите ${HAND_NAME[side]} руку в сторону как можно дальше`;
-    default: return 'Готово! Ваша норма сохранена';
+    case 'neutral': return 'Сядьте ровно, руки вниз';
+    case 'max_up': return `${HAND_CAP[side]} руку — вверх до упора`;
+    case 'max_side': return `${HAND_CAP[side]} руку — в сторону до упора`;
+    default: return 'Готово!';
   }
 }
 
@@ -82,7 +82,7 @@ export function createCalibration(side) {
       if (prep < phase.prepMs) {
         if (m) prep += dt;
         const left = Math.max(1, Math.ceil((phase.prepMs - prep) / 1000));
-        return { phase: phase.id, progress: 0, message: `${phaseMessage(phase.id, side)}. Начинаем через ${left}…`, done: false };
+        return { phase: phase.id, progress: 0, message: `${phaseMessage(phase.id, side)} · ${left}…`, done: false };
       }
       const counts = m && (!phase.needsWrist || m.wristRel);
       if (counts) { elapsed += dt; collect(phase.id, m); }
@@ -92,9 +92,9 @@ export function createCalibration(side) {
           return { phase: 'done', progress: 1, message: phaseMessage('done', side), done: true, baseline: baseline() };
         }
         const next = CALIBRATION_PHASES[phaseIndex];
-        return { phase: next.id, progress: 0, message: `${phaseMessage(next.id, side)}. Начинаем через 3…`, done: false };
+        return { phase: next.id, progress: 0, message: `${phaseMessage(next.id, side)} · 3…`, done: false };
       }
-      const hint = phase.needsWrist && m && !m.wristRel ? ' — руку не видно, отодвиньтесь от камеры' : '';
+      const hint = phase.needsWrist && m && !m.wristRel ? ' · руку не видно' : '';
       return { phase: phase.id, progress: elapsed / phase.ms, message: `${phaseMessage(phase.id, side)}${hint}`, done: false };
     },
   };

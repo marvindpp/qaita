@@ -2,7 +2,7 @@
 const POSE_EDGES = [[11, 12], [11, 13], [13, 15], [12, 14], [14, 16], [11, 23], [12, 24], [23, 24], [0, 7], [0, 8], [7, 11], [8, 12]];
 const HAND_EDGES = [[0, 1], [1, 2], [2, 3], [3, 4], [0, 5], [5, 6], [6, 7], [7, 8], [5, 9], [9, 10], [10, 11], [11, 12], [9, 13], [13, 14], [14, 15], [15, 16], [13, 17], [17, 18], [18, 19], [19, 20], [0, 17]];
 
-export function createDebugOverlay(video) {
+export function createDebugOverlay(video, { showNumbers = false } = {}) {
   const canvas = document.createElement('canvas');
   const panel = document.createElement('pre');
   Object.assign(canvas.style, { position: 'fixed', pointerEvents: 'none', zIndex: 9998 });
@@ -11,7 +11,8 @@ export function createDebugOverlay(video) {
     font: '13px/1.35 ui-monospace, monospace', background: 'rgba(0,0,0,.75)', color: '#9ff5c9',
     borderRadius: '8px', maxWidth: '46vw', whiteSpace: 'pre-wrap', pointerEvents: 'none',
   });
-  document.body.append(canvas, panel);
+  document.body.append(canvas);
+  if (showNumbers) document.body.append(panel);
   const ctx = canvas.getContext('2d');
 
   const line = (a, b, w, h) => { ctx.beginPath(); ctx.moveTo(a.x * w, a.y * h); ctx.lineTo(b.x * w, b.y * h); ctx.stroke(); };
@@ -53,9 +54,9 @@ export function createDebugOverlay(video) {
         ctx.stroke();
         ctx.restore();
         ctx.fillStyle = ok ? '#46c38b' : '#fff';
-        ctx.font = `600 ${22 * devicePixelRatio}px system-ui`;
+        ctx.font = `700 ${Math.round(w / 16)}px system-ui`;
         ctx.textAlign = 'center';
-        ctx.fillText(ok ? 'Отлично, вы на месте ✓' : 'Сядьте так, чтобы голова и плечи попали в пунктир', 0.5 * w, 0.1 * h);
+        ctx.fillText(ok ? 'На месте ✓' : 'Сядьте в пунктир', 0.5 * w, 0.1 * h);
         ctx.textAlign = 'start';
       }
       if (target) {
@@ -99,10 +100,10 @@ export function runDebugScenario(engine, bus, overlay, params) {
   Object.assign(banner.style, {
     position: 'fixed', top: '12px', left: '50%', transform: 'translateX(-50%)', zIndex: 10000,
     padding: '16px 26px', borderRadius: '16px', background: 'rgba(0,0,0,.85)', color: '#fff',
-    font: '600 28px/1.35 system-ui', maxWidth: '92vw', textAlign: 'center',
+    font: '700 clamp(28px, 5vw, 56px)/1.2 system-ui', maxWidth: '92vw', textAlign: 'center',
   });
   const ring = document.createElement('div');
-  Object.assign(ring.style, { font: '500 20px/1.3 system-ui', color: '#ffd400', marginTop: '6px' });
+  Object.assign(ring.style, { font: '600 clamp(22px, 3.5vw, 40px)/1.2 system-ui', color: '#ffd400', marginTop: '8px' });
   banner.append(document.createElement('span'), ring);
   document.body.append(banner);
   const say = (text, color = '#fff') => { banner.firstChild.textContent = text; banner.style.color = color; };
@@ -119,34 +120,34 @@ export function runDebugScenario(engine, bus, overlay, params) {
   });
   bus.on('calibration', ({ message }) => say(message));
   bus.on('mistake', ({ message }) => say(message, '#ff8a80'));
-  bus.on('mistake-cleared', () => say('Отлично, так правильно!', '#9ff5c9'));
-  bus.on('rep', ({ count, targetReps, quality }) => say(`${quality >= 0.9 ? '🌸' : '🌱'} Повтор ${count} из ${targetReps}`, '#9ff5c9'));
+  bus.on('mistake-cleared', () => say('Отлично! ✓', '#9ff5c9'));
+  bus.on('rep', ({ count, targetReps, quality }) => say(`${quality >= 0.9 ? '🌸' : '🌱'} ${count} из ${targetReps}`, '#9ff5c9'));
 
-  const NAMES = { reach_up: 'Дотянитесь рукой до звезды ★ над головой и задержите на секунду', reach_side: 'Отведите руку в сторону до звезды ★ и задержите на секунду' };
+  const NAMES = { reach_up: 'Рукой вверх до ★', reach_side: 'Рукой в сторону до ★' };
   (async () => {
-    say('Покажите открытую ладонь в камеру и держите 1 секунду');
+    say('✋ Покажите ладонь');
     await waitGesture(['PALM_HOLD'], '○○○○○○○○○○');
-    say('Поднимите руку, которую будем тренировать');
-    const raised = await waitGesture(['RAISE_LEFT', 'RAISE_RIGHT'], 'держите руку поднятой 1 секунду');
+    say('Поднимите руку для тренировки');
+    const raised = await waitGesture(['RAISE_LEFT', 'RAISE_RIGHT'], '○○○○○○○○○○');
     engine.setSide(raised === 'RAISE_LEFT' ? 'left' : 'right');
     ring.textContent = '';
-    say('Опустите руку. Начинаем калибровку');
+    say('Опустите руку');
     await new Promise((r) => setTimeout(r, 1500));
     const base = await engine.calibrate();
     console.log('[qaita] baseline', base);
     for (const id of ['reach_up', 'reach_side']) {
-      say(`${NAMES[id]}. Покажите ладонь, когда будете готовы`);
+      say(`${NAMES[id]} · ✋ готов?`);
       await waitGesture(['PALM_HOLD'], '○○○○○○○○○○');
-      ring.textContent = 'две ладони = пауза';
+      ring.textContent = '✋✋ = пауза';
       engine.setExercise(id, { targetReps: Number(params.get('reps')) || 3 });
       say(NAMES[id]);
       await new Promise((r) => { const off = bus.on('exercise-done', () => { off(); r(); }); });
-      say('Упражнение выполнено! ★★★', '#9ff5c9');
+      say('★★★ Готово!', '#9ff5c9');
       await new Promise((r) => setTimeout(r, 1500));
     }
     const s = engine.getSummary();
     console.log('[qaita] summary', s);
-    say(`Готово! Повторов: ${s.totalReps}, исправлено ошибок: ${s.mistakesCorrected}`, '#9ff5c9');
+    say(`🌸 Повторов: ${s.totalReps} · исправлено: ${s.mistakesCorrected}`, '#9ff5c9');
     ring.textContent = '';
   })();
 }

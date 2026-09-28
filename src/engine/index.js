@@ -101,7 +101,7 @@ export async function createEngine({ video }) {
     const personLost = !pose && now - lastPoseAt > NO_PERSON_MS;
     if (framing.code !== 'NO_PERSON' || personLost) {
       const quiet = exercise && !EXERCISE_STATUSES.has(framing.code);
-      if (quiet) setStatus('OK', 'Вас хорошо видно');
+      if (quiet) setStatus('OK', 'Вижу вас');
       else setStatus(framing.code, framing.message);
     }
 
@@ -123,13 +123,13 @@ export async function createEngine({ video }) {
       try {
         stream = await openCamera(video);
       } catch {
-        setStatus('NO_CAMERA', 'Нет доступа к камере. Нажмите на значок камеры в адресной строке, разрешите доступ и обновите страницу');
+        setStatus('NO_CAMERA', 'Разрешите камеру в адресной строке и обновите страницу');
         return;
       }
       models = await loadModels();
       if (debug) {
         const { createDebugOverlay, runDebugScenario } = await import('./debug.js');
-        overlay = createDebugOverlay(video);
+        overlay = createDebugOverlay(video, { showNumbers: params.get('debug') === '2' });
         if (params.has('auto')) runDebugScenario(engine, bus, overlay, params);
       }
       stopLoop = startLoop(video, onFrame);

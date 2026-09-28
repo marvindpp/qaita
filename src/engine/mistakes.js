@@ -8,7 +8,7 @@ export const SHOULDER_CM = 37;
 const CAMERA_CM = 60;
 
 export const THRESHOLDS = {
-  leanForwardHeadRatio: 1.10,    // голова (ухо–ухо) в кадре больше нормы на 10%+ → корпус пошёл к камере
+  leanForwardHeadRatio: 1.12,    // лицо (уголки глаз) в кадре больше нормы на 12%+ → корпус пошёл к камере
   leanForwardWidthRatio: 1.15,   // запасной признак, если ушей не видно: плечи шире нормы на 15%+
   leanForwardNoseDrop: 0.15,     // нос ниже нормы на 0,15 ширины плеч
   maxShownCm: 30,                // больше 30 см на экран не пишем — это уже «вы пересели», а не наклон
@@ -23,7 +23,7 @@ export const THRESHOLDS = {
 // Порядок = приоритет показа (одна подсказка за раз).
 export const PRIORITY = ['WRONG_HAND', 'TRUNK_LEAN_FORWARD', 'TRUNK_LEAN_SIDE', 'SHOULDER_HIKE', 'ELBOW_BENT', 'TOO_FAST', 'INCOMPLETE_ROM', 'FINGERS_NOT_OPEN'];
 
-const cmText = (cm) => (cm >= 3 ? ` на ~${Math.round(cm)} см` : '');
+const cmText = (cm) => (cm >= 3 ? ` на ${Math.round(cm)} см` : '');
 
 /**
  * @param {ReturnType<import('./body.js').measure>} m
@@ -50,7 +50,7 @@ export function detectMistakes(m, base, ctx) {
     const cm = Math.min(T.maxShownCm, Math.max(noseDrop * SHOULDER_CM, (ratio - 1) * CAMERA_CM));
     out.push({
       code: 'TRUNK_LEAN_FORWARD', severity: 3, landmarks: [LM.L_SH, LM.R_SH, LM.NOSE], valueCm: Math.round(cm),
-      message: `Корпус наклонился вперёд${cmText(cm)} — выпрямите спину и тянитесь только рукой`,
+      message: `Наклон вперёд${cmText(cm)}. Спину ровно!`,
     });
   }
 
@@ -63,7 +63,7 @@ export function detectMistakes(m, base, ctx) {
     const cm = Math.min(T.maxShownCm, Math.abs(main) * SHOULDER_CM);
     out.push({
       code: 'TRUNK_LEAN_SIDE', severity: 3, landmarks: [LM.L_SH, LM.R_SH, LM.NOSE], valueCm: Math.round(cm),
-      message: `Корпус заваливается ${dir}${cmText(cm)} — сядьте ровно, плечи на одном уровне`,
+      message: `Корпус ${dir}${cmText(cm)}. Сядьте ровно!`,
     });
   }
 
@@ -75,7 +75,7 @@ export function detectMistakes(m, base, ctx) {
       const cm = Math.min(T.maxShownCm, ((base.earShRaw - earSh) / base.S) * SHOULDER_CM);
       out.push({
         code: 'SHOULDER_HIKE', severity: 2, landmarks: [idx.sh, idx.ear], valueCm: Math.round(cm),
-        message: `Плечо поднялось к уху${cmText(cm)} — опустите плечо вниз и поднимайте только руку`,
+        message: `Плечо к уху${cmText(cm)}. Опустите плечо!`,
       });
     }
   }
@@ -86,7 +86,7 @@ export function detectMistakes(m, base, ctx) {
   if (straightArm && m.elbowDeg != null && reach > T.elbowCheckReach && m.elbowDeg < T.elbowBentDeg) {
     out.push({
       code: 'ELBOW_BENT', severity: 2, landmarks: [idx.sh, idx.el, idx.wr], valueDeg: Math.round(m.elbowDeg),
-      message: `Локоть согнут (${Math.round(m.elbowDeg)}°) — выпрямите руку полностью, тянитесь кончиками пальцев`,
+      message: `Локоть согнут. Выпрямите руку!`,
     });
   }
 

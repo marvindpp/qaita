@@ -56,7 +56,7 @@ describe('calibration', () => {
   it('gives a 3-2-1 countdown before each phase', () => {
     const calib = createCalibration('right');
     const r = calib.push(measure(makePose(), 'right', ASPECT), 0);
-    expect(r.message).toMatch(/Начинаем через 3/);
+    expect(r.message).toMatch(/· 3…/);
   });
   it('left arm calibrates too', () => {
     expect(calibrate('left').baseline.maxUp.up).toBeCloseTo(1.6, 1);
@@ -94,7 +94,7 @@ describe('reach_up session', () => {
     ]);
     expect(codes(ev)).toContain('SHOULDER_HIKE');
     const m = ev.find((e) => e.payload.code === 'SHOULDER_HIKE').payload;
-    expect(m.message).toMatch(/Плечо поднялось к уху/);
+    expect(m.message).toMatch(/Плечо к уху/);
     expect(m.valueCm).toBeGreaterThan(0);
     expect(codes(ev, 'mistake-cleared')).toContain('SHOULDER_HIKE');
     const rep = ev.find((e) => e.type === 'rep');
@@ -115,7 +115,7 @@ describe('reach_up session', () => {
     const ev = run(s, [[makePose(), 300], [makePose({ wrist: UP, scale: 1.18, noseDrop: 0.25 }), 1200], [makePose(), 400]]);
     const m = ev.find((e) => e.payload.code === 'TRUNK_LEAN_FORWARD');
     expect(m).toBeTruthy();
-    expect(m.payload.message).toMatch(/Корпус наклонился вперёд на ~\d+ см/);
+    expect(m.payload.message).toMatch(/Наклон вперёд на \d+ см/);
   });
 
   it('regression 28.09: raised arm «spreads» shoulder points but head is the same → NO forward-lean false alarm', () => {
@@ -135,7 +135,7 @@ describe('reach_up session', () => {
     const ev = run(s, [[makePose(), 300], [makePose({ wrist: UP, shift: -0.3 }), 1200], [makePose(), 400]]);
     const m = ev.find((e) => e.payload.code === 'TRUNK_LEAN_SIDE');
     expect(m).toBeTruthy();
-    expect(m.payload.message).toMatch(/влево/);
+    expect(m.payload.message).toMatch(/Корпус влево/);
   });
 
   it('ELBOW_BENT reports the angle', () => {
@@ -144,7 +144,7 @@ describe('reach_up session', () => {
     const m = ev.find((e) => e.payload.code === 'ELBOW_BENT');
     expect(m).toBeTruthy();
     expect(m.payload.valueDeg).toBeLessThan(150);
-    expect(m.payload.message).toMatch(/Локоть согнут \(\d+°\)/);
+    expect(m.payload.message).toMatch(/Локоть согнут/);
   });
 
   it('a compensated quick reach never counts (hold is blocked from the first frame)', () => {
@@ -192,5 +192,39 @@ describe('mistake tracker', () => {
     let ev = [];
     for (let t = 0; t < 400; t += 33) ev.push(...tr.update([{ ...lean, code: 'ELBOW_BENT' }, lean], t));
     expect(ev.find((e) => e.type === 'mistake').payload.code).toBe('TRUNK_LEAN_SIDE');
+  });
+});
+
+describe('adaptive target', () => {
+  const base = (() => {
+    const calib = createCalibration('right'); let r;
+    // Калибровка «ленивая»: рука поднята только до 1.0 — звезда получится низкой.
+    for (const [pose, t] of frames([[makePose(), 6200], [makePose({ wrist: { out: 0.2, up: 1.0 } }), 6200], [makePose({ wrist: { out: 1.5, up: 0.1 } }), 6200]])) r = calib.push(measure(pose, 'right', ASPECT), t);
+    return r.baseline;
+  })();
+  const up = (u, extra = {}) => makePose({ wrist: { out: 0.2, up: u }, ...extra });
+
+  it('star moves up to where the hand really reached', () => {
+    const s = createExerciseSession('reach_up', base, ASPECT, { targetReps: 5 });
+    const y0 = s.targetEvent().y;
+    const ev = run(s, [[makePose(), 300], [up(1.6), 900], [makePose(), 400]]);
+    const moved = ev.filter((e) => e.type === 'target');
+    expect(moved).toHaveLength(1);
+    expect(moved[0].payload.y).toBeLessThan(y0); // выше на экране
+  });
+  it('reach gained by compensation does NOT raise the star', () => {
+    const s = createExerciseSession('reach_up', base, ASPECT, { targetReps: 5 });
+    const ev = run(s, [[makePose(), 300], [up(1.6, { hike: 0.45 }), 900], [up(1.05), 1300], [makePose(), 400]]);
+    expect(ev.filter((e) => e.type === 'rep')).toHaveLength(1);
+    expect(ev.filter((e) => e.type === 'target')).toHaveLength(0);
+  });
+  it('growth is capped at +40% of the calibrated reach', () => {
+    const s = createExerciseSession('reach_up', base, ASPECT, { targetReps: 10 });
+    const seq = [];
+    for (let i = 0; i < 6; i++) seq.push([makePose(), 300], [up(3), 900], [makePose(), 400]);
+    run(s, seq);
+    const t = s.targetEvent();
+    const shY = 0.62; // плечо в synth
+    expect((shY - t.y) / 0.3).toBeLessThanOrEqual(1.0 * 1.05 * 1.4 + 0.05);
   });
 });

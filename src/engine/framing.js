@@ -9,7 +9,7 @@ export const FRAMING = {
   minNoseY: 0.08,           // нос не у самого верхнего края
 };
 
-const OK = { ok: true, code: 'OK', message: 'Вас хорошо видно' };
+const OK = { ok: true, code: 'OK', message: 'Вижу вас' };
 
 /**
  * @param {Array|null} pose — зеркальные нормированные точки
@@ -18,22 +18,22 @@ const OK = { ok: true, code: 'OK', message: 'Вас хорошо видно' };
  */
 export function checkFraming(pose, m, brightness) {
   if (brightness != null && brightness < FRAMING.minBrightness) {
-    return { ok: false, code: 'LOW_LIGHT', message: 'Темновато. Включите свет или сядьте лицом к окну' };
+    return { ok: false, code: 'LOW_LIGHT', message: 'Темно. Включите свет' };
   }
   if (!pose || !m) {
-    return { ok: false, code: 'NO_PERSON', message: 'Сядьте перед камерой так, чтобы были видны голова, плечи и руки' };
+    return { ok: false, code: 'NO_PERSON', message: 'Сядьте перед камерой' };
   }
   const shoulderFrac = m.Sx / m.aspect;
   if (shoulderFrac < FRAMING.minShoulderFrac) {
-    return { ok: false, code: 'TOO_FAR', message: 'Вы далеко. Придвиньтесь к камере на полшага' };
+    return { ok: false, code: 'TOO_FAR', message: 'Придвиньтесь ближе' };
   }
   const headroom = m.shMid.y / m.S; // сколько ширин плеч от верхнего края до плеч
   if (shoulderFrac > FRAMING.maxShoulderFrac || headroom < FRAMING.minHeadroom || (m.nose && m.nose.y < FRAMING.minNoseY)) {
-    return { ok: false, code: 'TOO_CLOSE', message: 'Вы слишком близко: поднятая рука не поместится. Отодвиньтесь от камеры на полшага' };
+    return { ok: false, code: 'TOO_CLOSE', message: 'Отодвиньтесь назад' };
   }
   const elbowsSeen = (pose[LM.L_EL]?.visibility ?? 0) >= MIN_VISIBILITY && (pose[LM.R_EL]?.visibility ?? 0) >= MIN_VISIBILITY;
   if (!elbowsSeen) {
-    return { ok: false, code: 'LOW_VISIBILITY', message: 'Не видно локтей. Отодвиньтесь или опустите камеру, чтобы руки были в кадре' };
+    return { ok: false, code: 'LOW_VISIBILITY', message: 'Не видно рук. Отодвиньтесь' };
   }
   return OK;
 }

@@ -32,9 +32,9 @@ export function measure(pose, side, aspect) {
     // Ухо над плечом рабочей стороны, в ширинах плеч (больше = плечо ниже, норма).
     earSh: vis(idx.ear) ? (sh.y - P(idx.ear).y) / S : null,
     earShRaw: vis(idx.ear) ? sh.y - P(idx.ear).y : null,
-    // Ширина головы (ухо–ухо): мера расстояния до камеры. В отличие от плеч, не меняется,
-    // когда рука поднята (точка плеча в MediaPipe «едет» вместе с рукой).
-    headW: vis(LM.L_EAR) && vis(LM.R_EAR) ? Math.abs(P(LM.L_EAR).x - P(LM.R_EAR).x) : null,
+    // Ширина лица по внешним уголкам глаз: мера расстояния до камеры. Не меняется, когда рука поднята
+    // (точка плеча в MediaPipe «едет» вместе с рукой), и рука не закрывает глаза (ухо — закрывает).
+    headW: vis(LM.L_EYE_OUT) && vis(LM.R_EYE_OUT) ? Math.abs(P(LM.L_EYE_OUT).x - P(LM.R_EYE_OUT).x) : null,
     wrist, elbow, otherWrist,
     elbowDeg: wrist && elbow ? angleDeg(sh, elbow, wrist) : null,
     elevationDeg: wrist ? elevationDeg(sh, wrist) : null,

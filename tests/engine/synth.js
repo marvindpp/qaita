@@ -25,6 +25,7 @@ export function makePose({ side = 'right', wrist = null, elbowBend = 0, elbowDro
   set(11, L.x, L.y); set(12, R.x, R.y);
   set(0, cx, shY - 1.0 * 0.3 + noseDrop * 0.3);
   set(7, cx - 0.25 * S, shY - 0.9 * 0.3); set(8, cx + 0.25 * S, shY - 0.9 * 0.3);
+  set(3, cx - 0.12 * S, shY - 1.05 * 0.3); set(6, cx + 0.12 * S, shY - 1.05 * 0.3); // уголки глаз
   const sh = side === 'right' ? R : L;
   const [elI, wrI] = side === 'right' ? [14, 16] : [13, 15];
   if (wrist) {

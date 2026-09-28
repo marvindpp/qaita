@@ -37,9 +37,9 @@ describe('framing check', () => {
   it('calibration waits while the frame is bad', () => {
     const c = createCalibration('right');
     let r;
-    for (let t = 0; t < 5000; t += 33) r = c.push(m(makePose()), t, { ok: false, message: 'Вы далеко' });
+    for (let t = 0; t < 5000; t += 33) r = c.push(m(makePose()), t, { ok: false, message: 'Придвиньтесь ближе' });
     expect(r.phase).toBe('neutral');
-    expect(r.message).toBe('Вы далеко');
+    expect(r.message).toBe('Придвиньтесь ближе');
   });
 });
 

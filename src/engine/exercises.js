@@ -32,22 +32,39 @@ export const EXERCISE_DEFS = {
 export function createExercise(id, base, aspect) {
   const def = EXERCISE_DEFS[id];
   if (!def) return null;
-  const target = def.target(base, aspect);
+  let target = def.target(base, aspect);
   const radius = clamp(TARGET_RADIUS_S * base.S, RADIUS_MIN * aspect, RADIUS_MAX * aspect);
   const restUp = -0.4; // запястье ниже плеча на 0,4 ширины плеч (или не видно) = рука опущена
-  // Путь от «рука опущена» до цели — для прогресса (доля пути).
+  // Направление «плечо → цель»: по нему считаем, насколько далеко человек дотянулся.
+  const dir0 = { x: target.x - base.sh.x, y: target.y - base.sh.y };
+  const dirLen = Math.hypot(dir0.x, dir0.y) || 1;
+  const unit = { x: dir0.x / dirLen, y: dir0.y / dirLen };
+  const edge = EDGE + RADIUS_MAX;
+  const clampToFrame = (p) => ({ x: clamp(p.x, edge * aspect, (1 - edge) * aspect), y: clamp(p.y, edge * aspect, 1 - edge) });
   const restPoint = { x: base.sh.x, y: base.sh.y - restUp * base.S };
-  const fullPath = Math.max(0.3 * base.S, dist(restPoint, target));
+
+  const targetLen = () => Math.hypot(target.x - base.sh.x, target.y - base.sh.y);
+  const alongOf = (p) => (p.x - base.sh.x) * unit.x + (p.y - base.sh.y) * unit.y;
 
   return {
     id,
-    target,
+    get target() { return target; },
     radius,
     /** Для события `target` по контракту: нормированные координаты, radius — доля ширины кадра. */
     targetEvent() {
       const n = fromSpace(target, aspect);
       return { x: n.x, y: n.y, radius: radius / aspect };
     },
+    /** Насколько далеко (по направлению к цели) сейчас запястье, в единицах пространства. */
+    reachOf(m) { return m?.wrist ? alongOf(m.wrist) : 0; },
+    /** Отодвинуть цель на длину len от плеча (в пределах кадра). @returns true, если цель сдвинулась */
+    moveTo(len) {
+      const next = clampToFrame({ x: base.sh.x + unit.x * len, y: base.sh.y + unit.y * len });
+      if (dist(next, target) < radius * 0.25) return false;
+      target = next;
+      return true;
+    },
+    targetLen,
     evaluate(m) {
       const w = m?.wristRel;
       const atRest = !w || w.up < restUp;
@@ -56,13 +73,11 @@ export function createExercise(id, base, aspect) {
       // (цель могла прижаться к краю кадра — перевыполнение засчитываем).
       let inTarget = false;
       if (wristS) {
-        const v = { x: target.x - base.sh.x, y: target.y - base.sh.y };
-        const w2 = { x: wristS.x - base.sh.x, y: wristS.y - base.sh.y };
-        const len = Math.hypot(v.x, v.y) || 1;
-        const along = (w2.x * v.x + w2.y * v.y) / len;
-        const perp = Math.abs(w2.x * v.y - w2.y * v.x) / len;
-        inTarget = dist(wristS, target) < radius || (along >= len - radius && perp < radius * 1.8);
+        const len = targetLen();
+        const perp = Math.abs((wristS.x - base.sh.x) * unit.y - (wristS.y - base.sh.y) * unit.x);
+        inTarget = dist(wristS, target) < radius || (alongOf(wristS) >= len - radius && perp < radius * 1.8);
       }
+      const fullPath = Math.max(0.3 * base.S, dist(restPoint, target));
       const progress = wristS ? clamp(1 - dist(wristS, target) / fullPath, 0, 1) : 0;
       return { atRest, inTarget, progress };
     },
