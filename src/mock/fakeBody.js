@@ -63,7 +63,7 @@ function solveArm(shN, wristN, side, bend = 0) {
  * @param {number[]} curl — согнутость [большой, указ., средний, безым., мизинец], 0 = прямой, 1 = кулак
  * @param {'left'|'right'} side — с какой стороны большой палец
  */
-export function makeHand(wristN, angle, curl, side, size = 0.62 * S) {
+export function makeHand(wristN, angle, curl, side, size = 0.45 * S) {
   const w = toA(wristN);
   const dir = { x: Math.cos(angle), y: Math.sin(angle) };
   const perp = { x: -dir.y * -OUT[side], y: dir.x * -OUT[side] }; // к большому пальцу

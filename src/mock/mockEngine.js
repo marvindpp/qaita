@@ -1,7 +1,8 @@
 // Mock-движок [E]: тот же API и те же события, что у src/engine (docs/CONTRACT.md), но без камеры и MediaPipe.
 // Внутри «виртуальный пациент»: сидит на стуле, проходит калибровку, тянется к звезде, иногда компенсирует
 // и исправляется. Сам показывает ладонь и поднимает руку, чтобы экраны листались без нас.
-// URL: ?mock=1 · &speed=2 — ускорить · &manual — без автопациента (только клавиши) · &nopanel — без панели.
+// URL: ?mock=1 · &speed=2 — ускорить · &manual — без автопациента (только клавиши) · &nopanel — без панели
+// · &calibrated — норма уже есть (чтобы открыть экран упражнения сразу, без калибровки).
 import { createEmitter } from '../engine/emitter.js';
 import {
   buildPose, makeHand, createFakeCamera, shoulderOf, restWristOf, mouth, elevationDeg, OPEN, FIST, THUMB_UP,
@@ -122,7 +123,7 @@ export async function createEngine({ video } = {}) {
   let paused = false;
   let mode = 'idle';       // idle | calibration | exercise
   let status = null, statusOverride = null;
-  let baseline = null;
+  let baseline = params.has('calibrated') ? { side: 'right', mock: true, maxUpDeg: 158 } : null;
   let calib = null;        // { phaseIdx, prep, elapsed, resolve }
   let ex = null;           // текущее упражнение
   const finished = [];

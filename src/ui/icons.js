@@ -21,6 +21,10 @@ export const icons = {
     ? '<circle cx="13" cy="4.5" r="2.2"/><path d="M13 8.5v7"/><path d="M11 9.5 7 2.5"/><path d="M15 9.5l2.5 5.5"/><path d="M13 15.5l-3 6M13 15.5l3 6"/>'
     : '<circle cx="11" cy="4.5" r="2.2"/><path d="M11 8.5v7"/><path d="M13 9.5l4-7"/><path d="M9 9.5 6.5 15"/><path d="M11 15.5l-3 6M11 15.5l3 6"/>'),
   soundOff: svg('<path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="m22 9-6 6M16 9l6 6"/>'),
+  // Сад: цветок (чистый повтор) и росток (повтор с исправлением). Цветные, без обводки — «иллюстрации».
+  flower: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 44V26" stroke="#2e8b57" stroke-width="3" stroke-linecap="round"/><path d="M24 36c-6 0-9-4-9-8 5 0 9 3 9 8z" fill="#3fae6e"/><g fill="#f08aa8"><circle cx="24" cy="10" r="6.5"/><circle cx="32.6" cy="16.2" r="6.5"/><circle cx="29.3" cy="26.3" r="6.5"/><circle cx="18.7" cy="26.3" r="6.5"/><circle cx="15.4" cy="16.2" r="6.5"/></g><circle cx="24" cy="19" r="5.5" fill="#ffcf4a"/></svg>',
+  sprout: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 44V24" stroke="#2e8b57" stroke-width="3" stroke-linecap="round"/><path d="M24 28c-9 0-13-6-13-12 8 0 13 5 13 12z" fill="#57c083"/><path d="M24 24c0-8 5-13 13-13 0 7-5 13-13 13z" fill="#3fae6e"/></svg>',
+  pot: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 30h20l-2.5 14h-15z" fill="#e3d6c3"/><path d="M12 27h24v4H12z" fill="#d3c2a8"/></svg>',
   star: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.6l2.9 5.9 6.5.95-4.7 4.6 1.1 6.45L12 17.45 6.2 20.5l1.1-6.45-4.7-4.6 6.5-.95z"/></svg>',
   logo: '<svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="18" fill="#1d7552"/><path d="M32 13l5.4 11 12.1 1.8-8.8 8.5 2.1 12L32 40.6 21.2 46.3l2.1-12-8.8-8.5 12.1-1.8z" fill="#ffd66b"/></svg>',
 };

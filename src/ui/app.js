@@ -10,9 +10,12 @@ import welcome from './screens/welcome.js';
 import prep from './screens/prep.js';
 import hand from './screens/hand.js';
 import calibration from './screens/calibration.js';
+import demo from './screens/demo.js';
+import play from './screens/play.js';
+import exerciseDone from './screens/exercise-done.js';
 import soon from './screens/soon.js';
 
-const SCREENS = { welcome, prep, hand, calibration, soon };
+const SCREENS = { welcome, prep, hand, calibration, demo, play, 'exercise-done': exerciseDone, soon };
 
 // Какие события движка экран может получать (метод on<Event> у экрана).
 const ROUTED = ['frame', 'status', 'calibration', 'target', 'rep', 'mistake', 'mistake-cleared', 'gesture', 'exercise-done'];

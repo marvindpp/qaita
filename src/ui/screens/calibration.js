@@ -33,7 +33,12 @@ export default function calibration(ctx) {
   const msg = el.querySelector('.calib-msg');
   const count = el.querySelector('.count');
   const steps = Object.fromEntries(PHASES.map((p) => [p.id, el.querySelector(`[data-phase="${p.id}"]`)]));
-  const ring = createRing({ onFire: () => ctx.go('demo', { index: 0 }) });
+  const ring = createRing({
+    onFire: () => {
+      ctx.state.session = { results: [], startedAt: Date.now() };
+      ctx.go('demo', { index: 0 });
+    },
+  });
   el.querySelector('.ring-slot').replaceWith(ring.el);
   let lastMain = '', lastCount = '', done = false, alive = true;
 
