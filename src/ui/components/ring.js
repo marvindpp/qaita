@@ -7,6 +7,10 @@ const R = 46;
 const C = 2 * Math.PI * R;
 const FIRE_DELAY_MS = 260; // дать увидеть полное кольцо и галочку, прежде чем сменится экран
 
+// Общий звук «да» для всех колец — подключает app.js.
+let onAnyFire = null;
+export const setRingFireHook = (fn) => { onAnyFire = fn; };
+
 /**
  * @param {{ gesture?: string, icon?: string, center?: HTMLElement, onFire?: () => void, onProgress?: (p:number) => void }} opts
  */
@@ -42,6 +46,7 @@ export function createRing({ gesture = 'PALM_HOLD', icon = icons.palm, center = 
         fired = true;
         draw(1);
         el.dataset.fired = 'true';
+        onAnyFire?.();
         timer = setTimeout(() => onFire?.(), FIRE_DELAY_MS);
         return true;
       }

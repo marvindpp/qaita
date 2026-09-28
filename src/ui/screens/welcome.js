@@ -49,8 +49,12 @@ export default function welcome(ctx) {
     enter() {
       ctx.camera.mount(camSlot);
       syncReady();
+      if (ctx.state.live) ctx.say('Покажите ладонь в камеру и подержите секунду', { hint: true });
     },
-    onLive: syncReady,
+    onLive() {
+      syncReady();
+      ctx.say('Здравствуйте! Это упражнения для руки. Покажите ладонь в камеру и подержите секунду', { hint: true });
+    },
     onStatus: syncReady,
     onGesture: (g) => ring.handle(g),
     destroy: () => ring.destroy(),

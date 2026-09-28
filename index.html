@@ -15,6 +15,10 @@
     <div id="app" class="app">
       <main class="stage" id="stage" aria-live="polite"></main>
       <div class="status-toast" id="status-toast" role="status" aria-live="assertive"></div>
+      <div class="audio-chip" id="audio-chip" data-show="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="m22 9-6 6M16 9l6 6"/></svg>
+        <span>Звук включится после любого нажатия</span>
+      </div>
     </div>
     <!-- Единственное видео приложения: экраны переносят его к себе, в остальное время оно «на парковке».
          Не display:none — иначе браузер перестаёт отдавать кадры, и движок слепнет. -->

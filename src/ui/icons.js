@@ -16,6 +16,11 @@ export const icons = {
   alert: svg('<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/>'),
   eye: svg('<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),
   camOff: svg('<path d="M2 2l20 20"/><path d="M7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 1.73-1"/><path d="M9.5 4h5L17 7h3a2 2 0 0 1 2 2v7.34"/><circle cx="12" cy="13" r="3"/>'),
+  // Человек поднял руку. armUp('left') — рука поднята слева на экране (зеркало: это левая рука человека).
+  armUp: (side) => svg(side === 'left'
+    ? '<circle cx="13" cy="4.5" r="2.2"/><path d="M13 8.5v7"/><path d="M11 9.5 7 2.5"/><path d="M15 9.5l2.5 5.5"/><path d="M13 15.5l-3 6M13 15.5l3 6"/>'
+    : '<circle cx="11" cy="4.5" r="2.2"/><path d="M11 8.5v7"/><path d="M13 9.5l4-7"/><path d="M9 9.5 6.5 15"/><path d="M11 15.5l-3 6M11 15.5l3 6"/>'),
+  soundOff: svg('<path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="m22 9-6 6M16 9l6 6"/>'),
   star: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.6l2.9 5.9 6.5.95-4.7 4.6 1.1 6.45L12 17.45 6.2 20.5l1.1-6.45-4.7-4.6 6.5-.95z"/></svg>',
   logo: '<svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="18" fill="#1d7552"/><path d="M32 13l5.4 11 12.1 1.8-8.8 8.5 2.1 12L32 40.6 21.2 46.3l2.1-12-8.8-8.5 12.1-1.8z" fill="#ffd66b"/></svg>',
 };

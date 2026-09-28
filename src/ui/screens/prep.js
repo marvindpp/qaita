@@ -83,11 +83,13 @@ export default function prep(ctx) {
     if (s?.code === 'OK') {
       okTimer = setTimeout(() => {
         ring.setDisabled(false);
+        ctx.say('Всё готово! Покажите ладонь', { hint: true });
         label.textContent = 'Всё готово!';
         sub.textContent = 'Покажите ладонь — идём дальше';
       }, STABLE_MS);
     } else {
       ring.setDisabled(true);
+      if (s) ctx.say(s.message, { hint: true });
       label.textContent = s ? s.message : 'Проверяю кадр…';
       sub.textContent = 'Когда всё зелёное — покажите ладонь';
     }
@@ -97,6 +99,7 @@ export default function prep(ctx) {
     el,
     enter() {
       ctx.camera.mount(camSlot, { overlay: 'guide' });
+      ctx.say('Сядьте так, чтобы голова и плечи были в пунктире', { hint: true });
       ring.setDisabled(true);
       sync();
     },

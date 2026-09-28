@@ -1,13 +1,18 @@
 // Приложение [E]: роутер экранов + раздача событий движка текущему экрану. UI ничего не считает сам —
 // только показывает и озвучивает то, что пришло по контракту (docs/CONTRACT.md).
 import { createCamera } from './components/camera.js';
+import { setRingFireHook } from './components/ring.js';
+import { createVoice } from './voice.js';
+import { createSound } from './sound.js';
 import { prefersReducedMotion, esc } from './dom.js';
 import { icons } from './icons.js';
 import welcome from './screens/welcome.js';
 import prep from './screens/prep.js';
+import hand from './screens/hand.js';
+import calibration from './screens/calibration.js';
 import soon from './screens/soon.js';
 
-const SCREENS = { welcome, prep, soon };
+const SCREENS = { welcome, prep, hand, calibration, soon };
 
 // Какие события движка экран может получать (метод on<Event> у экрана).
 const ROUTED = ['frame', 'status', 'calibration', 'target', 'rep', 'mistake', 'mistake-cleared', 'gesture', 'exercise-done'];
@@ -22,7 +27,20 @@ export function createApp({ engine, video, mock = false }) {
   const state = { status: null, live: false, side: null, mock };
   let current = null;       // { name, el, ...handlers, destroy }
 
-  const ctx = { engine, camera, state, go, say: () => {} };
+  const voice = createVoice();
+  const sound = createSound();
+  sound.unlock();
+  setRingFireHook(() => sound.confirm());
+  const ctx = { engine, camera, state, go, voice, sound, say: (text, opts) => voice.say(text, opts) };
+
+  // Звук: если браузер не дал говорить без нажатия — маленькая подсказка в углу. Нажатие необязательное:
+  // всё приложение работает жестами, голос просто включится после первого касания.
+  const audioChip = document.getElementById('audio-chip');
+  const syncAudioChip = () => { audioChip.dataset.show = String(voice.blocked || sound.blocked); };
+  voice.onChange(syncAudioChip);
+  const unlock = () => { voice.unlock(); sound.unlock(); setTimeout(syncAudioChip, 50); };
+  for (const ev of ['pointerdown', 'keydown', 'touchstart']) window.addEventListener(ev, unlock, { passive: true });
+  setTimeout(syncAudioChip, 1500);
 
   function go(name, params = {}) {
     const make = SCREENS[name] ?? SCREENS.soon;
@@ -74,7 +92,9 @@ export function createApp({ engine, video, mock = false }) {
         if (payload.code === 'NO_CAMERA') camera.setWaitText(payload.message);
         updateToast();
       }
-      current?.[name]?.(payload);
+      const used = current?.[name]?.(payload);
+      // «Палец вверх» везде = повторить подсказку голосом (если экран не занял этот жест сам).
+      if (ev === 'gesture' && payload.type === 'THUMBS_UP' && payload.fired && !used) voice.repeat();
     });
   }
 
