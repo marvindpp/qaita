@@ -97,6 +97,17 @@ describe('БАГ 3: точка плеча «едет» за поднятой р�
   });
 });
 
+describe('БАГ 6: подсказки, которые гаснут по таймеру, ≠ «исправился»', () => {
+  const base = calibrate();
+  it('не дотянулся и опустил руку → «Не хватило», но не +1 к исправленным', () => {
+    const s = createExerciseSession('reach_up', base, ASPECT);
+    const ev = run(s, [[makePose(), 300], [makePose({ wrist: { out: 0.2, up: 0.6 } }), 800], [makePose(), 3000]]);
+    expect(codes(ev)).toEqual(['INCOMPLETE_ROM']);
+    expect(codes(ev, 'mistake-cleared')).toEqual(['INCOMPLETE_ROM']); // UI должен убрать подсказку
+    expect(s.result().corrected).toBe(0);
+  });
+});
+
 describe('БАГ 4: Summary.accuracy по контракту = доля повторов БЕЗ ошибок', () => {
   it('3 чистых повтора + 1 с ошибкой → accuracy 0.75 (а было среднее quality)', () => {
     const results = [{ id: 'reach_up', reps: 4, quality: (1 + 1 + 1 + 0.5) / 4, cleanReps: 3, bestRomDeg: 150, mistakes: { SHOULDER_HIKE: 1 }, corrected: 1 }];
