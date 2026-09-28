@@ -37,6 +37,15 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
   let tooFastUntil = -Infinity, incomplete = null, reachingSince = null;
   const idx = sideIndex(baseline.side);
   const otherSide = baseline.side === 'left' ? 'right' : 'left';
+  // Повтор начинается из покоя. Упражнение часто стартует с поднятой рукой: жест «✋ готов?» — это поднятая
+  // ладонь (живая запись 28.09: старт reach_up на 66,1 с при руке 171°). Пока руку не опустили хоть раз,
+  // не судим и не считаем — иначе сыпались «наклон», «плечо», «быстро», «Почти!» за опускание руки после жеста.
+  let seenRest = false;
+  // Поза покоя перед повтором (последние ~0,6 с с опущенной рукой): от неё меряем, сдвинулся ли корпус за повтор.
+  const restFrames = [];
+  let restPose = null;
+  let lastSeenT = null, pathGap = false;
+  const PATH_GAP_MS = 500; // человек пропадал дольше — путь этого повтора с дырой, в «лучший» не берём
 
   // Ошибки, которые видны не по позе одного кадра, а по времени, скорости или другой руке.
   function extraMistakes(m, f, phaseNow, now) {
@@ -45,16 +54,19 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
     const reachingNow = phaseNow === 'REACHING';
 
     if (!ex.handExercise && m?.wrist) {
+      const reachNow = ex.reachOf(m);
       if (lastWrist) {
         const dt = (now - lastWrist.t) / 1000;
         if (dt > 0 && dt < 0.2) {
-          speeds.push(Math.hypot(m.wrist.x - lastWrist.x, m.wrist.y - lastWrist.y) / baseline.S / dt);
+          // Считаем только кадры, где рука идёт К звезде. REACHING бывает и на спуске: удержание сорвалось
+          // (HOLD → REACHING) и человек опускает руку — это не рывок (живая запись 28.09, 68,3 с).
+          speeds.push({ v: Math.hypot(m.wrist.x - lastWrist.x, m.wrist.y - lastWrist.y) / baseline.S / dt, toward: reachNow > lastWrist.reach });
           if (speeds.length > 5) speeds.shift();
         }
       }
-      lastWrist = { ...m.wrist, t: now };
+      lastWrist = { ...m.wrist, t: now, reach: reachNow };
       // Рывок = быстро 3 кадра из 5. Одиночный скачок точки (глюк трекинга) — не рывок.
-      const fastFrames = speeds.filter((v) => v > THRESHOLDS.tooFastSpeed).length;
+      const fastFrames = speeds.filter((s) => s.toward && s.v > THRESHOLDS.tooFastSpeed).length;
       if (reachingNow && fastFrames >= 3) tooFastUntil = now + 700; // «липкая»: рывок короткий, а debounce 300 мс
     } else { lastWrist = null; speeds.length = 0; }
     if (now < tooFastUntil) {
@@ -102,10 +114,23 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
       // Упражнение закончено — движок молчит (иначе после «Готово» сыпались «Слишком быстро»).
       if (done || !m) return { events, info: { ex: id, phase: reps.phase, hold: 0, reps: `${count}/${targetReps}`, mistake: tracker.current ?? '—' } };
       const f = ex.evaluate(m);
+      if (repStart != null && lastSeenT != null && now - lastSeenT > PATH_GAP_MS) pathGap = true;
+      lastSeenT = now;
+      if (!seenRest) {
+        if (!f.atRest) return { events, info: { ex: id, phase: 'REST', hold: 0, reps: `${count}/${targetReps}`, mistake: tracker.current ?? '—' } };
+        seenRest = true;
+      }
+      if (f.atRest && reps.phase === 'REST') {
+        const other = baseline.side === 'left' ? m.rsh : m.lsh;
+        restFrames.push({ t: now, shMidX: m.shMid.x, otherX: other.x, noseX: m.nose?.x ?? null });
+        while (now - restFrames[0].t > 600) restFrames.shift();
+        const avg = (k) => { const v = restFrames.map((r) => r[k]).filter((x) => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+        restPose = { shMidX: avg('shMidX'), otherX: avg('otherX'), noseX: avg('noseX') };
+      }
       // Фаза для детекторов — по ТЕКУЩЕМУ кадру: рука уже пошла, значит проверяем с первого кадра движения.
       const phaseNow = !f.atRest && reps.phase === 'REST' ? 'REACHING' : reps.phase;
       if (phaseNow === 'REACHING' && reps.phase === 'REST') incomplete = null; // новый повтор — старую подсказку снимаем
-      const raw = [...detectMistakes(m, baseline, { exercise: id, phase: phaseNow }), ...extraMistakes(m, f, phaseNow, now)];
+      const raw = [...detectMistakes(m, baseline, { exercise: id, phase: phaseNow, rest: restPose }), ...extraMistakes(m, f, phaseNow, now)];
       for (const e of tracker.update(raw, now)) events.push(e);
       // Подсказку показываем после debounce, а удержание блокируем сразу по «сырому» сигналу —
       // иначе быстрый повтор с компенсацией успевает засчитаться за 300 мс фильтра.
@@ -146,7 +171,7 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
         if (r.rep.quality >= CLEAN_QUALITY) cleanReps += 1;
         bestRomDeg = Math.max(bestRomDeg, peakRom);
         events.push({ type: 'rep', payload: { exercise: id, count, targetReps, quality: r.rep.quality, romDeg: peakRom } });
-        if (path.length >= 4 && (!bestRep || r.rep.quality > bestRep.quality || (r.rep.quality === bestRep.quality && peakRom > bestRep.romDeg))) {
+        if (path.length >= 4 && !pathGap && (!bestRep || r.rep.quality > bestRep.quality || (r.rep.quality === bestRep.quality && peakRom > bestRep.romDeg))) {
           bestRep = { quality: r.rep.quality, romDeg: peakRom, ms: Math.round(now - repStart), side: baseline.side, pts: path };
         }
         peakRom = 0;
@@ -165,7 +190,9 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
           events.push({ type: 'exercise-done', payload: { exercise: id, reps: count, quality: qualitySum / count } });
         }
       }
-      if (r.phase === 'REST' && repStart != null) { path = []; repStart = null; restBuf = []; }
+      if (r.phase === 'REST' && repStart != null) { path = []; repStart = null; restBuf = []; pathGap = false; }
+      // Попытка кончилась без повтора — её амплитуда не должна достаться следующему повтору (и отчёту врачу).
+      if (r.phase === 'REST') peakRom = 0;
       return {
         events,
         info: { ex: id, phase: r.phase, hold: r.holdProgress, reps: `${count}/${targetReps}`, mistake: tracker.current ?? '—' },

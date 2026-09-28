@@ -39,7 +39,8 @@ const HIKE = ['Плечо чуть поднято. Опустите плечо!'
 /**
  * @param {ReturnType<import('./body.js').measure>} m
  * @param {object} base — baseline из калибровки
- * @param {{exercise:string, phase:string}} ctx — phase из счётчика повторов
+ * @param {{exercise:string, phase:string, rest?:{shMidX:number, otherX:number, noseX:number|null}}} ctx — phase из счётчика
+ *   повторов; rest — поза покоя (рука опущена) прямо перед этим повтором, в координатах пространства
  */
 export function detectMistakes(m, base, ctx) {
   if (!m || !base) return [];
@@ -70,8 +71,17 @@ export function detectMistakes(m, base, ctx) {
   // при настоящем наклоне они равны, при «поехавшей» точке одно из них ≈ 0.
   const otherNow = base.side === 'left' ? m.rsh : m.lsh;
   const otherBase = 2 * base.shMid.x - base.sh.x;
-  const shift = minSameSign((m.shMid.x - base.shMid.x) / unit, (otherNow.x - otherBase) / unit);
-  const noseShift = m.nose && base.nose ? (m.nose.x - base.nose.x) / unit : 0;
+  let shift = minSameSign((m.shMid.x - base.shMid.x) / unit, (otherNow.x - otherBase) / unit);
+  let noseShift = m.nose && base.nose ? (m.nose.x - base.nose.x) / unit : 0;
+  // Наклон — это движение корпуса ЗА ПОВТОР. Если человек и с опущенной рукой сидел левее/правее, чем
+  // на калибровке (пересел, сдвинул стул), это не компенсация (живая запись 28.09, 72 с и 115 с:
+  // в покое левое плечо уже −0,14 ширины плеч от нормы, у звезды — те же −0,13…−0,14).
+  // Поэтому считаем смещение и от нормы, и от позы покоя перед этим повтором, и берём меньшее.
+  const rest = ctx.rest;
+  if (rest) {
+    shift = minSameSign(shift, minSameSign((m.shMid.x - rest.shMidX) / unit, (otherNow.x - rest.otherX) / unit));
+    if (m.nose && rest.noseX != null) noseShift = minSameSign(noseShift, (m.nose.x - rest.noseX) / unit);
+  }
   if (Math.abs(shift) > T.leanSideShift || Math.abs(noseShift) > T.leanSideNoseShift) {
     const main = Math.abs(noseShift) > Math.abs(shift) ? noseShift : shift;
     const dir = main > 0 ? 'вправо' : 'влево'; // зеркальный кадр: +x = правая сторона человека

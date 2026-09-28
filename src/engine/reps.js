@@ -7,6 +7,7 @@ export function createRepCounter({ holdMs } = REP_TIMING) {
   let held = 0;
   let lastT = null;
   let reached = false;
+  let touched = false; // ладонь была у цели (HOLD) — значит, «не дотянулся» говорить нельзя
   let frames = 0, badFrames = 0;
   let peak = 0;
 
@@ -28,12 +29,14 @@ export function createRepCounter({ holdMs } = REP_TIMING) {
       }
 
       if (phase === 'REST') {
-        if (!atRest) { phase = 'REACHING'; reached = false; frames = 0; badFrames = 0; peak = progress; held = 0; }
+        if (!atRest) { phase = 'REACHING'; reached = false; touched = false; frames = 0; badFrames = 0; peak = progress; held = 0; }
       } else if (phase === 'REACHING') {
-        if (inTarget) phase = 'HOLD';
+        if (inTarget) { phase = 'HOLD'; touched = true; }
         else if (atRest) {
           phase = 'REST';
-          if (peak > 0.25) result.incomplete = { peak };
+          // Удержание сорвала компенсация, а до звезды человек дотянулся — подсказка про компенсацию уже была.
+          // «Почти! Ещё чуть-чуть!» тут врёт (живая запись 28.09: 82,5 и 94,0 с).
+          if (peak > 0.25 && !touched) result.incomplete = { peak };
         }
       } else if (phase === 'HOLD') {
         if (!inTarget) { phase = 'REACHING'; held = 0; }
