@@ -147,3 +147,18 @@ describe('thumbs up on a live recording', () => {
     expect(yes / hands.length).toBeGreaterThan(0.6);
   });
 });
+
+// Живая запись 29.09 14:49 — ЛЕВАЯ рука, все 5 упражнений, человек делает правильно.
+describe('live recording 29.09 14:49 (left hand)', () => {
+  const r4 = replay(JSON.parse(readFileSync(new URL('../fixtures/rec-2026-09-29-left.json', import.meta.url), 'utf8')));
+  it('left hand: all 5 exercises get their 3 reps, almost all clean', () => {
+    for (const r of r4.summary) {
+      expect(r.reps, r.id).toBe(3);
+      expect(r.quality, r.id).toBeGreaterThan(0.9);
+    }
+  });
+  it('no false trunk / shoulder hints on a clean left-hand session', () => {
+    const bad = r4.events.filter((e) => e.type === 'mistake' && ['TRUNK_LEAN_FORWARD', 'TRUNK_LEAN_SIDE', 'SHOULDER_HIKE', 'TOO_FAST', 'WRONG_HAND'].includes(e.payload.code));
+    expect(bad).toHaveLength(0);
+  });
+});
