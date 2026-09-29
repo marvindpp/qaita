@@ -1,11 +1,11 @@
 // Экран 1 — Приветствие [E]. Одна мысль: «это упражнения для руки, покажите ладонь — начнём».
 // Кольцо обнимает живое видео: человек видит себя и свою ладонь, пока кольцо заполняется.
+import { mountNameAsk } from '../name-ask.js';
 import { html } from '../dom.js';
 import { icons } from '../icons.js';
 import { createRing } from '../components/ring.js';
 import { cameraHelp, noPromptHelp } from '../camera-help.js';
 import { loadProfile, greeting } from '../profile.js';
-import { mountNameAsk } from '../name-ask.js';
 
 // Столько ждём вопроса «Разрешить камеру?», прежде чем подсказать, где её включить.
 const NO_PROMPT_MS = 6000;
