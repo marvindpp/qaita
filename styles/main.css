@@ -579,7 +579,7 @@ p { text-wrap: pretty; }
 .app:has(.audio-chip[data-show='true']) .screen { padding-bottom: calc(var(--gutter) + 64px); }
 
 /* ——— Телефон и узкие экраны: всё в одну колонку ——— */
-@media (max-width: 860px), (orientation: portrait) {
+@media (orientation: portrait), (max-width: 860px) and (min-height: 521px) {
   .welcome-main, .prep-main, .calib-main, .demo { grid-template-columns: 1fr; align-content: start; }
   .demo-figure { max-height: 34dvh; }
   .demo h1 { font-size: 40px; }
@@ -750,7 +750,7 @@ p { text-wrap: pretty; }
 .btn-family[data-rec='true'] { background: #e0553f; animation: rec-pulse 1s ease-in-out infinite; }
 .btn-family[data-playing='true'] { background: #d48f0f; }
 @keyframes rec-pulse { 50% { transform: scale(1.05); } }
-@media (max-width: 860px), (orientation: portrait) {
+@media (orientation: portrait), (max-width: 860px) and (min-height: 521px) {
   .garden-life { gap: 8px; }
   .life-task, .life-dose { font-size: 20px; padding: 8px 12px; }
 }
@@ -827,3 +827,65 @@ p { text-wrap: pretty; }
 @keyframes wave { 50% { height: 56px; } }
 .studio-step { display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .studio-step[hidden] { display: none; }
+
+/* ——— Телефон горизонтально (низкий экран ≤ 520px): раскладка как на ноутбуке — камера в центре, счёт по бокам,
+   но всё мельче и плотнее (живой тест 29.09 на iPhone: вертикальная раскладка не влезала, камера была крошечной). ——— */
+@media (orientation: landscape) and (max-height: 520px) {
+  :root {
+    --gutter: 10px;
+    --fs-small: 15px; --fs-body: 17px; --fs-lead: 19px; --fs-title: 30px; --fs-hint: 26px;
+  }
+  .screen { padding: 8px 12px; }
+  h1 { font-size: var(--fs-title) !important; }
+  .brand { font-size: 18px; }
+  .brand svg { width: 26px; height: 26px; }
+  .ring-label { font-size: 20px; }
+  .ring-sub { font-size: 14px; }
+  .welcome-go .ring, .demo-go .ring, .xdone-go .ring, .garden-go .ring, .prep-go .ring, .checkin-opt .ring { --size: 84px; }
+  .hand-pick .ring { --size: 90px; }
+  .welcome-main, .prep-main, .calib-main, .demo { gap: 14px; }
+  .welcome .lead, .hand .lead, .goal .lead, .demo .lead { font-size: var(--fs-lead); margin-top: 4px; }
+  .welcome-foot .chip { font-size: 13px; }
+  .welcome-go .ring { --size: min(150px, 38dvh); }
+  .btn-start { font-size: 18px; padding: 10px 20px; }
+  /* Игра: камера занимает всю высоту, HUD — узкие колонки */
+  .play { grid-template-columns: minmax(90px, 0.6fr) minmax(0, 3fr) minmax(90px, 0.6fr); gap: 8px; }
+  .hud { gap: 8px; }
+  .hud-count b { font-size: 44px; }
+  .hud-demo, .legend { display: none; }
+  .score { font-size: 22px; }
+  .hint { padding: 6px 14px; min-height: 0; }
+  .plot, .bed li { width: 26px; height: 26px; }
+  .hand-main .cam, .goal-main .cam, .calib-main .cam, .prep-main .cam { width: min(100%, 62dvh * 4 / 3); }
+  .btn-mirror { margin-top: 6px; padding: 6px 14px 6px 8px; }
+  .btn-mirror b { font-size: 16px; }
+  .btn-mirror small { font-size: 13px; }
+  .mirror-ico { font-size: 28px; }
+  .goal-btn { font-size: 14px; padding: 6px 12px; }
+  .goal-btn span { font-size: 20px; }
+  .demo-figure { max-height: 70dvh; }
+  .rule { font-size: 16px; padding: 4px 10px; grid-template-columns: 34px 1fr 30px; }
+  .rule .ico { width: 34px; height: 34px; }
+  .rule .tick { width: 30px; height: 30px; }
+  .xdone-stars .big-star { width: 56px; height: 56px; }
+  .garden-scene { max-height: 30dvh; min-height: 90px; }
+  .life-task, .life-dose { font-size: 14px; padding: 6px 10px; }
+  .life-task b, .life-dose b { font-size: 15px; }
+  .btn-family { font-size: 15px; padding: 8px 14px; }
+  .sheet-card { padding: 16px; gap: 8px; }
+  .sheet-card h2 { font-size: 24px; }
+  .status-toast { font-size: 18px; padding: 8px 16px; }
+  .audio-chip { font-size: 13px; }
+}
+
+/* Телефон вертикально: просим повернуть — вытянутая в сторону рука не помещается в узкий кадр. */
+.rotate-hint { display: none; }
+@media (orientation: portrait) and (max-width: 600px) and (pointer: coarse) {
+  .rotate-hint {
+    display: flex; position: fixed; left: 12px; right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); z-index: 30;
+    align-items: center; gap: 12px; padding: 12px 16px; border-radius: 18px;
+    background: var(--ink, #1c2b24); color: #fff; font-size: 18px; font-weight: 700; box-shadow: var(--shadow);
+  }
+  .rotate-hint span { font-size: 32px; animation: rotate-phone 2.4s ease-in-out infinite; }
+}
+@keyframes rotate-phone { 0%, 30% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
