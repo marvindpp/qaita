@@ -10,6 +10,11 @@
   .cam-badge svg { width: 18px; height: 18px; }
 }
 
+/* Пока открыто окно «Отправить детям» / «Голос близких», бургер не нужен — и он закрывал кнопку «✕» окна */
+@media (orientation: landscape) and (max-height: 520px), (max-width: 1100px) {
+  .app:has(.sheet) .burger { display: none; }
+}
+
 /* ——— Телефон горизонтально (низкий экран ≤ 520px) ——— */
 @media (orientation: landscape) and (max-height: 520px) {
   /* Поля экрана — через --gutter (он уже учитывает вырез камеры: safe-area-inset-left/right).
@@ -175,6 +180,30 @@
   .garden-go .ring { --size: 84px; }
 }
 
+/* Окна «Отправить детям», «Голос близких» и послание в саду: во всю высоту, а не «высота минус поля выреза»
+   (поля 59px съедали высоту, и в 283px окно получалось 165px). Всё мельче и плотнее. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .sheet { padding: 8px var(--gutter); }
+  .sheet-card { width: min(720px, 100%); max-height: calc(100dvh - 16px); padding: 12px 18px; gap: 8px; }
+  .sheet-close { top: 8px; right: 10px; width: 40px; height: 40px; }
+  .sheet-sub { font-size: 16px; }
+  .sheet-note { font-size: 14px; }
+  .share-text { font-size: 15px; padding: 8px 10px; height: 64px; resize: none; }
+  .share-grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .share-btn { padding: 8px 4px; gap: 4px; font-size: 15px; }
+  .share-ico { width: 36px; height: 36px; font-size: 20px; }
+  .studio-q { font-size: 17px; }
+  .who-btn { font-size: 16px; padding: 6px 14px; }
+  .ideas { font-size: 15px; }
+  .rec-btn { width: 76px; height: 76px; border-width: 6px; }
+  .rec-dot { width: 26px; height: 26px; }
+  .rec-time { font-size: 15px; }
+  .studio-step { gap: 6px; }
+  .btn-ghost { font-size: 16px; padding: 6px 14px; }
+  .msg-heart { font-size: 52px; }
+  .msg-wave { height: 36px; }
+}
+
 /* Отчёт врача на телефоне горизонтально: кольца в шапке отчёта не заходят под бургер и «Звук» */
 @media (orientation: landscape) and (max-height: 520px) {
   .app .doctor.screen, .app:has(.audio-chip[data-show='true']) .doctor.screen { padding-top: 58px; }
@@ -247,6 +276,7 @@
   .goal-btn span { font-size: 20px; }
   /* Подготовка и сад без сильного ужимания */
   .prep { gap: 10px; }
+  .prep-go .ring-sub { font-size: 15px; }
   .rules { gap: 6px; }
   .rule { font-size: 19px; padding: 4px 10px; grid-template-columns: 32px 1fr 32px; }
   .rule .ico { width: 32px; height: 32px; }
