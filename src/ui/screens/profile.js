@@ -69,7 +69,7 @@ export default function profile(ctx) {
     location.reload();
   });
   el.querySelector('[data-act="save"]').addEventListener('click', () => {
-    saveProfile({ name: nameEl.value.trim().slice(0, 30), avatar });
+    saveProfile({ ...loadProfile(), name: nameEl.value.trim().slice(0, 30), avatar, asked: true });
     ctx.go('welcome');
   });
 

@@ -1,5 +1,6 @@
 // Экран 1 — Приветствие [E]. Одна мысль: «это упражнения для руки, покажите ладонь — начнём».
 // Кольцо обнимает живое видео: человек видит себя и свою ладонь, пока кольцо заполняется.
+import { mountNameAsk } from '../name-ask.js';
 import { html } from '../dom.js';
 import { icons } from '../icons.js';
 import { createRing } from '../components/ring.js';
@@ -33,6 +34,8 @@ export default function welcome(ctx) {
       </footer>
     </section>`);
 
+  // Первый запуск: «Как вас зовут?» — одно поле и «Пропустить»; ладонь всё так же ведёт дальше.
+  const doneNameAsk = mountNameAsk(el.querySelector('.stagger'), ctx);
   const camSlot = html('<div class="ring-cam"></div>');
   camSlot.append(splashStar()); // заставка: звезда из искр, пока камера и распознавание не ожили
   const ring = createRing({ center: camSlot, onFire: () => ctx.go('prep') });
@@ -105,6 +108,6 @@ export default function welcome(ctx) {
     onStatus: syncReady,
     onFailed: syncReady,
     onGesture: (g) => ring.handle(g),
-    destroy() { alive = false; clearTimeout(helpTimer); clearInterval(tipTimer); clearInterval(startTimer); offVoice?.(); ring.destroy(); },
+    destroy() { doneNameAsk(); alive = false; clearTimeout(helpTimer); clearInterval(tipTimer); clearInterval(startTimer); offVoice?.(); ring.destroy(); },
   };
 }
