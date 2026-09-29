@@ -25,6 +25,7 @@ import profileScreen from './screens/profile.js';
 import about from './screens/about.js';
 import { createMenu } from './menu.js';
 import { createMusic } from './music.js';
+import { screenIn, screenOut } from './motion.js';
 
 const SCREENS = { welcome, prep, checkin, hand, goal, progress, profile: profileScreen, about, calibration, demo, play, 'exercise-done': exerciseDone, garden, doctor, soon };
 
@@ -107,17 +108,11 @@ export function createApp({ engine, video, mock = false }) {
     if (!next.noFit) fit(next.el); // страницы-«лендинги» (прогресс, профиль) прокручиваются сами
     refit();
 
-    const reduce = prefersReducedMotion();
-    next.el.animate(
-      reduce ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, transform: 'translateY(14px)' }, { opacity: 1, transform: 'none' }],
-      { duration: 200, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' },
-    );
+    // Переход: лёгкий подъём + размытие, ≤300 мс (motion.js; при reduced-motion — просто проявление).
+    screenIn(next.el);
     if (prev) {
       prev.el.style.pointerEvents = 'none';
-      const out = prev.el.animate(
-        reduce ? [{ opacity: 1 }, { opacity: 0 }] : [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(-10px)' }],
-        { duration: 160, easing: 'ease-out', fill: 'forwards' },
-      );
+      const out = screenOut(prev.el);
       out.finished.then(() => prev.el.remove(), () => prev.el.remove());
     }
   }

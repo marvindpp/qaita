@@ -1,0 +1,87 @@
+/* Анимации «как в хорошей игре» [E] — подключается из src/ui/motion.js (один импорт).
+   Только transform / opacity (дёшево для видеокарты). Внизу — prefers-reduced-motion: всё неподвижно. */
+
+/* ——— Слой искр и конфетти поверх экрана ——— */
+.fx-layer { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; contain: strict; }
+.fx-spark, .fx-confetti { position: absolute; display: block; will-change: transform, opacity; }
+.fx-spark { border-radius: 50%; box-shadow: 0 0 8px 1px rgba(255, 214, 107, 0.7); }
+.fx-confetti { border-radius: 3px; }
+
+/* ——— Кольцо «ладонь»: мягкое свечение по мере заполнения (--p = 0…1 из ring.js), всплеск при срабатывании ——— */
+.ring > svg { transition: filter 160ms ease; }
+.ring[data-active='true'] > svg { filter: drop-shadow(0 0 calc(4px + var(--p, 0) * 14px) rgba(46, 163, 110, calc(0.15 + var(--p, 0) * 0.55))); }
+.ring[data-fired='true'] > svg { filter: drop-shadow(0 0 16px rgba(46, 163, 110, 0.75)); }
+.ring-wave {
+  position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  border: 6px solid var(--green-bright, #2ea36e);
+}
+
+/* ——— Заставка в кольце приветствия: звезда собирается из искр, пока грузится распознавание ——— */
+.ring-splash {
+  position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; pointer-events: none;
+  background: radial-gradient(circle at 50% 45%, #3b3530 0%, #2a2622 70%);
+  border-radius: 50%; transition: opacity 400ms ease;
+}
+.ring .ring-splash svg { position: static; inset: auto; transform: none; width: 58%; height: 58%; overflow: visible; }
+/* Пока грузимся, кольцо «выключено» (бледное) — но заставка должна быть яркой. Нет камеры — снова бледное. */
+.ring[data-disabled='true']:has(.cam[data-live='false']):has(.ring-cam[data-nocam='false']) { opacity: 1; filter: none; }
+.ring-cam:has(.cam[data-live='true']) .ring-splash,
+.ring-cam[data-nocam='true'] .ring-splash { opacity: 0; }
+.ring-cam:has(.ring-splash) .cam[data-live='false'] .cam-wait { opacity: 0; }
+.sp-spark { fill: #ffd66b; transform-box: fill-box; transform-origin: center; animation: sp-in 1.1s var(--d, 0ms) cubic-bezier(0.23, 1, 0.32, 1) both, sp-twinkle 2.4s calc(var(--d, 0ms) + 1.1s) ease-in-out infinite; }
+.sp-star {
+  fill: #ffd66b; transform-box: fill-box; transform-origin: center;
+  animation: sp-star-in 700ms 650ms cubic-bezier(0.34, 1.56, 0.64, 1) both, sp-pulse 1.8s 1.4s ease-in-out infinite;
+}
+@keyframes sp-in {
+  from { transform: translate(calc(var(--dx) * 2.4), calc(var(--dy) * 2.4)) scale(0.3); opacity: 0; }
+  60% { opacity: 1; }
+  to { transform: translate(var(--dx), var(--dy)) scale(1); opacity: 1; }
+}
+@keyframes sp-twinkle { 0%, 100% { opacity: 1; transform: translate(var(--dx), var(--dy)) scale(1); } 50% { opacity: 0.35; transform: translate(calc(var(--dx) * 0.9), calc(var(--dy) * 0.9)) scale(0.7); } }
+@keyframes sp-star-in { from { transform: scale(0) rotate(-120deg); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes sp-pulse { 0%, 100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(255, 214, 107, 0.4)); } 50% { transform: scale(1.08); filter: drop-shadow(0 0 7px rgba(255, 214, 107, 0.9)); } }
+
+/* ——— Сад: ветер качает растения (у каждого свой ритм), бабочка пролетает над грядками ——— */
+.garden-wind .garden-plants span > svg,
+.garden-wind .garden-old svg { transform-origin: 50% 100%; animation: sway 3.4s ease-in-out infinite; }
+.garden-wind .garden-plants span:nth-child(2) > svg { animation-duration: 3.9s; animation-delay: -1.1s; }
+.garden-wind .garden-plants span:nth-child(3) > svg { animation-duration: 3.1s; animation-delay: -2s; }
+.garden-wind .garden-bed:nth-child(even) .garden-plants span > svg { animation-delay: -0.6s; }
+.garden-wind .garden-old svg { animation-duration: 4.6s; }
+.garden-wind .garden-old svg:nth-child(odd) { animation-delay: -2.3s; }
+@keyframes sway { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3.5deg); } }
+
+.butterfly {
+  position: absolute; z-index: 3; left: -8%; top: 40%; width: clamp(40px, 4.4vw, 68px); pointer-events: none;
+  animation: bf-fly 9s linear forwards;
+}
+.butterfly svg { display: block; width: 100%; animation: bf-bob 0.9s ease-in-out infinite; }
+.bf-wing { transform-box: view-box; transform-origin: 50% 50%; animation: bf-flap 0.24s ease-in-out infinite alternate; }
+@keyframes bf-flap { from { transform: scaleX(1); } to { transform: scaleX(0.35); } }
+@keyframes bf-bob { 0%, 100% { transform: translateY(0) rotate(6deg); } 50% { transform: translateY(-8px) rotate(-4deg); } }
+@keyframes bf-fly {
+  0% { left: -8%; top: 44%; opacity: 0; }
+  6% { opacity: 1; }
+  25% { left: 22%; top: 18%; }
+  45% { left: 44%; top: 34%; }
+  65% { left: 64%; top: 12%; }
+  85% { left: 88%; top: 26%; opacity: 1; }
+  100% { left: 108%; top: 8%; opacity: 0; }
+}
+
+/* ——— Награды: новая светится и подписана «Новая!» ——— */
+.award { position: relative; }
+.award[data-new='true'] { box-shadow: 0 0 0 3px var(--gold, #e7a41f), 0 0 24px 4px rgba(231, 164, 31, 0.45); }
+.award[data-new='true']::after {
+  content: 'Новая!'; position: absolute; top: -10px; right: -6px; padding: 2px 10px; border-radius: 999px;
+  background: var(--gold, #e7a41f); color: #1c2a25; font-size: 14px; font-weight: 800;
+}
+
+/* ——— Без движения, если человек так настроил систему ——— */
+@media (prefers-reduced-motion: reduce) {
+  .sp-spark, .sp-star, .garden-wind .garden-plants span > svg, .garden-wind .garden-old svg, .butterfly, .butterfly svg, .bf-wing { animation: none !important; }
+  .sp-spark { transform: translate(var(--dx), var(--dy)); }
+  .butterfly, .fx-layer, .ring-wave { display: none; }
+  .ring > svg { transition: none; }
+}

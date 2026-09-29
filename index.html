@@ -14,6 +14,37 @@
   <body>
     <div id="app" class="app">
       <main class="stage" id="stage" aria-live="polite"></main>
+      <!-- Заставка до загрузки приложения: звезда собирается из искр, советы сменяются. Чистый CSS, исчезает сама,
+           как только появится первый экран (.stage не пустой). Стили здесь — main.css ещё не загружен. -->
+      <div class="boot" aria-hidden="true">
+        <style>
+          .boot{position:fixed;inset:0;z-index:50;display:grid;place-content:center;justify-items:center;gap:18px;background:#faf6ef;color:#1c2a25;font:600 24px/1.3 system-ui,sans-serif;text-align:center;padding:16px;transition:opacity .45s ease,visibility .45s}
+          .stage:not(:empty)~.boot{opacity:0;visibility:hidden}
+          .stage:not(:empty)~.boot *{animation-play-state:paused}
+          .boot svg{width:132px;height:132px;overflow:visible}
+          .boot b{font-size:40px;font-weight:800;color:#1d7552;letter-spacing:-.01em}
+          .boot-tips{position:relative;height:1.4em;width:min(90vw,560px);color:#4b5a54}
+          .boot-tips span{position:absolute;inset:0;opacity:0;animation:boot-tip 10.5s infinite}
+          .boot-tips span:nth-child(2){animation-delay:3.5s}.boot-tips span:nth-child(3){animation-delay:7s}
+          .bt-s{fill:#e7a41f;transform-box:fill-box;transform-origin:center;animation:bt-in 1s var(--d) cubic-bezier(.23,1,.32,1) both,bt-tw 2.4s calc(var(--d) + 1s) ease-in-out infinite}
+          .bt-star{fill:#ffd66b;stroke:#e7a41f;stroke-width:1.5;transform-box:fill-box;transform-origin:center;animation:bt-star .7s .6s cubic-bezier(.34,1.56,.64,1) both,bt-pulse 1.8s 1.3s ease-in-out infinite}
+          @keyframes bt-in{from{transform:translate(calc(var(--x)*2.4),calc(var(--y)*2.4)) scale(.3);opacity:0}to{transform:translate(var(--x),var(--y));opacity:1}}
+          @keyframes bt-tw{50%{transform:translate(var(--x),var(--y)) scale(.6);opacity:.4}}
+          @keyframes bt-star{from{transform:scale(0) rotate(-120deg);opacity:0}}
+          @keyframes bt-pulse{50%{transform:scale(1.08)}}
+          @keyframes boot-tip{0%,2%{opacity:0;transform:translateY(8px)}6%,30%{opacity:1;transform:none}34%,100%{opacity:0;transform:translateY(-8px)}}
+          @media (prefers-reduced-motion:reduce){.boot *{animation:none!important}.bt-s{transform:translate(var(--x),var(--y))}.boot-tips span:first-child{opacity:1}}
+        </style>
+        <svg viewBox="0 0 64 64">
+          <circle class="bt-s" style="--x:34px;--y:0px;--d:0ms" cx="32" cy="31" r="2.6"/><circle class="bt-s" style="--x:24px;--y:24px;--d:70ms" cx="32" cy="31" r="2.6"/>
+          <circle class="bt-s" style="--x:0px;--y:34px;--d:140ms" cx="32" cy="31" r="2.6"/><circle class="bt-s" style="--x:-24px;--y:24px;--d:210ms" cx="32" cy="31" r="2.6"/>
+          <circle class="bt-s" style="--x:-34px;--y:0px;--d:280ms" cx="32" cy="31" r="2.6"/><circle class="bt-s" style="--x:-24px;--y:-24px;--d:350ms" cx="32" cy="31" r="2.6"/>
+          <circle class="bt-s" style="--x:0px;--y:-34px;--d:420ms" cx="32" cy="31" r="2.6"/><circle class="bt-s" style="--x:24px;--y:-24px;--d:490ms" cx="32" cy="31" r="2.6"/>
+          <path class="bt-star" d="M32 13l5.4 11 12.1 1.8-8.8 8.5 2.1 12L32 40.6 21.2 46.3l2.1-12-8.8-8.5 12.1-1.8z"/>
+        </svg>
+        <b>Qaita</b>
+        <div class="boot-tips"><span>Сядьте лицом к свету</span><span>Камера — на уровне груди, примерно в метре</span><span>Видео никуда не отправляется</span></div>
+      </div>
       <div class="rotate-hint" aria-live="polite"><span aria-hidden="true">📱</span>Поверните телефон горизонтально — так камере видно всю руку</div>
       <div class="status-toast" id="status-toast" role="status" aria-live="assertive"></div>
       <div class="repeat-toast" id="repeat-toast" role="status" aria-live="polite" data-show="false"></div>

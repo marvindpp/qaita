@@ -6,6 +6,7 @@ import { EXERCISE_INFO } from '../exercises.js';
 import { lifeFlowers, loadGoal } from '../life.js';
 import { amplitudeChart } from './doctor.js';
 import { loadProfile } from '../profile.js';
+import { celebrateAwards } from '../motion.js';
 
 function longestStreak(sessions) {
   const days = [...new Set(sessions.map((s) => s.day))].sort();
@@ -99,10 +100,15 @@ export default function progress(ctx) {
       </div>
     </section>`);
   el.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => ctx.go(b.dataset.go)));
+  let stopFx = null;
 
   return {
     el,
     noFit: true,
-    enter() { ctx.say(p.days ? `Ваш прогресс. ${p.days} ${plural(p.days, 'день', 'дня', 'дней')} занятий, ${p.totalReps} повторов.` : 'Здесь появится ваш прогресс после первой тренировки'); },
+    destroy() { stopFx?.(); },
+    enter() {
+      stopFx = celebrateAwards(el, ctx.sound); // новая награда — вспышка, искры и «звон»
+      ctx.say(p.days ? `Ваш прогресс. ${p.days} ${plural(p.days, 'день', 'дня', 'дней')} занятий, ${p.totalReps} повторов.` : 'Здесь появится ваш прогресс после первой тренировки');
+    },
   };
 }
