@@ -15,7 +15,9 @@
   <body>
     <div id="app" class="app">
       <main class="stage" id="stage" aria-live="polite"></main>
-      <div class="rotate-hint" aria-live="polite"><span aria-hidden="true">📱</span>Поверните телефон горизонтально — так камере видно всю руку</div>
+      <div class="rotate-hint" aria-live="polite"><span aria-hidden="true">📱</span><b>Поверните телефон горизонтально — так камере видно всю руку</b><button type="button" class="rotate-hint-close" aria-label="Скрыть подсказку" onclick="this.parentElement.hidden = true">✕</button></div>
+      <!-- Подсказку «Поверните» прячем сами через 20 с: она не должна навсегда закрывать низ экрана (QA 30.09). -->
+      <script>setTimeout(() => { const h = document.querySelector('.rotate-hint'); if (h) h.hidden = true; }, 20000);</script>
       <div class="status-toast" id="status-toast" role="status" aria-live="assertive"></div>
       <div class="repeat-toast" id="repeat-toast" role="status" aria-live="polite" data-show="false"></div>
       <div class="audio-chip" id="audio-chip" data-show="false">
