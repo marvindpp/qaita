@@ -207,7 +207,7 @@ export default function play(ctx, { index = 0 } = {}) {
       const best = todayBest();
       if (best) { yesterday = best; yesterdayLabel = 'Ваш лучший'; }
     }
-    ctx.sound.rep();
+    if (res.clean) ctx.sound.repClean?.(); else ctx.sound.rep();
     if (res.comboUp) {
       ctx.sound.combo(res.multiplier);
       comboEl.animate([{ transform: 'scale(1.35) rotate(-4deg)' }, { transform: 'none' }], { duration: 360, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' });
@@ -215,7 +215,7 @@ export default function play(ctx, { index = 0 } = {}) {
     if (prevBest && !recordShown && r.romDeg >= prevBest + 3) {
       recordShown = true;
       if (target) bursts.push({ x: target.x, y: target.y, clean: true });
-      ctx.sound.done();
+      ctx.sound.record?.();
       hintFor(2600, 'rep', 'Новый рекорд! Выше, чем раньше', `+${res.points}`);
       ctx.say('Новый рекорд! Рука поднялась выше, чем раньше', { interrupt: true, force: true });
       return;
@@ -261,6 +261,7 @@ export default function play(ctx, { index = 0 } = {}) {
     pauseEl.querySelector('h2').textContent = tired ? 'Отдохните' : 'Пауза';
     pauseEl.querySelector('.pause-card > p').innerHTML = tired ? 'Рука устала — это нормально.<br>Опустите её и подышите.' : 'Больно? Отдохните.<br>Не занимайтесь через боль.';
     resumeRing.reset();
+    if (tired) ctx.sound.rest?.();
     ctx.say(tired
       ? 'Похоже, рука устала. Это нормально. Опустите руку и отдохните. Покажите ладонь, когда будете готовы'
       : 'Пауза. Если больно — отдохните. Не занимайтесь через боль. Покажите ладонь, чтобы продолжить', { interrupt: true, force: true, hint: true });

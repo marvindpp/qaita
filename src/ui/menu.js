@@ -2,6 +2,7 @@
 // музыка и голос. Во время упражнений кнопки нет (там всё управляется жестами и ничего не должно мешать).
 import { html, esc } from './dom.js';
 import { loadProfile } from './profile.js';
+import { MOODS, MOOD_IDS } from './music.js';
 
 const ITEMS = [
   { go: 'welcome', ico: '▶', label: 'Тренировка' },
@@ -23,6 +24,7 @@ export function createMenu({ go, music, voice }) {
         <ul>${ITEMS.map((i) => `<li><button type="button" data-go="${i.go}"><span aria-hidden="true">${i.ico}</span>${i.label}</button></li>`).join('')}</ul>
         <div class="drawer-toggles">
           <label class="switch"><input type="checkbox" data-t="music"><span></span>🎵 Спокойная музыка</label>
+          <div class="moods" role="group" aria-label="Настроение музыки">${MOOD_IDS.map((id) => `<button type="button" data-mood="${id}" aria-pressed="false" title="${MOODS[id].title}"><span aria-hidden="true">${MOODS[id].ico}</span>${MOODS[id].label}</button>`).join('')}</div>
           <label class="switch"><input type="checkbox" data-t="voice"><span></span>🗣 Голос тренера</label>
         </div>
         <p class="drawer-note">🔒 Видео не записывается. Всё хранится только на этом устройстве.</p>
@@ -39,13 +41,23 @@ export function createMenu({ go, music, voice }) {
       drawer.querySelector('.drawer-ava').textContent = p.avatar;
       drawer.querySelector('.drawer-name').textContent = p.name || 'Гость';
       drawer.querySelector('[data-t="music"]').checked = music.on;
+      syncMoods();
       drawer.querySelector('[data-t="voice"]').checked = !voice.muted;
     }
   };
   btn.addEventListener('click', () => setOpen(drawer.dataset.open !== 'true'));
   drawer.addEventListener('click', (e) => { if (e.target === drawer) setOpen(false); });
   drawer.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => { setOpen(false); go(b.dataset.go); }));
-  drawer.querySelector('[data-t="music"]').addEventListener('change', (e) => music.set(e.target.checked));
+  drawer.querySelector('[data-t="music"]').addEventListener('change', (e) => { music.set(e.target.checked); syncMoods(); });
+  // Настроение музыки: выбрать = сразу услышать (если музыка была выключена — включаем).
+  function syncMoods() {
+    drawer.querySelectorAll('[data-mood]').forEach((b) => b.setAttribute('aria-pressed', String(music.on && b.dataset.mood === music.mood)));
+  }
+  drawer.querySelectorAll('[data-mood]').forEach((b) => b.addEventListener('click', () => {
+    music.setMood?.(b.dataset.mood);
+    if (!music.on) { music.set(true); drawer.querySelector('[data-t="music"]').checked = true; }
+    syncMoods();
+  }));
   drawer.querySelector('[data-t="voice"]').addEventListener('change', (e) => voice.setMuted(!e.target.checked));
   addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });
 
