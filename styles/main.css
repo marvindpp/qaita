@@ -672,6 +672,10 @@ p { text-wrap: pretty; }
   .report-table th:nth-child(3) { width: 15%; }
   .report-table thead th { font-size: 12px; letter-spacing: 0; overflow-wrap: anywhere; }
   .report-table td:last-child { overflow-wrap: anywhere; }
+  /* Бургер (56px справа сверху) не наезжает на заголовок экрана — «Сядьте в пунктир», «Мой прогресс» (QA 30.09).
+     С запасом: автомасштаб уменьшает и отступ. */
+  .app:has(.burger:not([hidden])) .screen { padding-top: 100px; }
+  .steps li { font-size: 16px; padding-inline: 4px; } /* «В сторону» влезает в треть ширины 390px */
 }
 
 @media (prefers-reduced-transparency: reduce) {
@@ -856,7 +860,8 @@ p { text-wrap: pretty; }
   .score { font-size: 22px; }
   .hint { padding: 6px 14px; min-height: 0; }
   .plot, .bed li { width: 26px; height: 26px; }
-  .hand-main .cam, .goal-main .cam, .calib-main .cam, .prep-main .cam { width: min(100%, 62dvh * 4 / 3); }
+  /* .goal-main .cam здесь нет: там размер через cqw/cqh, а width: 100% от сжатой ячейки давал 0 — камера пропадала (QA 30.09). */
+  .hand-main .cam, .calib-main .cam, .prep-main .cam { width: min(100%, 62dvh * 4 / 3); }
   .btn-mirror { margin-top: 6px; padding: 6px 14px 6px 8px; }
   .btn-mirror b { font-size: 16px; }
   .btn-mirror small { font-size: 13px; }
@@ -867,7 +872,19 @@ p { text-wrap: pretty; }
   .rule { font-size: 16px; padding: 4px 10px; grid-template-columns: 34px 1fr 30px; }
   .rule .ico { width: 34px; height: 34px; }
   .rule .tick { width: 30px; height: 30px; }
+  /* Подготовка: список правил не вылезает из своей строки и не наезжает на кольцо «Всё готово!» (QA 30.09). */
+  .prep-main { flex: none; }
+  .rules { gap: 6px; }
+  .rule:not([data-state='bad']) small { display: none; }
   .xdone-stars .big-star { width: 56px; height: 56px; }
+  /* Итоги со стоп-кадрами: карточки справа от звёзд, а не под ними — иначе экран ужимался до 55% и низ обрезался (QA 30.09). */
+  .xdone-main { gap: 8px; }
+  .xdone-bed { --plant: 44px; }
+  .xdone .pill { font-size: 19px; padding: 6px 14px; }
+  .xdone .pill svg { width: 22px; height: 22px; }
+  .xdone[data-moments='true'] { flex-direction: row; gap: 16px; }
+  .xdone[data-moments='true'] .moment { width: min(24vw, 44dvh); gap: 6px; }
+  .xdone[data-moments='true'] .moment img { border-width: 4px; border-radius: 14px; }
   .garden-scene { max-height: 30dvh; min-height: 90px; }
   .life-task, .life-dose { font-size: 14px; padding: 6px 10px; }
   .life-task b, .life-dose b { font-size: 15px; }
@@ -876,6 +893,8 @@ p { text-wrap: pretty; }
   .sheet-card h2 { font-size: 24px; }
   .status-toast { font-size: 18px; padding: 8px 16px; }
   .audio-chip { font-size: 13px; }
+  /* Плашка «Звук» сверху справа: заголовок начинается под ней, а не под неё (QA 30.09: наезжала на «Ради чего?»). Снизу место ей не нужно. */
+  .app:has(.audio-chip[data-show='true']) .screen { padding-top: 52px; padding-bottom: 8px; }
 }
 
 /* Телефон вертикально: просим повернуть — вытянутая в сторону рука не помещается в узкий кадр. */
@@ -883,11 +902,20 @@ p { text-wrap: pretty; }
 @media (orientation: portrait) and (max-width: 600px) and (pointer: coarse) {
   .rotate-hint {
     display: flex; position: fixed; left: 12px; right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); z-index: 30;
-    align-items: center; gap: 12px; padding: 12px 16px; border-radius: 18px;
-    background: var(--ink, #1c2b24); color: #fff; font-size: 18px; font-weight: 700; box-shadow: var(--shadow);
+    align-items: center; gap: 10px; padding: 10px 10px 10px 14px; border-radius: 18px;
+    background: var(--ink, #1c2b24); color: #fff; font-size: 16px; font-weight: 700; box-shadow: var(--shadow);
   }
   .rotate-hint span { font-size: 32px; animation: rotate-phone 2.4s ease-in-out infinite; }
+  .rotate-hint b { flex: 1; font-weight: 700; }
+  /* Плашку можно закрыть (✕), а пока она видна — экран оставляет под ней место: не закрывает кольцо «ладонь» и кнопки (QA 30.09). */
+  .rotate-hint-close {
+    flex: none; width: 44px; height: 44px; border: 0; border-radius: 12px; background: rgba(255, 255, 255, 0.14);
+    color: #fff; font-size: 20px; font-weight: 800; cursor: pointer;
+  }
+  .app:has(.rotate-hint:not([hidden])) .screen { padding-bottom: calc(130px + env(safe-area-inset-bottom)); }
 }
+.rotate-hint[hidden] { display: none !important; }
+@media (prefers-reduced-motion: reduce) { .rotate-hint span { animation: none; } }
 @keyframes rotate-phone { 0%, 30% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
 
 /* ——— Меню-бургер ——— */
