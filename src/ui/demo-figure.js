@@ -20,8 +20,23 @@ const SPLINES = [SPL, '0 0 1 1', SPL, '0 0 1 1'].join(';');
 const rot = (values) => `<animateTransform attributeName="transform" type="rotate" values="${values.join(';')}" keyTimes="${KEYS}"
   calcMode="spline" keySplines="${SPLINES}" dur="${CYCLE}" repeatCount="indefinite"/>`;
 
-export function demoFigure(exercise, side = 'right') {
-  const m = MOVES[exercise] ?? MOVES.reach_up;
+// Длина руки фигурки от плеча до кисти (плечо 40 + предплечье с кистью 42) и точка плеча в координатах SVG.
+const ARM = 82, SHOULDER = [145, 86];
+
+/**
+ * @param {string} exercise
+ * @param {'left'|'right'} side
+ * @param {{ liftDeg?: number }} [opts] — liftDeg: куда на самом деле стоит звезда этого человека
+ *   (угол от «рука вниз» 0° до «вверх» 180°). Для «вверх» и «в сторону» фигурка тянется туда же,
+ *   а не в типовую точку — иначе звезда на камере и у человечка в разных местах (живой тест 29.09).
+ */
+export function demoFigure(exercise, side = 'right', { liftDeg } = {}) {
+  let m = MOVES[exercise] ?? MOVES.reach_up;
+  if (liftDeg != null && (exercise === 'reach_up' || exercise === 'reach_side')) {
+    const lift = Math.min(175, Math.max(30, liftDeg));
+    const rad = (lift * Math.PI) / 180;
+    m = { ...m, upper: [-6, -lift, -lift, -6, -6], star: [Math.round(SHOULDER[0] + ARM * Math.sin(rad)), Math.round(SHOULDER[1] + ARM * Math.cos(rad))] };
+  }
   const flip = side === 'left' ? 'transform="translate(240 0) scale(-1 1)"' : '';
   const { star } = m;
   // Кисть: для «раскрыть ладонь» — пальцы вытягиваются (кулак ↔ ладонь), иначе — круглая ладонь.
@@ -62,7 +77,7 @@ export function demoFigure(exercise, side = 'right') {
       <circle cx="114" cy="51" r="2" fill="#3b2f2a"/><circle cx="126" cy="51" r="2" fill="#3b2f2a"/>
       <path d="M114 59q6 5 12 0" stroke="#a0685a" stroke-width="2" fill="none" stroke-linecap="round"/>
       <!-- рабочая рука: плечо → локоть → кисть -->
-      <g transform="translate(145 86)">
+      <g transform="translate(${SHOULDER[0]} ${SHOULDER[1]})">
         <g>${rot(m.upper)}
           <path d="M0 0v40" stroke="#1d7552" stroke-width="14" stroke-linecap="round"/>
           <g transform="translate(0 40)">

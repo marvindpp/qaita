@@ -91,6 +91,7 @@ export default function play(ctx, { index = 0 } = {}) {
   const pauseEl = $('.pause');
   const flash = $('.flash');
 
+  let demoLift = null;        // угол руки человечка-подсказки (под звезду этого человека)
   let target = null;          // { x, y, radius } — нормированные, radius в долях ширины кадра
   let mistake = null;         // текущая подсказка движка
   let paused = false, done = false, alive = true;
@@ -305,6 +306,16 @@ export default function play(ctx, { index = 0 } = {}) {
 
     // Пока рука внизу и никто не ошибается: «Вы вчера» (путь лучшего повтора) или тень-тренер.
     const armDown = sh && palm && palm.y - sh.y > 0.55 * S;
+    // Человечек слева тянется туда, где звезда у ЭТОГО человека (угол от плеча), а не в типовую точку.
+    // Меряем, пока рука внизу: точка плеча в MediaPipe «едет» за поднятой рукой.
+    if (star && sh && armDown && (id === 'reach_up' || id === 'reach_side')) {
+      const lift = (Math.atan2(Math.abs(star.x - sh.x), star.y - sh.y) * 180) / Math.PI;
+      if (demoLift == null || Math.abs(lift - demoLift) > 8) {
+        demoLift = lift;
+        const box = el.querySelector('.hud-demo');
+        if (box) box.innerHTML = demoFigure(id, side, { liftDeg: lift });
+      }
+    }
     const calm = star && sh && live && !mistake && armDown && now - lastRepAt > 900;
     if (calm) {
       if (yesterday && other) {
