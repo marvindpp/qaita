@@ -175,7 +175,7 @@ export function createApp({ engine, video, mock = false }) {
     fail(text) {
       if (state.live) return;
       state.failed = text;
-      camera.setWaitText(`${text.label}. ${text.sub}`);
+      camera.setWaitText(text.label); // в маленьком круге камеры — коротко; подробности под кольцом
       current?.onFailed?.();
     },
   };
