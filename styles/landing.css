@@ -1,0 +1,146 @@
+/* Лендинг и меню до уровня продукта (ночь 4): «Мой прогресс», «Профиль и близкие», «О Qaita», меню-бургер
+   и «Как вас зовут?» на первом запуске. Проверено на 1440×820, 844×390 (телефон горизонтально), 390×844.
+   Подключается из screens/about.js (после main.css), поэтому правила с той же специфичностью здесь главнее. */
+
+/* ——— 1. Страницы-лендинги: прокручивается весь экран ———
+   Раньше шапка и кнопки стояли на месте, а крутилась только середина: на телефоне горизонтально от неё
+   оставалась полоска в ~150px. Теперь шапка уезжает вверх, а кнопки внизу всегда под рукой (sticky). */
+.progress.screen, .profile.screen, .about.screen { overflow-x: hidden; overflow-y: auto; }
+/* Нижнего поля у экрана нет: sticky-кнопки прилипают к краю поля, и под ними «просвечивал» текст. */
+.progress.screen, .profile.screen, .about.screen { padding-bottom: 0 !important; } /* сильнее правила «под плашкой Звук» из main.css */
+.progress .page-scroll, .profile .page-scroll, .about .page-scroll { flex: none; min-height: auto; overflow: visible; }
+.progress .page-actions, .profile .page-actions, .about .page-actions {
+  position: sticky; bottom: 0; z-index: 3; margin-top: auto; padding: 18px 0 max(12px, env(safe-area-inset-bottom));
+  background: linear-gradient(to bottom, rgba(250, 246, 239, 0), var(--bg) 45%);
+}
+/* Заголовок не заезжает под бургер и плашку «Звук»: одинаковые поля слева и справа — текст остаётся по центру. */
+.page-head { padding-inline: 76px; }
+.page-head h1 { overflow-wrap: anywhere; }
+
+/* Эти страницы без камеры — просьба «Поверните телефон» им не нужна (и закрывала кнопки внизу). */
+body[data-screen='progress'] .rotate-hint,
+body[data-screen='profile'] .rotate-hint,
+body[data-screen='about'] .rotate-hint { display: none; }
+
+/* ——— 2. Мой прогресс: подписи крупнее, таблица рекордов не распирает экран ——— */
+.stat span { font-size: 19px; }
+.award b { font-size: 20px; }
+.award small { font-size: 16px; }
+.cal-day { font-size: 18px; }
+.records thead th { font-size: 17px; }
+.progress .card:has(> .records) { overflow-x: auto; }
+.about-team { font-size: 18px; }
+
+/* ——— 3. О Qaita: «Для врача» и «Частые вопросы» ——— */
+.about-list { margin: 4px 0 12px; padding-left: 1.2em; display: grid; gap: 6px; font-size: 20px; }
+.about-list li::marker { color: var(--green); }
+.about-doctor .btn-ghost { margin-top: 8px; }
+.faq { border-top: 2px solid var(--bg-deep); }
+.faq:last-child { border-bottom: 2px solid var(--bg-deep); }
+.faq summary {
+  list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 4px; font-size: 24px; font-weight: 800; min-height: 56px;
+}
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after {
+  content: '+'; flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--green-soft); color: var(--green); font-size: 28px; line-height: 1; transition: transform 200ms var(--ease-out);
+}
+.faq[open] summary::after { transform: rotate(45deg); }
+.faq summary:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; border-radius: 12px; }
+.faq p { padding: 0 4px 16px; font-size: 21px; line-height: 1.45; }
+
+/* ——— 4. Меню-бургер ——— */
+/* Кнопка остаётся над открытым меню и превращается в «✕» — закрыть тем же местом, куда нажали. */
+.burger { z-index: 46; }
+.burger span { transition: transform 200ms var(--ease-out), opacity 150ms; }
+.burger[aria-expanded='true'] span:nth-child(1) { transform: translateY(9px) rotate(45deg); }
+.burger[aria-expanded='true'] span:nth-child(2) { opacity: 0; }
+.burger[aria-expanded='true'] span:nth-child(3) { transform: translateY(-9px) rotate(-45deg); }
+.drawer-head { padding-right: 60px; }
+.drawer-head b { overflow-wrap: anywhere; }
+.drawer-note { font-size: 16px; }
+
+/* ——— 5. Первый запуск: «Как вас зовут?» (src/ui/name-ask.js) ——— */
+.name-ask {
+  margin-top: 18px; max-width: 600px; display: grid; gap: 10px; padding: 14px 16px;
+  border-radius: var(--radius-sm); background: var(--surface); box-shadow: var(--shadow);
+}
+.name-ask-q { font-size: 26px; font-weight: 800; }
+.name-ask-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.name-ask-field {
+  flex: 1 1 200px; min-width: 0; font: inherit; font-size: 24px; padding: 10px 14px;
+  border-radius: 14px; border: 2px solid var(--line); background: var(--bg); color: var(--ink);
+}
+.name-ask-field:focus { outline: 3px solid var(--green); outline-offset: 1px; }
+.name-ask-ok, .name-ask-skip {
+  font: inherit; font-size: 22px; font-weight: 800; padding: 10px 18px; border-radius: 999px; cursor: pointer;
+}
+.name-ask-ok { border: 0; background: var(--green); color: #fff; }
+.name-ask-skip { border: 2px solid var(--bg-deep); background: transparent; color: var(--ink-2); }
+.name-ask-ok:focus-visible, .name-ask-skip:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.name-ask-hint { font-size: 18px; color: var(--ink-2); }
+
+/* ——— Телефон вертикально ——— */
+@media screen and (orientation: portrait) and (max-width: 600px) {
+  /* Узко: заголовки по центру всё равно доставали до бургера (экран ещё и ужимается автомасштабом, поля
+     ужимаются вместе с ним). Поэтому на экранах с бургером сцена начинается под ним — верхняя полоса его. */
+  .app:has(.burger:not([hidden])) .stage { top: calc(66px + env(safe-area-inset-top)); }
+  /* Плашка «Звук» стоит в той же полосе — отдельный отступ под неё на этих экранах не нужен. */
+  .app:has(.burger:not([hidden])) .stage > .screen { padding-top: 8px; }
+  .page-head { padding-inline: 0; }
+  .page-head h1 { font-size: 36px; }
+  .page-head .lead { font-size: 22px; }
+  .page-actions .btn-start, .page-actions .btn-ghost { font-size: 22px; padding: 12px 20px; }
+  .card { padding: 16px; }
+  .card h2 { font-size: 24px; }
+  .records { font-size: 18px; }
+  .records th, .records td { padding: 8px 6px; }
+  .faq summary { font-size: 22px; }
+  .faq p { font-size: 20px; }
+  .name-ask { margin-top: 12px; padding: 10px 12px; gap: 8px; }
+  .name-ask-hint { display: none; } /* на телефоне экран и так ужимается; «Покажите ладонь» написано под кольцом */
+  .name-ask-q { font-size: 24px; }
+}
+
+/* ——— Телефон горизонтально (низкий экран) ——— */
+@media (orientation: landscape) and (max-height: 520px) {
+  .burger { width: 46px; height: 46px; border-radius: 14px; top: max(8px, env(safe-area-inset-top)); gap: 5px; }
+  .burger span { width: 22px; }
+  .burger[aria-expanded='true'] span:nth-child(1) { transform: translateY(8px) rotate(45deg); }
+  .burger[aria-expanded='true'] span:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
+  /* Плашка «Звук» — только значок: текст наезжал на заголовки экранов. Для экранного диктора текст остаётся. */
+  .audio-chip { padding: 8px; }
+  .audio-chip span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .app:has(.burger:not([hidden])) .audio-chip { right: calc(var(--gutter) + 54px); top: max(8px, env(safe-area-inset-top)); }
+  .page-head { padding-inline: 110px; }
+  .page-head .lead { font-size: 17px; }
+  .page-actions .btn-start, .page-actions .btn-ghost { font-size: 18px; padding: 10px 18px; }
+  .progress .page-actions, .profile .page-actions, .about .page-actions { padding-top: 12px; }
+  .card { padding: 12px 16px; }
+  .card h2 { font-size: 22px; }
+  .card p, .about-list, .faq p { font-size: 17px; }
+  .faq summary { font-size: 19px; min-height: 48px; padding: 10px 4px; }
+  .how li { font-size: 17px; padding: 10px; }
+  /* Меню: все пункты и переключатели помещаются в 390px высоты */
+  .drawer-panel { padding: 12px 14px; gap: 8px; }
+  .drawer-head { padding-bottom: 6px; }
+  .drawer-ava { font-size: 32px; }
+  .drawer-head b { font-size: 20px; }
+  .drawer ul { gap: 0; }
+  .drawer li button { padding: 6px 10px; font-size: 18px; white-space: nowrap; }
+  .drawer li button span { font-size: 20px; }
+  .drawer-toggles { gap: 6px; padding-top: 6px; }
+  .switch { font-size: 16px; }
+  .drawer-note { font-size: 13px; }
+  /* «Как вас зовут?» — одна компактная строка, экран приветствия и так тесный */
+  .name-ask { margin-top: 10px; padding: 8px 10px; gap: 6px; }
+  .name-ask-q { font-size: 17px; }
+  .name-ask-field { font-size: 16px; padding: 6px 10px; flex-basis: 120px; }
+  .name-ask-ok, .name-ask-skip { font-size: 15px; padding: 6px 12px; }
+  .name-ask-hint { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .burger span, .faq summary::after { transition: none; }
+}
