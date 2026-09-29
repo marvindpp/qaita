@@ -98,3 +98,40 @@ describe('live 28.09: «Почти! Ещё чуть-чуть!», когда ла
     expect(mistakesOf('reach_up').filter((e) => e.payload.code === 'INCOMPLETE_ROM')).toEqual([]);
   });
 });
+
+// Живая запись 29.09 (плейтест Ерса): девушка в очках, камера ноутбука снизу, сидит на кровати.
+// После калибровки чуть отодвинулась и осела (лицо −20%, нос ниже на 0,2 ширины плеч) — это НЕ наклон.
+describe('live recording 29.09 (glasses, laptop camera from below)', () => {
+  const rec2 = JSON.parse(readFileSync(new URL('../fixtures/rec-2026-09-29-glasses.json', import.meta.url), 'utf8'));
+  const r2 = replay(rec2);
+  it('no false «lean forward» (was 13 in reach_up and 4 in open_hand)', () => {
+    const n = r2.events.filter((e) => e.type === 'mistake' && e.payload.code === 'TRUNK_LEAN_FORWARD').length;
+    expect(n).toBe(0);
+  });
+  it('all 5 exercises get their 3 reps', () => {
+    for (const r of r2.summary) expect(r.reps, r.id).toBe(3);
+  });
+});
+
+describe('sat closer after calibration (Ersultan lean-fix)', () => {
+  it('sitting still but 25% closer → no lean; a real lean after that → still caught', async () => {
+    const { measure } = await import('../../src/engine/body.js');
+    const { createCalibration } = await import('../../src/engine/calibration.js');
+    const { createExerciseSession } = await import('../../src/engine/session.js');
+    const { makePose, frames, ASPECT } = await import('./synth.js');
+    const calib = createCalibration('right'); let c;
+    for (const [pose, t] of frames([[makePose(), 6200], [makePose({ wrist: { out: 0.2, up: 1.5 } }), 6200], [makePose({ wrist: { out: 1.5, up: 0.1 } }), 6200]])) c = calib.push(measure(pose, 'right', ASPECT), t);
+    const s = createExerciseSession('reach_up', c.baseline, ASPECT, { targetReps: 5 });
+    const t = s.targetEvent(), sh = { x: ASPECT / 2 + 0.15, y: 0.62 };
+    const d = { out: t.x * ASPECT - sh.x, up: sh.y - t.y }, n = Math.hypot(d.out, d.up);
+    const at = (extra = {}) => makePose({ wrist: { out: (d.out / n) * 1.6, up: (d.up / n) * 1.6 }, ...extra });
+    const close = { scale: 1.25 };
+    const ev = [];
+    const seq = [[makePose(close), 900], [at(close), 1500], [makePose(close), 600], [at({ scale: 1.25 * 1.2, noseDrop: 0.3 }), 1500], [makePose(close), 600]];
+    for (const [pose, tt] of frames(seq, 20000)) ev.push(...s.step(measure(pose, 'right', ASPECT), tt).events);
+    const leans = ev.filter((e) => e.type === 'mistake' && e.payload.code === 'TRUNK_LEAN_FORWARD');
+    const firstRep = ev.find((e) => e.type === 'rep');
+    expect(firstRep).toBeTruthy();                       // первый повтор (просто сел ближе) засчитан
+    expect(leans.length).toBe(1);                         // наклон пойман только во втором
+  });
+});

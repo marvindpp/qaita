@@ -130,10 +130,10 @@ export function createExerciseSession(id, baseline, aspect, { targetReps = 5 } =
       }
       if (f.atRest && reps.phase === 'REST') {
         const other = baseline.side === 'left' ? m.rsh : m.lsh;
-        restFrames.push({ t: now, shMidX: m.shMid.x, otherX: other.x, noseX: m.nose?.x ?? null });
+        restFrames.push({ t: now, shMidX: m.shMid.x, otherX: other.x, noseX: m.nose?.x ?? null, noseY: m.nose?.y ?? null, headW: m.headW ?? null });
         while (now - restFrames[0].t > 600) restFrames.shift();
         const avg = (k) => { const v = restFrames.map((r) => r[k]).filter((x) => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
-        restPose = { shMidX: avg('shMidX'), otherX: avg('otherX'), noseX: avg('noseX') };
+        restPose = { shMidX: avg('shMidX'), otherX: avg('otherX'), noseX: avg('noseX'), noseY: avg('noseY'), headW: avg('headW') };
       }
       // Фаза для детекторов — по ТЕКУЩЕМУ кадру: рука уже пошла, значит проверяем с первого кадра движения.
       const phaseNow = !f.atRest && reps.phase === 'REST' ? 'REACHING' : reps.phase;

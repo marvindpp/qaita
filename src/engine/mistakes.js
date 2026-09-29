@@ -47,6 +47,9 @@ export function detectMistakes(m, base, ctx) {
   const out = [];
   const moving = ctx.phase === 'REACHING' || ctx.phase === 'HOLD';
   if (!moving) return out;
+  // «Раскрыть ладонь» — упражнение на кисть: корпус и плечо не судим. Человек смотрит на свою руку, нос опускается —
+  // это не наклон корпуса (живая запись 29.09: 4 ложных «Сильный наклон!» подряд).
+  if (ctx.exercise === 'open_hand') return out;
   const idx = sideIndex(base.side);
   const T = THRESHOLDS;
 
@@ -55,10 +58,17 @@ export function detectMistakes(m, base, ctx) {
   const unit = base.S * scale; // ширина плеч «в текущем масштабе» — делим на неё все смещения
 
   // Корпус вперёд: голова «растёт» в кадре или опускается к руке.
-  const noseDrop = m.nose && base.nose ? (m.nose.y - base.nose.y) / unit : 0;
-  const closer = m.headW && base.headW ? scale > T.leanForwardHeadRatio : m.Sx / base.Sx > T.leanForwardWidthRatio;
+  let noseDrop = m.nose && base.nose ? (m.nose.y - base.nose.y) / unit : 0;
+  // Как с наклоном вбок: наклон вперёд — это движение ЗА ПОВТОР. Если человек после калибровки просто сел ближе
+  // (живой тест 29.09: лицо +20–30%, каждый повтор — «Сильный наклон!» и звезда не берётся), сравниваем ещё и
+  // с позой покоя прямо перед повтором и берём меньшее.
+  let headScale = scale;
+  const rest0 = ctx.rest;
+  if (rest0?.headW && m.headW) headScale = Math.min(headScale, m.headW / rest0.headW);
+  if (rest0?.noseY != null && m.nose) noseDrop = Math.min(noseDrop, (m.nose.y - rest0.noseY) / unit);
+  const closer = m.headW && base.headW ? headScale > T.leanForwardHeadRatio : m.Sx / base.Sx > T.leanForwardWidthRatio;
   if (closer || noseDrop > T.leanForwardNoseDrop) {
-    const ratio = m.headW && base.headW ? scale : m.Sx / base.Sx;
+    const ratio = m.headW && base.headW ? headScale : m.Sx / base.Sx;
     const cm = Math.min(T.maxShownCm, Math.max(noseDrop * SHOULDER_CM, (ratio - 1) * CAMERA_CM));
     out.push({
       code: 'TRUNK_LEAN_FORWARD', severity: 3, landmarks: [LM.L_SH, LM.R_SH, LM.NOSE], valueCm: Math.round(cm),
