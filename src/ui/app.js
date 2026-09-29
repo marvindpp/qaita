@@ -89,6 +89,10 @@ export function createApp({ engine, video, mock = false }) {
   window.addEventListener('resize', () => { clearTimeout(fitTimer); fitTimer = setTimeout(() => fit(current?.el), 120); });
   // Картинки/шрифты догружаются позже — перепроверяем через полсекунды.
   const refit = () => setTimeout(() => fit(current?.el), 500);
+  // Шрифт Manrope приходит позже системного (он не блокирует запуск) — строки становятся другой ширины.
+  // Подгоняем экран ещё раз, когда шрифт загрузился, чтобы масштаб был одинаковым при каждом открытии.
+  document.fonts?.ready.then(() => fit(current?.el));
+  document.fonts?.addEventListener?.('loadingdone', () => fit(current?.el));
 
   function go(name, params = {}) {
     const make = SCREENS[name] ?? SCREENS.soon;

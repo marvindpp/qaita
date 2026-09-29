@@ -6,7 +6,7 @@ import { MOODS, MOOD_IDS } from './music.js';
 
 const ITEMS = [
   { go: 'welcome', ico: '▶', label: 'Тренировка' },
-  { go: 'progress', ico: '📈', label: 'Мой прогресс и рекорды' },
+  { go: 'progress', ico: '📈', label: 'Прогресс и рекорды' },
   { go: 'garden', ico: '🌸', label: 'Мой сад' },
   { go: 'profile', ico: '👤', label: 'Профиль и близкие' },
   { go: 'doctor', ico: '🩺', label: 'Отчёт для врача' },

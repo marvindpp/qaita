@@ -29,8 +29,8 @@ export default function welcome(ctx) {
         </div>
       </div>
       <footer class="welcome-foot">
-        <span class="chip">${icons.lock}Видео не записывается и никуда не отправляется</span>
-        <span class="chip">${icons.heart}Не заменяет врача — помогает делать назначенные упражнения</span>
+        <span class="chip">${icons.lock}Видео никуда не отправляется</span>
+        <span class="chip">${icons.heart}Не заменяет врача</span>
       </footer>
     </section>`);
 

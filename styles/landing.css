@@ -144,3 +144,31 @@ body[data-screen='about'] .rotate-hint { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .burger span, .faq summary::after { transition: none; }
 }
+
+/* ——— Ничего не переносится на вторую строку (просьба Даулета 29.09) ———
+   Меню, кнопки, плитки и награды — одной строкой; если места мало, лучше чуть мельче шрифт, чем перенос. */
+.drawer-panel { width: min(400px, 92vw); }
+.drawer li button, .switch, .drawer-head b { white-space: nowrap; }
+.moods { margin-left: 0; }
+.moods button { flex-direction: row; justify-content: center; gap: 6px; min-height: 44px; white-space: nowrap; }
+.stat span, .award b, .award small, .goal-btn, .btn-family, .page-actions .btn-ghost, .page-actions .btn-start, .chip { white-space: nowrap; }
+.stat span, .award b, .award small { overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.badges { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+.about-cards { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.card h2 { text-wrap: balance; }
+/* Экран приветствия не «прыгает»: подпись под кольцом всегда занимает две строки, сколько бы ни было текста
+   (советы при загрузке разной длины), и кольцо стоит на месте. */
+.welcome-go .ring-label { white-space: nowrap; }
+.welcome-go .ring-sub { min-height: 2.6em; text-wrap: balance; }
+@media (max-width: 520px) {
+  .drawer li button { font-size: 19px; }
+  .stat span { font-size: 16px; }
+  .award b { font-size: 16px; }
+  .award small { font-size: 13px; }
+  .badges { grid-template-columns: repeat(2, 1fr); }
+  .about-cards { grid-template-columns: 1fr; }
+  .btn-family, .profile .btn-ghost { font-size: 17px; }
+  .page-head { padding-inline: 56px; }
+  .page-head h1 { font-size: 30px; overflow-wrap: normal; }
+  .welcome-foot .chip { font-size: 15px; }
+}

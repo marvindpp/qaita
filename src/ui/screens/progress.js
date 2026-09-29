@@ -45,13 +45,13 @@ export default function progress(ctx) {
   const today = new Date();
   const cal = Array.from({ length: 28 }, (_, i) => { const d = new Date(today); d.setDate(d.getDate() - 27 + i); return d; });
   const badges = [
-    { ico: '🌱', t: 'Первый шаг', d: 'Первая тренировка', ok: sessions.length > 0 },
-    { ico: '🔥', t: '3 дня подряд', d: 'Привычка начинается', ok: p.longest >= 3 },
+    { ico: '🌱', t: 'Первый шаг', d: 'Первое занятие', ok: sessions.length > 0 },
+    { ico: '🔥', t: '3 дня подряд', d: 'Привычка', ok: p.longest >= 3 },
     { ico: '🏆', t: 'Неделя', d: '7 дней подряд', ok: p.longest >= 7 },
     { ico: '💯', t: '100 повторов', d: 'Сотня движений', ok: p.totalReps >= 100 },
-    { ico: '⭐', t: 'Без компенсаций', d: 'Все повторы чистые', ok: p.clean },
-    { ico: '💐', t: 'Рука в жизни', d: 'Задание дня выполнено', ok: life > 0 },
-    { ico: '🚀', t: '500 повторов', d: 'Настоящий марафон', ok: p.totalReps >= 500 },
+    { ico: '⭐', t: 'Чистая техника', d: 'Всё чисто', ok: p.clean },
+    { ico: '💐', t: 'Рука в жизни', d: 'Задание дня', ok: life > 0 },
+    { ico: '🚀', t: '500 повторов', d: 'Марафон', ok: p.totalReps >= 500 },
   ];
   const rows = Object.entries(p.records);
 
@@ -65,10 +65,10 @@ export default function progress(ctx) {
       <div class="page-scroll">
         <div class="stat-tiles">
           <div class="stat"><b>${p.days}</b><span>${plural(p.days, 'день', 'дня', 'дней')} занятий</span></div>
-          <div class="stat"><b>${p.streak}</b><span>подряд сейчас · рекорд ${p.longest}</span></div>
-          <div class="stat"><b>${p.totalReps}</b><span>${plural(p.totalReps, 'повтор', 'повтора', 'повторов')} всего</span></div>
-          <div class="stat"><b>${p.flowers}</b><span>🌸 ${plural(p.flowers, 'цветок', 'цветка', 'цветов')} в саду</span></div>
-          <div class="stat"><b>${life}</b><span>💐 раз рука помогла в жизни</span></div>
+          <div class="stat"><b>${p.streak}</b><span>${plural(p.streak, 'день', 'дня', 'дней')} подряд</span></div>
+          <div class="stat"><b>${p.totalReps}</b><span>${plural(p.totalReps, 'повтор', 'повтора', 'повторов')}</span></div>
+          <div class="stat"><b>${p.flowers}</b><span>🌸 ${plural(p.flowers, 'цветок', 'цветка', 'цветов')}</span></div>
+          <div class="stat"><b>${life}</b><span>💐 ${plural(life, 'задание', 'задания', 'заданий')}</span></div>
         </div>
 
         <section class="card">
@@ -77,7 +77,7 @@ export default function progress(ctx) {
         </section>
 
         <section class="card">
-          <h2>Подъём руки по тренировкам</h2>
+          <h2>Подъём руки</h2>
           ${amplitudeChart(sessions)}
         </section>
 
