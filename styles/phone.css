@@ -1,0 +1,265 @@
+/* Телефон на всех экранах (ночь 5, живой тест Даулета 29.09: iPhone в Safari горизонтально с панелью вкладок — 852×283).
+   Раньше низкий экран не влезал, и app.js ужимал его целиком до 55–68%: кольцо и текст становились мелкими,
+   камера на «Выборе руки» обрезалась снизу, кольцо «Показать врачу» в саду не влезало.
+   Здесь — раскладки, которые влезают без ужимания. Всё только внутри медиа-запросов телефона/планшета:
+   ноутбук (1366×768, 1440×900) этот файл не меняет. Подключается последним (из app.js), поэтому главнее main.css и landing.css. */
+
+/* ——— Бейдж «Вижу вас» на телефоне и планшете: внизу слева и компактный — сверху он закрывал лицо ——— */
+@media (orientation: landscape) and (max-height: 520px), (max-width: 1100px) {
+  .cam-badge { top: auto; bottom: 10px; left: 10px; gap: 6px; padding: 5px 12px 5px 8px; font-size: 16px; }
+  .cam-badge svg { width: 18px; height: 18px; }
+}
+
+/* ——— Телефон горизонтально (низкий экран ≤ 520px) ——— */
+@media (orientation: landscape) and (max-height: 520px) {
+  /* Поля экрана — через --gutter (он уже учитывает вырез камеры: safe-area-inset-left/right).
+     Плашку «Звук» больше не обходим отступом 52px сверху (он съедал пятую часть высоты 283px):
+     каждый экран ниже сам оставляет правый верхний угол свободным. */
+  .screen,
+  .app:has(.audio-chip[data-show='true']) .screen { padding: 8px max(12px, var(--gutter)); }
+  .welcome-foot .chip { font-size: 14px; }
+  .drawer-note { font-size: 14px; }
+
+  /* ——— Приветствие: большое кольцо с камерой слева, весь текст справа ——— */
+  .welcome {
+    display: grid; gap: 4px 22px; align-items: center;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto auto auto auto minmax(0, 1fr) auto;
+    grid-template-areas: 'brand .' 'ring .' 'ring text' 'ring label' 'ring sub' 'ring btn' 'ring .' 'ring foot';
+  }
+  .welcome-main, .welcome-go { display: contents; }
+  .welcome > header { grid-area: brand; }
+  .welcome .stagger { grid-area: text; min-width: 0; }
+  .welcome-go .ring { grid-area: ring; align-self: center; justify-self: center; --size: min(calc(100dvh - 58px), calc((100vw - 2 * max(12px, var(--gutter))) * 0.36), 320px); }
+  .welcome-go .ring-label { grid-area: label; text-align: left; font-size: 22px; margin-top: 6px; }
+  .welcome-go .ring-sub { grid-area: sub; text-align: left; font-size: 15px; min-height: 0; }
+  .welcome .btn-start { grid-area: btn; justify-self: start; margin-top: 6px; }
+  .welcome-foot { grid-area: foot; justify-content: flex-start; margin: 0; gap: 4px 18px; }
+  .welcome .lead { font-size: 17px; }
+  .welcome-hello { margin-bottom: 2px; }
+  .welcome .name-ask { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 6px; padding: 6px 10px; max-width: none; }
+  .welcome .name-ask-row { flex: 1 1 260px; flex-wrap: nowrap; min-width: 0; }
+  .welcome .name-ask-field { flex-basis: 80px; }
+
+  /* ——— Подготовка: камера слева, правила в два столбца справа, кольцо под ними ——— */
+  .prep {
+    display: grid; gap: 6px 16px; align-items: center;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas: 'cam title' 'cam rules' 'cam go';
+  }
+  .prep-main { display: contents; }
+  .prep h1 { grid-area: title; text-align: left; padding-top: 6px; }
+  .prep-main .cam-slot { grid-area: cam; align-self: center; }
+  .prep-main .cam { width: min(100%, calc((100dvh - 16px) * 4 / 3)); }
+  .prep .rules { grid-area: rules; grid-template-columns: repeat(2, minmax(0, auto)); gap: 6px; align-self: center; }
+  .rule { font-size: 15px; gap: 8px; padding: 4px 8px; grid-template-columns: 28px auto 24px; line-height: 1.15; white-space: nowrap; }
+  .rule small { white-space: normal; }
+  .rule .ico { width: 28px; height: 28px; border-radius: 9px; }
+  .rule .ico svg { width: 20px; height: 20px; }
+  .rule .tick { width: 24px; height: 24px; }
+  .rule .tick svg { width: 16px; height: 16px; }
+  .rule small { font-size: 14px; }
+  .prep-go { grid-area: go; justify-content: flex-start; gap: 14px; }
+  .prep-go .ring { --size: 76px; }
+
+  /* ——— Выбор руки: заголовок и подсказка в одну строку, камера — всё остальное место ——— */
+  .hand { gap: 6px; }
+  /* поля по бокам — под бургер и плашку «Звук» (правый верхний угол свободен) */
+  .hand-head { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 0 14px; padding-inline: 96px; }
+  .hand .lead { margin-top: 0; font-size: 17px; }
+  /* Камера вписана в свою ячейку (container queries, как в игре) — не выше ячейки, поэтому снизу не обрезается */
+  .hand-main { grid-template-columns: minmax(110px, 0.7fr) minmax(0, 2fr) minmax(110px, 0.7fr); gap: 12px; align-items: stretch; }
+  .hand-main .cam-slot { container-type: size; min-height: 0; }
+  .hand-main .cam { width: min(100cqw, 100cqh * 4 / 3); height: auto; }
+  .hand-pick { align-self: center; }
+  .hand-pick { gap: 6px; }
+  .hand-pick .ring { --size: min(96px, 28dvh); }
+  .hand-pick .ring-label { font-size: 20px; }
+  /* Кнопка «зеркало» — одной строкой внизу; что это такое, говорит голос и заголовок после нажатия */
+  .btn-mirror { order: 3; margin: 0 auto; padding: 4px 14px 4px 8px; gap: 8px; }
+  .hand .btn-mirror { align-self: center; }
+  .btn-mirror b { font-size: 15px; }
+  .btn-mirror small { display: none; }
+  .mirror-ico { font-size: 22px; }
+
+  /* ——— Ради чего: заголовок не под бургером, видео — сколько останется ——— */
+  .goal-head { padding-inline: 64px; }
+  .goal-main { min-height: 120px; }
+  .goal-btn { font-size: 15px; }
+
+  /* ——— Демо ——— */
+  .demo-side { gap: 8px; }
+  .demo-go { margin-top: 4px; }
+
+  /* ——— Игра: колонки счёта шире (название упражнения в одну строку), подсказка — в одну строку ——— */
+  .play { grid-template-columns: minmax(140px, 1fr) minmax(0, 3fr) minmax(140px, 1fr); }
+  .hud-ex { font-size: 14px; letter-spacing: 0.02em; white-space: nowrap; }
+  .hint { gap: 12px; }
+  .hint-line { display: inline; }
+  .hint-line + .hint-line::before { content: ' '; }
+  .combo { font-size: 16px; padding: 4px 12px; white-space: nowrap; }
+  /* Пауза / «Отдохните»: карточка ниже экрана раздувала его, и весь экран игры ужимался до 75–86% */
+  .pause-card { padding: 14px 24px; gap: 8px; }
+  .pause-card > p { font-size: 17px; }
+  .pause-go .ring { --size: 76px; }
+  /* Калибровка: шаги сверху не заходят под плашку «Звук» */
+  .app:has(.audio-chip[data-show='true']) .calib .steps { width: calc(100% - 100px); }
+
+  /* ——— Итоги упражнения: звёзды и слова слева, грядка и кольцо справа ——— */
+  .xdone-main {
+    display: grid; gap: 4px 28px; align-items: center; justify-items: center;
+    grid-template-columns: auto auto;
+    grid-template-areas: 'step bed' 'stars bed' 'title points' 'goal go';
+  }
+  .xdone-main > .demo-step { grid-area: step; }
+  .xdone-stars { grid-area: stars; }
+  .xdone-main > h1 { grid-area: title; }
+  .xdone-goal { grid-area: goal; font-size: 17px; max-width: 14em; }
+  .xdone-bed { grid-area: bed; align-self: end; }
+  .xdone-points { grid-area: points; }
+  .xdone-go { grid-area: go; margin-top: 0; }
+  .xdone-go .ring { --size: 76px; }
+  .xdone-go .ring-label, .xdone .pill { white-space: nowrap; }
+  .xdone[data-moments='true'] { gap: 20px; }
+  /* стоп-кадры «было / стало» — слева столбиком: справа вверху стоит плашка «Звук» */
+  .xdone[data-moments='true'] .xdone-moments { flex-direction: column; gap: 6px; order: -1; }
+  .xdone[data-moments='true'] .moment { width: min(16vw, calc((100dvh - 120px) * 2 / 3)); gap: 2px; }
+  .moment figcaption { font-size: 15px; }
+  .moment-mark { font-size: 1em; width: 1.25em; height: 1.25em; }
+
+  /* ——— Вчерашнее задание: вопрос слева, два кольца справа ——— */
+  .checkin {
+    display: grid; gap: 4px 36px; align-content: center; justify-content: center; justify-items: center;
+    grid-template-columns: minmax(0, auto) auto;
+    grid-template-areas: 'step go' 'title go' 'task go' 'lead go';
+  }
+  .checkin > .demo-step { grid-area: step; }
+  .checkin h1 { grid-area: title; }
+  .checkin-task { grid-area: task; font-size: 18px; }
+  .checkin .lead { grid-area: lead; }
+  .checkin-go { grid-area: go; margin-top: 0; gap: 28px; }
+
+  /* ——— Сад: сцена слева, «жизнь» посередине, кольцо «Показать врачу» справа — всё в один экран ——— */
+  .garden, .garden:has(.garden-life) {
+    display: grid; gap: 6px 16px; align-items: center; text-align: left;
+    grid-template-columns: minmax(0, 1fr) minmax(0, auto) auto;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas: 'head life go' 'scene life go' 'chips life go';
+  }
+  .garden-head { grid-area: head; }
+  .garden .lead { font-size: 17px; margin-top: 2px; }
+  .garden-scene, .garden:has(.garden-life) .garden-scene {
+    grid-area: scene; align-self: stretch; width: 100%; max-height: none; min-height: 0;
+    --plant: clamp(24px, min(3.2vw, 9dvh), 44px); padding: 0 8px 14px;
+  }
+  .garden-beds { flex-wrap: wrap; row-gap: 22px; }
+  .garden-plants { padding: 0 6px; }
+  .garden-bed figcaption { font-size: 14px; padding: 1px 8px; margin-top: calc(var(--plant) * 0.28 + 4px); }
+  .garden-chips { grid-area: chips; justify-content: flex-start; gap: 8px; }
+  .garden .pill { font-size: 16px; padding: 4px 12px; }
+  .garden .pill svg { width: 20px; height: 20px; }
+  .badge { gap: 8px; padding: 4px 12px 4px 6px; border-radius: 14px; }
+  .badge svg { width: 30px; height: 30px; }
+  .badge b, .badge small { font-size: 14px; }
+  .garden-life { grid-area: life; flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 8px; width: 240px; }
+  .life-task, .life-dose { max-width: none; padding: 6px 10px; gap: 8px; }
+  .life-ico { font-size: 26px; }
+  .dose-bar { width: 34px; height: 34px; }
+  .dose-bar::after { inset: 6px; }
+  .life-family { flex-direction: column; flex-wrap: nowrap; gap: 6px; }
+  .btn-family { padding: 7px 12px; }
+  .garden-life .pill { align-self: flex-start; }
+  .garden-go { grid-area: go; flex-direction: column; gap: 6px; align-self: center; }
+  .garden-go .ring-label, .garden-go .ring-sub { text-align: center; }
+  .garden-go .ring { --size: 84px; }
+}
+
+/* Отчёт врача на телефоне горизонтально: кольца в шапке отчёта не заходят под бургер и «Звук» */
+@media (orientation: landscape) and (max-height: 520px) {
+  .app .doctor.screen, .app:has(.audio-chip[data-show='true']) .doctor.screen { padding-top: 58px; }
+}
+
+/* Невысокий, но не самый низкий: полоса сверху (где бургер и «Звук») на приветствии остаётся свободной */
+@media (orientation: landscape) and (min-height: 331px) and (max-height: 520px) {
+  .welcome > header { min-height: 48px; }
+}
+@media (orientation: landscape) and (max-height: 380px) {
+  .welcome .stagger:has(.name-ask) .lead { display: none; } /* первый запуск: вопрос «Как вас зовут?» важнее, это же скажет голос */
+}
+
+/* Совсем низкий экран (iPhone в Safari с панелью вкладок: 283px) — ещё плотнее. */
+@media (orientation: landscape) and (max-height: 330px) {
+  .welcome-go .ring-label { font-size: 20px; margin-top: 2px; }
+  .hand .lead { font-size: 16px; }
+  .welcome .btn-start { margin-top: 2px; }
+  .prep-go .ring { --size: 68px; }
+  /* С вырезом камеры (поля 59px) места мало: значки правил прячем — камере остаётся больше */
+  .rule { grid-template-columns: auto 24px; }
+  .rule .ico { display: none; }
+  .garden-head .lead { font-size: 15px; }
+  .garden-chips .badge small { display: none; }
+}
+
+/* ——— Планшет (iPad 1024×768) и узкий ноутбук ——— */
+@media (min-width: 861px) and (max-width: 1100px) and (min-height: 521px) {
+  /* Плашка «Звук» — только значок (как на телефоне): с текстом она наезжала на заголовок по центру */
+  .audio-chip { padding: 8px; }
+  .audio-chip span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  /* Подготовка: правила одной строкой */
+  .rule { font-size: 22px; grid-template-columns: 40px 1fr 36px; gap: 12px; white-space: nowrap; }
+  .rule small { white-space: normal; }
+  .rule .ico { width: 40px; height: 40px; }
+  .rule .tick { width: 36px; height: 36px; }
+  /* Игра: название упражнения одной строкой */
+  .hud-ex { font-size: 18px; letter-spacing: 0.02em; white-space: nowrap; }
+  /* Итоги со стоп-кадрами: карточки справа от звёзд (как на ноутбуке), а не под ними — иначе экран ужимался до 68% */
+  .xdone[data-moments='true'] { flex-direction: row; gap: 28px; }
+  .xdone[data-moments='true'] .big-star { width: 76px; }
+  .xdone[data-moments='true'] .xdone-moments { flex-direction: column; gap: 12px; }
+  .xdone[data-moments='true'] .moment { width: min(26vw, calc((100dvh - 150px) * 2 / 3)); }
+}
+
+/* ——— Телефон вертикально (393×852). Приложение просит повернуть телефон, но и так всё должно быть видно ——— */
+@media (orientation: portrait) and (max-width: 600px) {
+  .welcome { gap: 10px; }
+  .welcome-main { gap: 14px; }
+  .welcome-go { gap: 8px; }
+  .welcome-go .ring { --size: min(210px, 54vw); }
+  .welcome h1 { font-size: 34px; }
+  .welcome .lead { font-size: 18px; }
+  .welcome-go .ring-sub { font-size: 18px; }
+  .welcome .btn-start { font-size: 22px; padding: 12px 24px; }
+  .welcome-foot .chip { font-size: 18px; }
+  .cam-badge { font-size: 17px; }
+  .garden-bed figcaption { font-size: 18px; }
+  /* Кнопка «зеркало» — одной строкой; подробности скажет голос после нажатия */
+  .btn-mirror small { display: none; }
+  .btn-mirror b { font-size: 18px; white-space: nowrap; }
+  .mirror-ico { font-size: 30px; }
+  .steps li { font-size: 15px; padding-inline: 2px; }
+  .hud-ex { font-size: 18px; letter-spacing: 0.02em; white-space: nowrap; }
+  .demo-go .ring, .xdone-go .ring { --size: 96px; }
+  .demo-go .ring-label, .xdone-go .ring-label { font-size: 22px; white-space: nowrap; }
+  .checkin > .demo-step { font-size: 17px; letter-spacing: 0.03em; }
+  .checkin-opt .ring-sub { font-size: 18px; }
+  .goal-btn { min-width: 0; font-size: 16px; padding: 8px 6px; gap: 6px; }
+  .goal-btn span { font-size: 20px; }
+  /* Подготовка и сад без сильного ужимания */
+  .prep { gap: 10px; }
+  .rules { gap: 6px; }
+  .rule { font-size: 19px; padding: 4px 10px; grid-template-columns: 32px 1fr 32px; }
+  .rule .ico { width: 32px; height: 32px; }
+  .rule .tick { width: 32px; height: 32px; }
+  .prep-main .cam { width: min(100%, 30dvh * 4 / 3); }
+  .garden-scene, .garden:has(.garden-life) .garden-scene { min-height: 170px; padding-top: 30px; }
+  .garden, .garden:has(.garden-life) { gap: 8px; }
+  .garden .pill { font-size: 18px; padding: 6px 14px; }
+  .badge { padding: 4px 12px 4px 6px; }
+  .badge svg { width: 30px; height: 30px; }
+  .garden-chips .badge small { display: none; }
+  .life-task, .life-dose { font-size: 16px; }
+  .life-task b, .life-dose b { font-size: 17px; }
+  .garden-go .ring { --size: 96px; }
+  .doctor-pdf .ring-sub { font-size: 14px; }
+}
