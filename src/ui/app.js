@@ -20,8 +20,13 @@ import doctor from './screens/doctor.js';
 import soon from './screens/soon.js';
 import goal from './screens/goal.js';
 import checkin from './screens/checkin.js';
+import progress from './screens/progress.js';
+import profileScreen from './screens/profile.js';
+import about from './screens/about.js';
+import { createMenu } from './menu.js';
+import { createMusic } from './music.js';
 
-const SCREENS = { welcome, prep, checkin, hand, goal, calibration, demo, play, 'exercise-done': exerciseDone, garden, doctor, soon };
+const SCREENS = { welcome, prep, checkin, hand, goal, progress, profile: profileScreen, about, calibration, demo, play, 'exercise-done': exerciseDone, garden, doctor, soon };
 
 // Какие события движка экран может получать (метод on<Event> у экрана).
 const ROUTED = ['frame', 'status', 'calibration', 'target', 'rep', 'mistake', 'mistake-cleared', 'gesture', 'exercise-done', 'rest'];
@@ -49,7 +54,12 @@ export function createApp({ engine, video, mock = false }) {
   const audioChip = document.getElementById('audio-chip');
   const syncAudioChip = () => { audioChip.dataset.show = String(voice.blocked || sound.blocked); };
   voice.onChange(syncAudioChip);
-  const unlock = () => { voice.unlock(); sound.unlock(); setTimeout(syncAudioChip, 50); };
+  const music = createMusic();
+  ctx.music = music;
+  const unlock = () => { voice.unlock(); sound.unlock(); music.unlock(); setTimeout(syncAudioChip, 50); };
+  // Пока говорит тренер — музыка тише.
+  setInterval(() => music.duck(voice.speaking), 400);
+  const menu = createMenu({ go: (n) => go(n), music, voice });
   for (const ev of ['pointerdown', 'keydown', 'touchstart']) window.addEventListener(ev, unlock, { passive: true });
   setTimeout(syncAudioChip, 1500);
 
@@ -58,7 +68,7 @@ export function createApp({ engine, video, mock = false }) {
   // Длинный экран-документ (отчёт врача, data-fit="scroll") мельче 80% не ужимаем — пусть прокручивается:
   // на телефоне 55% давали таблицу ~8px. Кольцо у него наверху, жест доступен без прокрутки.
   function fit(el) {
-    if (!el?.isConnected) return;
+    if (!el?.isConnected || current?.noFit) return;
     el.style.zoom = '';
     const floor = el.dataset.fit === 'scroll' ? 0.8 : 0.55;
     const ratio = el.clientHeight / el.scrollHeight;
@@ -92,7 +102,9 @@ export function createApp({ engine, video, mock = false }) {
     current = next;
     next.enter?.();
     updateToast();
-    fit(next.el);
+    menu.sync(name);
+    document.body.dataset.screen = name;
+    if (!next.noFit) fit(next.el); // страницы-«лендинги» (прогресс, профиль) прокручиваются сами
     refit();
 
     const reduce = prefersReducedMotion();

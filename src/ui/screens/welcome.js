@@ -4,6 +4,7 @@ import { html } from '../dom.js';
 import { icons } from '../icons.js';
 import { createRing } from '../components/ring.js';
 import { cameraHelp, noPromptHelp } from '../camera-help.js';
+import { loadProfile, greeting } from '../profile.js';
 
 // Столько ждём вопроса «Разрешить камеру?», прежде чем подсказать, где её включить.
 const NO_PROMPT_MS = 6000;
@@ -14,6 +15,7 @@ export default function welcome(ctx) {
       <header><span class="brand">${icons.logo}Qaita</span></header>
       <div class="welcome-main">
         <div class="stagger">
+          ${loadProfile().name ? `<p class="welcome-hello">${loadProfile().avatar} ${greeting()}</p>` : ''}
           <h1 id="welcome-title">Упражнения для руки <em>дома</em></h1>
           <p class="lead">Камера считает повторы и подсказывает голосом, как делать правильно.</p>
         </div>
@@ -45,7 +47,7 @@ export default function welcome(ctx) {
   const label = el.querySelector('.ring-label');
   const sub = el.querySelector('.ring-sub');
 
-  let helpTimer = null, alive = true;
+  let helpTimer = null, tipTimer = null, alive = true;
 
   function show(t) { label.textContent = t.label; sub.textContent = t.sub; }
 
@@ -66,7 +68,13 @@ export default function welcome(ctx) {
     helpTimer = setTimeout(() => {
       if (!alive || ctx.state.live) return;
       const camOpen = Boolean(document.getElementById('camera')?.srcObject);
-      show(camOpen ? { label: 'Загружаю распознавание…', sub: 'В первый раз это до минуты' } : noPromptHelp());
+      if (!camOpen) return show(noPromptHelp());
+      // Пока грузятся модели (на телефоне до минуты) — живая загрузка с советами, а не «зависшая» надпись.
+      const TIPS = ['Сядьте лицом к свету', 'Камера — на уровне груди, примерно в метре', 'Над головой нужно место для поднятой руки', 'Больно — покажите две ладони, это пауза', 'Видео никуда не отправляется'];
+      let k = 0;
+      el.querySelector('.welcome-go').dataset.loading = 'true';
+      show({ label: 'Готовлю распознавание…', sub: `Совет: ${TIPS[0]}` });
+      tipTimer = setInterval(() => { if (!alive || ctx.state.live) { clearInterval(tipTimer); el.querySelector('.welcome-go').dataset.loading = 'false'; return; } k += 1; show({ label: 'Готовлю распознавание…', sub: `Совет: ${TIPS[k % TIPS.length]}` }); }, 3500);
     }, NO_PROMPT_MS);
   }
 
@@ -79,10 +87,10 @@ export default function welcome(ctx) {
     },
     onLive() {
       syncReady();
-      ctx.say('Здравствуйте! Это упражнения для руки. Покажите ладонь в камеру и подержите секунду', { hint: true });
+      ctx.say(`${greeting()} Это упражнения для руки. Покажите ладонь в камеру и подержите секунду`, { hint: true });
     },
     onStatus: syncReady,
     onGesture: (g) => ring.handle(g),
-    destroy() { alive = false; clearTimeout(helpTimer); clearInterval(startTimer); offVoice?.(); ring.destroy(); },
+    destroy() { alive = false; clearTimeout(helpTimer); clearInterval(tipTimer); clearInterval(startTimer); offVoice?.(); ring.destroy(); },
   };
 }

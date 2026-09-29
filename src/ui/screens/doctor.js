@@ -30,7 +30,7 @@ const fmtShort = (iso) => new Date(iso).toLocaleDateString('ru-RU', { day: '2-di
 const fmtDur = (sec) => `${Math.floor(sec / 60)} мин ${String(sec % 60).padStart(2, '0')} с`;
 
 /** Линия «подъём руки по сессиям»: один ряд — без легенды, название в заголовке, подписи только у ключевых точек. */
-function amplitudeChart(sessions) {
+export function amplitudeChart(sessions) {
   const pts = sessions.map((s) => ({ v: amplitudeOf(s), d: s.date })).filter((p) => p.v != null).slice(-14);
   if (pts.length < 2) {
     return `<p class="chart-empty">${pts.length ? `Сегодня: <b>${pts[0].v}°</b>. ` : ''}График появится после второй тренировки.</p>`;

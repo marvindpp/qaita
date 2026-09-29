@@ -50,6 +50,15 @@ async function addMessage(msg) {
   return put('messages', list.slice(-6));
 }
 /** Какое послание сыграть сегодня: по кругу, чтобы звучали разные. */
+/** Удалить послание по индексу (в профиле). */
+export async function removeMessage(i) {
+  const list = await listMessages();
+  list.splice(i, 1);
+  await put('messages', list);
+  if (!list.length) await put('family', null);
+}
+export const whoLabel = (who) => WHO.find((w) => w.id === who)?.label ?? 'Близкий';
+
 export async function nextMessage() {
   const list = await listMessages();
   if (!list.length) return null;
