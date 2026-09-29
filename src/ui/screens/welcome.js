@@ -5,6 +5,7 @@ import { icons } from '../icons.js';
 import { createRing } from '../components/ring.js';
 import { cameraHelp, noPromptHelp } from '../camera-help.js';
 import { loadProfile, greeting } from '../profile.js';
+import { mountNameAsk } from '../name-ask.js';
 
 // Столько ждём вопроса «Разрешить камеру?», прежде чем подсказать, где её включить.
 const NO_PROMPT_MS = 6000;
@@ -32,6 +33,8 @@ export default function welcome(ctx) {
       </footer>
     </section>`);
 
+  // Первый запуск: «Как вас зовут?» — одно поле и «Пропустить»; ладонь всё так же ведёт дальше.
+  const doneNameAsk = mountNameAsk(el.querySelector('.stagger'), ctx);
   const camSlot = html('<div class="ring-cam"></div>');
   const ring = createRing({ center: camSlot, onFire: () => ctx.go('prep') });
   el.querySelector('.ring-slot').replaceWith(ring.el);
@@ -91,6 +94,6 @@ export default function welcome(ctx) {
     },
     onStatus: syncReady,
     onGesture: (g) => ring.handle(g),
-    destroy() { alive = false; clearTimeout(helpTimer); clearInterval(tipTimer); clearInterval(startTimer); offVoice?.(); ring.destroy(); },
+    destroy() { doneNameAsk(); alive = false; clearTimeout(helpTimer); clearInterval(tipTimer); clearInterval(startTimer); offVoice?.(); ring.destroy(); },
   };
 }
