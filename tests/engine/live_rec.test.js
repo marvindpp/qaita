@@ -135,3 +135,15 @@ describe('sat closer after calibration (Ersultan lean-fix)', () => {
     expect(leans.length).toBe(1);                         // наклон пойман только во втором
   });
 });
+
+// Плейтест 29.09 (Ерсултан): настоящий «палец вверх» на 9–11 с записи не засчитывался (порог 0,6, а было 0,36–0,50).
+describe('thumbs up on a live recording', () => {
+  it('a real thumbs-up is recognized in most frames', async () => {
+    const { isThumbsUp } = await import('../../src/engine/gestures.js');
+    const rec3 = JSON.parse(readFileSync(new URL('../fixtures/rec-2026-09-29-thumbs.json', import.meta.url), 'utf8'));
+    const t0 = rec3.frames[0][0];
+    const hands = rec3.frames.filter(([t]) => (t - t0) / 1000 >= 9 && (t - t0) / 1000 < 11.5).flatMap(([, , hs]) => hs.map((h) => h.map(([x, y]) => ({ x, y }))));
+    const yes = hands.filter(isThumbsUp).length;
+    expect(yes / hands.length).toBeGreaterThan(0.6);
+  });
+});

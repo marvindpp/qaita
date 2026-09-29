@@ -13,10 +13,14 @@ export function isOpenPalm(hand) {
   return Boolean(hand) && [0, 1, 2, 3].every((i) => fingerExtended(hand, i));
 }
 
+export const THUMB_UP_MIN = 0.35;
+
 export function isThumbsUp(hand) {
   if (!hand) return false;
   const up = hand[H.THUMB_TIP].y < hand[H.THUMB_IP].y && hand[H.THUMB_IP].y < hand[H.THUMB_MCP].y;
-  const clearlyUp = hand[H.THUMB_MCP].y - hand[H.THUMB_TIP].y > d(hand[H.WRIST], hand[5]) * 0.6;
+  // Палец явно вверх: кончик выше основания на 0,35 размера ладони. Было 0,6 — живой лайк (плейтест 29.09)
+  // давал 0,36–0,50 и не засчитывался. Кулак отсекает порядок «кончик выше сустава выше основания» + согнутые пальцы.
+  const clearlyUp = hand[H.THUMB_MCP].y - hand[H.THUMB_TIP].y > d(hand[H.WRIST], hand[5]) * THUMB_UP_MIN;
   return up && clearlyUp && [0, 1, 2, 3].every((i) => fingerFolded(hand, i));
 }
 

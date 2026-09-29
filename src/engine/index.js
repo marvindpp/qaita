@@ -15,6 +15,9 @@ import { snapshot } from './moments.js';
 // Какие жесты слушаем в каком режиме: во время упражнения ладонь = часть движения, поэтому только пауза и «палец вверх».
 const GESTURES_IDLE = new Set(['PALM_HOLD', 'THUMBS_UP', 'PAUSE', 'RAISE_LEFT', 'RAISE_RIGHT']);
 const GESTURES_EXERCISE = new Set(['PAUSE', 'THUMBS_UP']);
+// Пока рука в движении — только пауза: кулак у рта в «Чашке ко рту» с поднятым большим пальцем похож на лайк
+// (живая запись 29.09: 0,36–0,52 при пороге лайка 0,35).
+const GESTURES_MOVING = new Set(['PAUSE']);
 const GESTURES_NONE = new Set();
 const EXERCISE_STATUSES = new Set(['NO_PERSON', 'LOW_LIGHT']); // во время упражнения «слишком близко» ловит ошибка наклона
 
@@ -131,7 +134,7 @@ export async function createEngine({ video }) {
     if (!paused && calibration) stepCalibration(m, now, framing);
     else if (!paused && exercise && baseline) stepExercise(m, now, pose);
 
-    const allow = paused ? GESTURES_IDLE : calibration ? GESTURES_NONE : exercise && !exercise.done ? GESTURES_EXERCISE : GESTURES_IDLE;
+    const allow = paused ? GESTURES_IDLE : calibration ? GESTURES_NONE : exercise && !exercise.done ? (lastInfo.phase && lastInfo.phase !== 'REST' ? GESTURES_MOVING : GESTURES_EXERCISE) : GESTURES_IDLE;
     for (const g of gestureHold.update(detectGesture({ hands, m, allow }), now)) bus.emit('gesture', g);
 
     const fps = measureFps();
