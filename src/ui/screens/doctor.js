@@ -118,7 +118,7 @@ export default function doctor(ctx) {
   }).join('');
 
   const el = html(`
-    <section class="doctor" aria-labelledby="doctor-title">
+    <section class="doctor" data-fit="scroll" aria-labelledby="doctor-title">
       <article class="report">
         <header class="report-head">
           <div>

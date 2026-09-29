@@ -52,18 +52,21 @@ export function createApp({ engine, video, mock = false }) {
 
   // Каждый экран должен целиком помещаться на любом устройстве без прокрутки (живой тест 29.09: низкое окно
   // браузера на ноутбуке). Если не влез — уменьшаем весь экран целиком (CSS zoom), но не меньше 55%.
+  // Длинный экран-документ (отчёт врача, data-fit="scroll") мельче 80% не ужимаем — пусть прокручивается:
+  // на телефоне 55% давали таблицу ~8px. Кольцо у него наверху, жест доступен без прокрутки.
   function fit(el) {
     if (!el?.isConnected) return;
     el.style.zoom = '';
+    const floor = el.dataset.fit === 'scroll' ? 0.8 : 0.55;
     const ratio = el.clientHeight / el.scrollHeight;
     if (ratio < 0.995) {
-      let z = Math.max(0.55, ratio);
+      let z = Math.max(floor, ratio);
       el.style.zoom = String(z);
       // Ещё проходы: при уменьшении стало шире — текст мог перенестись иначе.
-      for (let i = 0; i < 3 && z > 0.55; i += 1) {
+      for (let i = 0; i < 3 && z > floor; i += 1) {
         const again = el.clientHeight / el.scrollHeight;
         if (again >= 0.995) break;
-        z = Math.max(0.55, z * again * 0.99);
+        z = Math.max(floor, z * again * 0.99);
         el.style.zoom = String(z);
       }
     }
