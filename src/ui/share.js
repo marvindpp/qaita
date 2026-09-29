@@ -1,6 +1,8 @@
 // «Отправить детям» (PLAN §9г): человек не обуза — он ДАЁТ семье хорошую новость. Открытка рисуется
 // в браузере (canvas → PNG), отправка через системное «Поделиться» (WhatsApp, Telegram). Сервера нет.
 
+import { plural } from './dom.js';
+
 const W = 1080, H = 1350;
 
 function wrap(g, text, x, y, maxW, lh) {
@@ -31,8 +33,9 @@ export async function makeCard({ flowers, sprouts, reps, words, goal, streak, li
   g.textAlign = 'left'; g.textBaseline = 'alphabetic';
   g.font = '800 44px Manrope, system-ui, sans-serif';
   g.fillText(new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }), 80, 120);
-  g.font = '800 96px Manrope, system-ui, sans-serif';
-  let y = wrap(g, 'Я сегодня занимался(ась)!', 80, 250, W - 160, 110);
+  g.font = '800 84px Manrope, system-ui, sans-serif';
+  // Нейтрально по роду (без «занимался(ась)»), в две строки левее солнца, чтобы заголовок на нём не терялся.
+  let y = wrap(g, 'Сегодня была тренировка!', 80, 250, 700, 100);
 
   g.font = '700 54px Manrope, system-ui, sans-serif';
   g.fillStyle = '#1d7552';
@@ -50,7 +53,11 @@ export async function makeCard({ flowers, sprouts, reps, words, goal, streak, li
   g.textAlign = 'left';
   g.fillStyle = '#1d3a2c';
   g.font = '800 50px Manrope, system-ui, sans-serif';
-  const facts = [`${reps} повторов`, streak > 1 ? `${streak} дня подряд` : null, lifeDone ? `${lifeDone} раз рука помогла в жизни` : null].filter(Boolean);
+  const facts = [
+    reps ? `${reps} ${plural(reps, 'повтор', 'повтора', 'повторов')}` : null,
+    streak > 1 ? `${streak} ${plural(streak, 'день', 'дня', 'дней')} подряд` : null,
+    lifeDone ? `${lifeDone} ${plural(lifeDone, 'раз', 'раза', 'раз')} рука помогла в жизни` : null,
+  ].filter(Boolean);
   wrap(g, facts.join(' · '), 80, H - 190, W - 160, 60);
   g.font = '600 34px Manrope, system-ui, sans-serif';
   g.fillStyle = '#4b5a52';

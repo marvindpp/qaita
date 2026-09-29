@@ -1,7 +1,7 @@
 // Семья рядом (PLAN §9г): «Отправить детям» (WhatsApp / Telegram / картинкой) и «Голос близких» —
 // внук или дочь записывает несколько слов поддержки, они звучат в конце каждого занятия.
 // Всё хранится только в этом браузере (IndexedDB), никуда не отправляется, пока человек сам не нажмёт «Отправить».
-import { html, esc } from './dom.js';
+import { html, esc, plural } from './dom.js';
 import { recordVoice } from './life.js';
 
 const SITE = 'https://marvindpp.github.io/qaita/';
@@ -115,12 +115,16 @@ export function openShareSheet(root, { text, makeBlob, onSent }) {
 
 /** Текст сообщения детям — от первого лица, тёплый, без цифр-терминов. */
 export function shareText({ reps, flowers, words, goal, streak }) {
+  const garden = [
+    flowers ? `${flowers} ${plural(flowers, 'цветок', 'цветка', 'цветков')} в саду` : null,
+    reps ? `${reps} ${plural(reps, 'повтор', 'повтора', 'повторов')}` : null,
+  ].filter(Boolean).join(' · ');
   return [
-    'Привет! Я сегодня позанимался(ась) рукой 💪',
-    `🌸 ${flowers} цветов в саду · ${reps} повторов`,
+    'Привет! Сегодня была тренировка для руки 💪',
+    garden ? `🌸 ${garden}` : null,
     words ? `✨ ${words}` : null,
     goal ? `${goal.emoji} Моя цель — ${goal.short}` : null,
-    streak > 1 ? `🔥 ${streak} дня подряд!` : null,
+    streak > 1 ? `🔥 ${streak} ${plural(streak, 'день', 'дня', 'дней')} подряд!` : null,
     'Qaita — упражнения для руки дома',
   ].filter(Boolean).join('\n');
 }
