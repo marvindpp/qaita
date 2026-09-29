@@ -860,8 +860,7 @@ p { text-wrap: pretty; }
   .score { font-size: 22px; }
   .hint { padding: 6px 14px; min-height: 0; }
   .plot, .bed li { width: 26px; height: 26px; }
-  /* .goal-main .cam здесь нет: там размер через cqw/cqh, а width: 100% от сжатой ячейки давал 0 — камера пропадала (QA 30.09). */
-  .hand-main .cam, .calib-main .cam, .prep-main .cam { width: min(100%, 62dvh * 4 / 3); }
+  .hand-main .cam, .goal-main .cam, .calib-main .cam, .prep-main .cam { width: min(100%, 62dvh * 4 / 3); }
   .btn-mirror { margin-top: 6px; padding: 6px 14px 6px 8px; }
   .btn-mirror b { font-size: 16px; }
   .btn-mirror small { font-size: 13px; }
