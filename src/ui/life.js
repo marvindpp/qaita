@@ -1,6 +1,7 @@
 import { GOAL_PLANS } from './exercises.js';
 // «Из тренажёра — в жизнь» (PLAN §9г). Цель жизни, задание дня (CIMT «пакет переноса»), дневная доза повторов,
 // голос близких. Всё хранится только в этом браузере; localStorage/IndexedDB — в try/catch.
+import { dayKey } from './storage.js';
 
 /** Цели из жизни: то, о чём человек думает на самом деле («смогу ли я снова сам…»). */
 export const GOALS = [
@@ -29,7 +30,9 @@ const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); retu
 export const loadGoal = () => goalById(read(GOAL_KEY, null));
 export const saveGoal = (id) => write(GOAL_KEY, id);
 
-const today = () => new Date().toISOString().slice(0, 10);
+// День по МЕСТНОМУ времени (как сад и «дни подряд» в storage.js). toISOString — это UTC: в Астане (UTC+5)
+// занятие до 05:00 попадало во вчера, дневная доза обнулялась в 05:00, а задание «на завтра» спрашивалось в тот же день.
+const today = () => dayKey();
 
 /** Задание дня: выдаётся в конце занятия, спрашиваем о нём на следующем занятии (в другой день). */
 export function giveTask(goal) {

@@ -101,11 +101,14 @@ export default function play(ctx, { index = 0 } = {}) {
   let bursts = [];            // взрывы звезды на повторе: { x, y, clean } — нормированные, рисуем в draw()
   const fx = createSparkles();
   // «Вы вчера»: путь ладони лучшего повтора из истории. Нет истории — возьмём лучший сегодняшний после чистого повтора.
+  // Путь другой руки не показываем: здоровая рука «вчера» — не образец для больной (и наоборот).
   let yesterday = id === 'open_hand' ? null : bestRepFor(id);
+  if (yesterday?.side && yesterday.side !== side) yesterday = null;
   let yesterdayLabel = bestRepLabel(yesterday);
   const fromHistory = Boolean(yesterday);
   // «Новый рекорд!»: лучший угол этого упражнения за все прошлые занятия. Побил на 3°+ — отдельный праздник (один раз).
-  const prevBest = id === 'open_hand' ? 0 : Math.max(0, ...loadSessions().flatMap((s) => (s.exercises ?? []).filter((e) => e.id === id).map((e) => e.bestRomDeg ?? 0)));
+  // Только занятия той же рукой: иначе после здоровой руки рекорда у больной не будет никогда (или будет ложный).
+  const prevBest = id === 'open_hand' ? 0 : Math.max(0, ...loadSessions().filter((s) => !s.side || s.side === side).flatMap((s) => (s.exercises ?? []).filter((e) => e.id === id).map((e) => e.bestRomDeg ?? 0)));
   let recordShown = false;
 
   const resumeRing = createRing({ onFire: resume });
@@ -302,7 +305,8 @@ export default function play(ctx, { index = 0 } = {}) {
     const live = !paused && !done;
     // После «упражнение готово» движок молчит — звезду, тень и пунктир прячем.
     const star = target && !done ? { ...toPx(target), r: Math.max(26, target.radius * toPx(target).scale) } : null;
-    const outSign = side === 'left' ? -1 : 1;
+    // Зеркальная тренировка: camera.js переносит все точки на сторону больной руки — «наружу» на экране тоже наоборот.
+    const outSign = (side === 'left' ? -1 : 1) * (ctx.state.mirror ? -1 : 1);
 
     // Пока рука внизу и никто не ошибается: «Вы вчера» (путь лучшего повтора) или тень-тренер.
     const armDown = sh && palm && palm.y - sh.y > 0.55 * S;
@@ -479,7 +483,7 @@ export default function play(ctx, { index = 0 } = {}) {
       return;
     }
     // Прямая рука поворачивается вокруг плеча от «висит вниз» к звезде; длина — до звезды.
-    const out = side === 'left' ? -1 : 1;
+    const out = (side === 'left' ? -1 : 1) * (ctx.state.mirror ? -1 : 1); // зеркало: наружу — в другую сторону
     const R = Math.hypot(star.x - sh.x, star.y - sh.y);
     const a0 = Math.atan2(1, 0.12 * out);
     const a1 = Math.atan2(star.y - sh.y, star.x - sh.x);

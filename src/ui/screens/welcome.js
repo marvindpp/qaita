@@ -40,7 +40,8 @@ export default function welcome(ctx) {
   const startBtn = el.querySelector('.btn-start');
   startBtn.addEventListener('click', () => ctx.go('prep'));
   // Кнопку показываем, только если браузер реально не даёт звук (Chrome помнит сайты, где звук уже разрешали).
-  const syncStart = () => { startBtn.hidden = !(ctx.voice.blocked || ctx.sound.blocked); };
+  // Распознавание не загрузилось (app.fail) — кнопку прячем: без него дальше всё равно не пройти.
+  const syncStart = () => { startBtn.hidden = Boolean(!ctx.state.live && ctx.state.failed) || !(ctx.voice.blocked || ctx.sound.blocked); };
   syncStart();
   const offVoice = ctx.voice.onChange(syncStart);
   const startTimer = setInterval(syncStart, 700);
@@ -60,13 +61,22 @@ export default function welcome(ctx) {
       cameraHelp().then((t) => { if (alive && ctx.state.status?.code === 'NO_CAMERA') show(t); });
       return;
     }
+    // Распознавание не загрузилось (нет интернета / CDN): говорим прямо, советы и «дыхание» кольца останавливаем.
+    const failed = !ctx.state.live && ctx.state.failed;
+    syncStart();
+    if (failed) {
+      clearInterval(tipTimer);
+      el.querySelector('.welcome-go').dataset.loading = 'false';
+      ring.setDisabled(true);
+      return show(failed);
+    }
     ring.setDisabled(!ctx.state.live);
     if (ctx.state.live) return show({ label: 'Покажите ладонь', sub: 'и подержите секунду — начнём' });
     show({ label: 'Включаю камеру…', sub: 'Если браузер спросит — нажмите «Разрешить»' });
     // Камера так и не открылась — вопрос не появился (встроенный браузер мессенджера или запрет). Подсказываем, что делать.
     // Если камера уже открыта, а кадров ещё нет — это грузится распознавание, просто ждём.
     helpTimer = setTimeout(() => {
-      if (!alive || ctx.state.live) return;
+      if (!alive || ctx.state.live || ctx.state.failed) return;
       const camOpen = Boolean(document.getElementById('camera')?.srcObject);
       if (!camOpen) return show(noPromptHelp());
       // Пока грузятся модели (на телефоне до минуты) — живая загрузка с советами, а не «зависшая» надпись.
@@ -74,7 +84,7 @@ export default function welcome(ctx) {
       let k = 0;
       el.querySelector('.welcome-go').dataset.loading = 'true';
       show({ label: 'Готовлю распознавание…', sub: `Совет: ${TIPS[0]}` });
-      tipTimer = setInterval(() => { if (!alive || ctx.state.live) { clearInterval(tipTimer); el.querySelector('.welcome-go').dataset.loading = 'false'; return; } k += 1; show({ label: 'Готовлю распознавание…', sub: `Совет: ${TIPS[k % TIPS.length]}` }); }, 3500);
+      tipTimer = setInterval(() => { if (!alive || ctx.state.live || ctx.state.failed) { clearInterval(tipTimer); el.querySelector('.welcome-go').dataset.loading = 'false'; return; } k += 1; show({ label: 'Готовлю распознавание…', sub: `Совет: ${TIPS[k % TIPS.length]}` }); }, 3500);
     }, NO_PROMPT_MS);
   }
 
@@ -90,6 +100,7 @@ export default function welcome(ctx) {
       ctx.say(`${greeting()} Это упражнения для руки. Покажите ладонь в камеру и подержите секунду`, { hint: true });
     },
     onStatus: syncReady,
+    onFailed: syncReady,
     onGesture: (g) => ring.handle(g),
     destroy() { alive = false; clearTimeout(helpTimer); clearInterval(tipTimer); clearInterval(startTimer); offVoice?.(); ring.destroy(); },
   };

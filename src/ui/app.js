@@ -146,7 +146,7 @@ export function createApp({ engine, video, mock = false }) {
     const name = handlerName(ev);
     engine.on(ev, (payload) => {
       if (ev === 'frame') {
-        if (!state.live) { state.live = true; current?.onLive?.(); }
+        if (!state.live) { state.live = true; state.failed = null; current?.onLive?.(); }
         camera.onFrame(payload);
       }
       if (ev === 'status') {
@@ -171,5 +171,12 @@ export function createApp({ engine, video, mock = false }) {
   return {
     ctx,
     start(name = 'welcome', params) { go(name, params); },
+    // Распознавание не загрузилось (нет интернета / CDN недоступен): понятная фраза вместо вечной загрузки.
+    fail(text) {
+      if (state.live) return;
+      state.failed = text;
+      camera.setWaitText(text.label); // в маленьком круге камеры — коротко; подробности под кольцом
+      current?.onFailed?.();
+    },
   };
 }
