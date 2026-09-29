@@ -115,6 +115,18 @@ export function createApp({ engine, video, mock = false }) {
     toast.dataset.show = String(show);
   }
 
+  // Плашка «👍 Повторяю: …» — видимый ответ на «палец вверх».
+  const repeatToast = document.getElementById('repeat-toast');
+  let repeatTimer = null;
+  function showRepeat(text) {
+    repeatToast.innerHTML = `<span class="repeat-ico" aria-hidden="true">👍</span><span>${text ? esc(text) : 'Вижу! Палец вверх — повтор подсказки'}</span>`;
+    repeatToast.dataset.show = 'true';
+    repeatToast.animate([{ transform: 'translate(-50%, 0) scale(0.92)' }, { transform: 'translate(-50%, 0) scale(1)' }], { duration: 220, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' });
+    sound.confirm();
+    clearTimeout(repeatTimer);
+    repeatTimer = setTimeout(() => { repeatToast.dataset.show = 'false'; }, 4500);
+  }
+
   for (const ev of ROUTED) {
     const name = handlerName(ev);
     engine.on(ev, (payload) => {
@@ -130,7 +142,14 @@ export function createApp({ engine, video, mock = false }) {
       }
       const used = current?.[name]?.(payload);
       // «Палец вверх» везде = повторить подсказку голосом (если экран не занял этот жест сам).
-      if (ev === 'gesture' && payload.type === 'THUMBS_UP' && payload.fired && !used) voice.repeat();
+      // И обязательно на экране: без звука (браузер его блокирует до касания) лайк раньше «ничего не делал» (плейтест 29.09).
+      if (ev === 'gesture' && payload.type === 'THUMBS_UP' && payload.fired && !used) {
+        // Экран может сам сказать, что повторить (в игре — текущая ошибка или инструкция, а не мимолётное «Раз!»).
+        const own = current?.repeatText?.();
+        const text = own || voice.lastHint;
+        if (own) voice.say(own, { interrupt: true, force: true }); else voice.repeat();
+        showRepeat(text);
+      }
     });
   }
 

@@ -518,6 +518,8 @@ export default function play(ctx, { index = 0 } = {}) {
         setTimeout(() => { if (alive) ctx.go(index + 1 < SESSION_PLAN.length ? 'demo' : 'garden', { index: index + 1 }); }, 0);
       }
     },
+    /** Что повторить по «пальцу вверх»: текущая ошибка, иначе инструкция упражнения. */
+    repeatText: () => mistake?.message ?? info.phrase,
     onTarget,
     onMistake,
     onMistakeCleared,

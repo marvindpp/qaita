@@ -64,6 +64,8 @@ export function createVoice() {
       last = { text, at: performance.now() };
       speak(text, { interrupt: true });
     },
+    /** Что повторит «палец вверх» — чтобы показать это и на экране (звук может быть заблокирован). */
+    get lastHint() { return lastHint || last.text; },
     stop() { synth?.cancel(); },
     /** Первое нажатие/касание — браузер разрешает звук; договариваем последнюю фразу. */
     unlock() {
