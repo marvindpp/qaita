@@ -482,7 +482,7 @@ p { text-wrap: pretty; }
   gap: 4px; opacity: 0.55; filter: saturate(0.8); padding: 0 24px; overflow: hidden;
 }
 .garden-old svg { width: calc(var(--plant) * 0.42); flex: none; }
-.garden-beds { position: relative; display: flex; flex-wrap: nowrap; justify-content: center; align-items: flex-end; gap: clamp(28px, 3dvh, 44px) clamp(10px, 1.6vw, 26px); }
+.garden-beds { position: relative; display: flex; flex-wrap: nowrap; justify-content: center; align-items: flex-start; gap: clamp(28px, 3dvh, 44px) clamp(10px, 1.6vw, 26px); }
 .garden-bed { margin: 0; display: flex; flex-direction: column; align-items: center; }
 /* Деревянная грядка: растения стоят в земле, стебли уходят за бортик. */
 .garden-plants {
@@ -501,7 +501,9 @@ p { text-wrap: pretty; }
 .garden-plants svg { width: 100%; display: block; }
 .garden-bed figcaption {
   position: relative; margin-top: calc(var(--plant) * 0.28 + 8px); padding: 2px 12px; border-radius: 999px;
-  background: rgba(255, 255, 255, 0.82); font-size: var(--fs-small); font-weight: 800; color: var(--ink-2); white-space: nowrap;
+  background: rgba(255, 255, 255, 0.82); font-size: var(--fs-small); font-weight: 800; color: var(--ink-2);
+  /* Подпись не шире грядки (переносится в 2 строки) — иначе 5 грядок не влезают и крайние обрезаются */
+  max-width: calc(var(--plant) * 3 + 44px); text-align: center; line-height: 1.1; text-wrap: balance;
 }
 .garden-chips { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; align-items: center; }
 .badge { display: inline-flex; align-items: center; gap: 12px; padding: 8px 18px 8px 10px; border-radius: 20px; background: var(--surface); box-shadow: var(--shadow); text-align: left; }
@@ -630,7 +632,7 @@ p { text-wrap: pretty; }
 @media (max-width: 520px) {
   .audio-chip { font-size: 16px; white-space: nowrap; }
   /* Пока видна плашка звука, контент экрана начинается под ней (на телефоне ей больше некуда встать) */
-  .app:has(.audio-chip[data-show='true']) .screen { padding-top: 60px; }
+  .app:has(.audio-chip[data-show='true']) .screen { padding-top: 76px; } /* с запасом: экран может быть уменьшен автомасштабом */
   /* Подготовка: длинный статус («Отодвиньтесь назад») переносится, а не уходит за край */
   .prep-go > div { min-width: 0; }
   .prep-go .ring-label { font-size: 26px; overflow-wrap: anywhere; }
@@ -684,9 +686,10 @@ p { text-wrap: pretty; }
 .goal-head { text-align: center; }
 .goal h1 { font-size: clamp(40px, 3.4vw + 10px, 64px); }
 .goal .lead { font-size: var(--fs-lead); color: var(--ink-2); font-weight: 600; margin-top: 6px; }
-.goal-main { flex: 1; min-height: 0; display: grid; place-items: center; }
-.goal-main .cam-slot { width: 100%; height: 100%; display: grid; place-items: center; min-height: 0; }
-.goal-main .cam { width: min(100%, 62dvh * 4 / 3); aspect-ratio: 4 / 3; }
+/* Видео 4:3 вписываем в оставшееся место (container queries) — оно больше не наезжает на подзаголовок и кнопки. */
+.goal-main { flex: 1; min-height: 200px; container-type: size; display: grid; place-items: center; }
+.goal-main .cam-slot { display: grid; place-items: center; }
+.goal-main .cam { width: min(100cqw, 100cqh * 4 / 3); height: min(100cqh, 100cqw * 3 / 4); }
 .goal-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
 .goal-btn {
   display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 999px; padding: 10px 20px;
@@ -694,6 +697,16 @@ p { text-wrap: pretty; }
 }
 .goal-btn span { font-size: 30px; }
 .goal-btn[data-saved='true'] { outline: 3px solid var(--green); }
+/* Пузыри целей растут от плеча вверх — бейдж «Вижу вас» уводим вниз, чтобы не закрывал их. */
+.goal .cam-badge { top: auto; bottom: 14px; }
+@media (max-width: 520px) {
+  .goal h1 { font-size: 34px; }
+  .goal .lead { font-size: 22px; }
+  .goal-main { min-height: 230px; }
+  .goal-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+  .goal-btn { justify-content: center; padding: 8px 10px; font-size: 18px; }
+  .goal-btn span { font-size: 24px; }
+}
 
 .checkin { align-items: center; justify-content: center; text-align: center; gap: 18px; }
 .checkin h1 { font-size: var(--fs-title); }
@@ -734,6 +747,16 @@ p { text-wrap: pretty; }
 .btn-mirror { position: relative; z-index: 2; }
 /* Сад с блоком «жизнь»: всё должно влезть в экран ноутбука вместе с кольцом «Показать врачу». */
 .garden:has(.garden-life) .garden-scene { max-height: 34dvh; min-height: 180px; }
+/* Сцена стала ниже — поднимаем землю (горизонт), чтобы грядки стояли на ней, а не висели в небе, и солнце — над ними. */
+.garden:has(.garden-life) .garden-scene { --horizon: 64%; padding-bottom: 18px; }
+/* Прошлые дни — дальше на холме, чтобы не путались с растениями сегодняшних грядок */
+.garden:has(.garden-life) .garden-old { bottom: calc(var(--horizon) + 12%); }
+.garden:has(.garden-life) .garden-sun { width: clamp(44px, 4.6vw, 76px); top: calc(5% + (1 - var(--sun, 0)) * 14%); right: 6%; }
+@media (max-width: 520px) {
+  /* Телефон: грядки в 2–3 ряда, неба мало — прошлые дни прячем, солнце — в угол над грядками */
+  .garden:has(.garden-life) .garden-old { display: none; }
+  .garden:has(.garden-life) .garden-sun { top: 10px; right: 5%; width: 40px; }
+}
 .garden:has(.garden-life) .garden-head .lead { margin-top: 0; }
 .garden:has(.garden-life) { gap: 10px; }
 .life-task, .life-dose { text-align: left; font-size: 20px; padding: 8px 14px; max-width: 520px; }

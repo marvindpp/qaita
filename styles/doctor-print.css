@@ -24,6 +24,12 @@
   .doctor-go .ring-label, .doctor-pdf .ring-label { font-size: 24px; }
   .doctor-pdf .ring, .doctor-go .ring { --size: 88px; }
 }
+/* Телефон: шапка в столбик (main.css). Здесь снимаем wrap и flex-basis 100% из правила выше — в колонке они
+   переносили кольца «Новая тренировка» и «PDF» во вторую колонку, за правый край экрана. */
+@media (max-width: 520px) {
+  .report-head { flex-wrap: nowrap; }
+  .doctor-actions { flex: none; width: 100%; }
+}
 
 /* ——— Печать / «Сохранить как PDF»: белый лист A4, чёрный текст, без видео, колец и анимаций ——— */
 @page { size: A4; margin: 12mm 14mm; }

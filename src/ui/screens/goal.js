@@ -47,12 +47,21 @@ export default function goal(ctx) {
     if (!pose || !vis(pose[idx.sh]) || !vis(pose[idx.other])) return;
     const sh = toPx(pose[idx.sh]), other = toPx(pose[idx.other]);
     const S = Math.hypot(sh.x - other.x, sh.y - other.y);
-    // Пузыри — дугой вокруг плеча рабочей руки, на длине вытянутой руки: от «в сторону» до «вверх».
-    const R = S * 1.75, r = Math.max(46, S * 0.5);
-    const angles = [62, 101, 140, 179];
+    // Пузыри — дугой вокруг плеча рабочей руки: от «в сторону» до «вверх». Угол от «рука вниз» (0°) к «вверх» (180°).
+    // Радиус дуги общий: вытянутая рука (1,75 ширины плеч), но не дальше края кадра ни для одного пузыря.
+    // Раньше каждый пузырь прижимался к краю отдельно — и они налезали друг на друга (29.09).
+    const angles = [62, 101, 140, 179].map((d) => (d * Math.PI) / 180);
+    let r = Math.max(52, S * 0.52);
+    const reachTo = (a) => {
+      const dx = Math.sin(a) * outSign, dy = Math.cos(a);
+      const lim = (d, pos, size) => (d > 0.01 ? (size - r - 6 - pos) / d : d < -0.01 ? (pos - r - 6) / -d : Infinity);
+      return Math.min(lim(dx, sh.x, w), lim(dy, sh.y, h));
+    };
+    const R = Math.max(r * 1.6, Math.min(S * 1.75, ...angles.map(reachTo)));
+    // Соседние пузыри на дуге не должны касаться (с учётом «дыхания» +4%): хорда между ними ≥ 2,3 радиуса.
+    r = Math.min(r, (2 * R * Math.sin((angles[1] - angles[0]) / 2)) / 2.3);
     bubbles = GOALS.map((goalItem, i) => {
-      const a = (angles[i] * Math.PI) / 180;
-      // Угол от «рука вниз» (0°) к «рука вверх» (180°), наружу от тела.
+      const a = angles[i];
       const x = Math.min(w - r - 6, Math.max(r + 6, sh.x + Math.sin(a) * R * outSign));
       const y = Math.min(h - r - 6, Math.max(r + 6, sh.y + Math.cos(a) * R));
       return { ...goalItem, x, y, r };
@@ -86,12 +95,18 @@ export default function goal(ctx) {
       }
       // Эмодзи сверху, подпись внутри пузыря — подписи соседей не налезают друг на друга.
       g.textAlign = 'center'; g.textBaseline = 'middle';
+      // Маленький пузырь (телефон) — только значок: подпись не влезет, названия есть на кнопках под видео.
+      if (b.r < 46) {
+        g.font = `${Math.round(b.r * 1.05)}px system-ui, sans-serif`;
+        g.fillText(b.emoji, b.x, b.y + b.r * 0.04);
+        continue;
+      }
       g.font = `${Math.round(b.r * 0.72)}px system-ui, sans-serif`;
       g.fillText(b.emoji, b.x, b.y - b.r * 0.2);
-      let fs = Math.max(14, Math.round(b.r * 0.27));
+      let fs = Math.max(16, Math.round(b.r * 0.3));
       g.font = `800 ${fs}px Manrope, system-ui, sans-serif`;
       const tw = g.measureText(b.title).width;
-      if (tw > b.r * 1.7) { fs = Math.max(12, Math.floor(fs * (b.r * 1.7) / tw)); g.font = `800 ${fs}px Manrope, system-ui, sans-serif`; }
+      if (tw > b.r * 1.8) { fs = Math.max(14, Math.floor(fs * (b.r * 1.8) / tw)); g.font = `800 ${fs}px Manrope, system-ui, sans-serif`; }
       g.fillStyle = '#1d3a2c'; g.fillText(b.title, b.x, b.y + b.r * 0.5);
     }
     if (palm) {
