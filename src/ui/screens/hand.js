@@ -12,13 +12,16 @@ export default function hand(ctx) {
       <div class="hand-head">
         <h1 id="hand-title">Какую руку тренируем?</h1>
         <p class="lead">Поднимите её вверх и подержите</p>
+        <button class="btn-mirror" type="button" aria-pressed="false">
+          <span class="mirror-ico" aria-hidden="true">🪞</span>
+          <span><b>Рука совсем не поднимается?</b><small>Зеркальная тренировка: двигайте здоровой — на экране двигается больная</small></span>
+        </button>
       </div>
       <div class="hand-main">
         <div class="hand-pick" data-side="left"><div class="ring-slot"></div><p class="ring-label">Левую</p></div>
         <div class="cam-slot"></div>
         <div class="hand-pick" data-side="right"><div class="ring-slot"></div><p class="ring-label">Правую</p></div>
       </div>
-      <button class="btn-mirror" type="button" aria-pressed="false">🪞 Рука совсем не поднимается? Зеркальная тренировка</button>
     </section>`);
 
   const rings = {};
@@ -36,13 +39,16 @@ export default function hand(ctx) {
   // Движок отслеживает здоровую руку, камера отражает картинку. Для тех, кто иначе выпал бы из любого тренажёра.
   let mirror = false;
   const btn = el.querySelector('.btn-mirror');
-  btn.addEventListener('click', () => {
+  function toggleMirror() {
     mirror = !mirror;
     btn.setAttribute('aria-pressed', String(mirror));
     el.querySelector('#hand-title').textContent = mirror ? 'Какая рука ЗДОРОВАЯ?' : 'Какую руку тренируем?';
     el.querySelector('.hand-head .lead').textContent = mirror ? 'Поднимите здоровую руку — на экране она станет больной' : 'Поднимите её вверх и подержите';
     ctx.say(mirror ? 'Зеркальная тренировка. Поднимите здоровую руку и подержите' : 'Какую руку тренируем? Поднимите её вверх и подержите', { interrupt: true, force: true });
-  });
+  }
+  btn.addEventListener('click', toggleMirror);
+  // ?mirror=1 — сразу в зеркальный режим (для демо и видео).
+  if (new URLSearchParams(location.search).has('mirror')) queueMicrotask(toggleMirror);
 
   function pick(side) {
     ctx.state.side = side;

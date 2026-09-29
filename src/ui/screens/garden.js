@@ -5,8 +5,9 @@ import { icons } from '../icons.js';
 import { createRing } from '../components/ring.js';
 import { EXERCISE_INFO } from '../exercises.js';
 import { loadSessions, saveSession, streakDays, dayKey, amplitudeOf } from '../storage.js';
-import { loadGoal, giveTask, addDose, doseToday, DAILY_DOSE, lifeFlowers, loadVoice, saveVoice, recordVoice } from '../life.js';
-import { makeCard, shareCard } from '../share.js';
+import { loadGoal, giveTask, addDose, doseToday, DAILY_DOSE, lifeFlowers } from '../life.js';
+import { makeCard } from '../share.js';
+import { openShareSheet, shareText, openVoiceStudio, playMessageCard, listMessages } from '../family.js';
 
 const plural = (n, one, few, many) => {
   const m10 = n % 10, m100 = n % 100;
@@ -98,7 +99,7 @@ export default function garden(ctx) {
         ${life ? `<p class="pill pill-green">💐 ${life} ${plural(life, 'раз', 'раза', 'раз')} рука помогла в жизни</p>` : ''}
         <div class="life-family">
           <button type="button" class="btn-family" data-act="share">📤 Отправить детям</button>
-          <button type="button" class="btn-family" data-act="voice">🎙 Голос внуков</button>
+          <button type="button" class="btn-family" data-act="voice">💌 Голос близких</button>
         </div>
       </div>
       <div class="garden-go">
@@ -108,50 +109,25 @@ export default function garden(ctx) {
     </section>`);
 
   const ring = createRing({ onFire: () => ctx.go('doctor') });
-  let alive = true, voiceAudio = null;
+  let alive = true;
 
   // ——— Семья (PLAN §9г) ———
   const plantsAll = record.beds.flatMap((b) => b.plants);
-  el.querySelector('[data-act="share"]').addEventListener('click', async (e) => {
-    const b = e.currentTarget;
-    b.disabled = true;
-    const blob = await makeCard({
-      flowers: plantsAll.filter((p) => p === 'flower').length, sprouts: plantsAll.filter((p) => p === 'sprout').length,
-      reps: record.totalReps, words: compareWords(amplitudeOf(record), amplitudeOf(prev), !prev), goal, streak, lifeDone: life,
-    });
-    const r = await shareCard(blob, `Я сегодня позанимался(ась) рукой: ${record.totalReps} повторов 🌸`);
-    b.disabled = false;
-    if (r !== 'cancelled') ctx.say('Отправлено. Близкие будут рады', { interrupt: true });
-  });
+  const flowers = plantsAll.filter((p) => p === 'flower').length;
+  const words = compareWords(amplitudeOf(record), amplitudeOf(prev), !prev);
+  el.querySelector('[data-act="share"]').addEventListener('click', () => openShareSheet(el, {
+    text: shareText({ reps: record.totalReps, flowers, words, goal, streak }),
+    makeBlob: () => makeCard({ flowers, sprouts: plantsAll.length - flowers, reps: record.totalReps, words, goal, streak, lifeDone: life }),
+    onSent: () => ctx.say('Отправлено. Близкие будут рады', { interrupt: true }),
+  }));
 
-  // Голос близких: нет записи — записываем (это делает внук/дочь), есть — проигрываем. Хранится только здесь.
+  // Голос близких: открывается студия записи (записывает внук/дочь), послание звучит в конце каждого занятия.
   const voiceBtn = el.querySelector('[data-act="voice"]');
-  let recorder = null;
-  async function playVoice() {
-    const blob = await loadVoice();
-    if (!blob || !alive) return false;
-    voiceAudio?.pause();
-    voiceAudio = new Audio(URL.createObjectURL(blob));
-    voiceBtn.textContent = '💌 Послание от близких ▶';
-    voiceBtn.dataset.playing = 'true';
-    voiceAudio.onended = () => { voiceBtn.dataset.playing = 'false'; };
-    await voiceAudio.play().catch(() => {});
-    return true;
-  }
-  loadVoice().then((b) => { if (b && alive) voiceBtn.textContent = '💌 Послание от близких ▶'; });
-  voiceBtn.addEventListener('click', async () => {
-    if (recorder) {
-      const blob = await recorder.stop();
-      recorder = null;
-      if (blob && await saveVoice(blob)) { voiceBtn.textContent = '💌 Сохранено! Нажмите — послушать'; voiceBtn.dataset.rec = 'false'; }
-      return;
-    }
-    if (await loadVoice() && voiceBtn.dataset.rerecord !== 'true') { voiceBtn.dataset.rerecord = 'true'; playVoice(); return; }
-    try {
-      recorder = await recordVoice(15000);
-      voiceBtn.dataset.rec = 'true';
-      voiceBtn.textContent = '⏺ Говорите… (нажмите, чтобы закончить)';
-    } catch { voiceBtn.textContent = 'Нет доступа к микрофону'; }
+  let closeStudio = null;
+  const syncVoice = () => listMessages().then((l) => { if (alive) voiceBtn.textContent = l.length ? `💌 Голос близких · ${l.length}` : '💌 Записать голос близких'; });
+  syncVoice();
+  voiceBtn.addEventListener('click', () => {
+    closeStudio = openVoiceStudio(el, { onSaved: () => { syncVoice(); ctx.say('Послание сохранено. Оно прозвучит в конце следующего занятия', { interrupt: true }); } });
   });
   el.querySelector('.ring-slot').replaceWith(ring.el);
 
@@ -174,12 +150,12 @@ export default function garden(ctx) {
         { duration: 360, delay: 500 + i * 70 + k * 140, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', fill: 'backwards' },
       ));
       ctx.sound.done();
-      const words = compareWords(amplitudeOf(record), amplitudeOf(prev), !prev);
       // Если близкие записали послание — оно звучит после слов тренера (самое тёплое — в конце).
-      setTimeout(() => { if (alive) playVoice(); }, 9000);
+      setTimeout(() => { if (alive) playMessageCard(el, ctx); }, 9000);
       ctx.say(`Ваш сад. ${words}. ${record.stars} ${plural(record.stars, 'звезда', 'звезды', 'звёзд')}. Покажите ладонь, чтобы открыть отчёт для врача`, { interrupt: true, hint: true });
     },
-    onGesture: (g) => ring.handle(g),
-    destroy: () => { alive = false; voiceAudio?.pause(); recorder?.stop(); ring.destroy(); },
+    // Пока открыто окно «Отправить» / «Голос близких» — жесты не уводят с экрана.
+    onGesture: (g) => (el.querySelector('.sheet') ? true : ring.handle(g)),
+    destroy: () => { alive = false; closeStudio?.(); ring.destroy(); },
   };
 }

@@ -2,6 +2,7 @@
 // и подержать 1,2 с — это уже первое движение тренировки. Для родственника рядом — те же цели кнопками.
 import { html, esc } from '../dom.js';
 import { GOALS, loadGoal, saveGoal } from '../life.js';
+import { setPlanForGoal, GOAL_PLANS, EXERCISE_INFO } from '../exercises.js';
 
 const HOLD_MS = 1200;
 const IDX = { left: { sh: 11, el: 13, wr: 15, other: 12 }, right: { sh: 12, el: 14, wr: 16, other: 11 } };
@@ -34,10 +35,11 @@ export default function goal(ctx) {
     chosen = id;
     saveGoal(id);
     ctx.state.goal = id;
+    setPlanForGoal(id);
     const g = GOALS.find((x) => x.id === id);
     ctx.sound.confirm();
-    ctx.say(`Отлично. Цель — ${g.short}. Каждое упражнение — шаг к ней`, { interrupt: true, force: true });
-    setTimeout(() => { if (alive) ctx.go('calibration'); }, 1600);
+    ctx.say(`Отлично. Цель — ${g.short}. Для неё — ${GOAL_PLANS[id].length} упражнения: ${GOAL_PLANS[id].map(([e]) => EXERCISE_INFO[e].title).join(', ')}`, { interrupt: true, force: true });
+    setTimeout(() => { if (alive) ctx.go('calibration'); }, 2600);
   }
   el.querySelectorAll('.goal-btn').forEach((b) => b.addEventListener('click', () => choose(b.dataset.id)));
 

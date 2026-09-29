@@ -757,7 +757,10 @@ p { text-wrap: pretty; }
 .stroke-signs { margin-top: 14px; padding: 14px 18px; border-radius: 16px; background: #fdeceb; border: 2px solid #e0553f; }
 .stroke-signs h2 { font-size: var(--fs-body); color: #b23a28; margin: 0 0 4px; }
 .stroke-signs p { font-size: var(--fs-small); margin: 0; }
-.btn-mirror { position: relative; z-index: 2; }
+.btn-mirror { position: relative; z-index: 2; display: inline-flex; align-items: center; gap: 14px; margin: 14px auto 0; padding: 12px 22px 12px 14px; border-radius: 22px; text-align: left; box-shadow: var(--shadow); }
+.btn-mirror b { display: block; font-size: 24px; }
+.btn-mirror small { display: block; font-size: 18px; font-weight: 600; opacity: 0.85; }
+.mirror-ico { font-size: 44px; line-height: 1; }
 /* Сад с блоком «жизнь»: всё должно влезть в экран ноутбука вместе с кольцом «Показать врачу». */
 .garden:has(.garden-life) .garden-scene { max-height: 34dvh; min-height: 180px; }
 /* Сцена стала ниже — поднимаем землю (горизонт), чтобы грядки стояли на ней, а не висели в небе, и солнце — над ними. */
@@ -779,3 +782,48 @@ p { text-wrap: pretty; }
 .dose-bar::after { inset: 7px; }
 .btn-family { padding: 10px 18px; font-size: 22px; }
 .btn-start[hidden] { display: none; }
+.demo-why { font-size: var(--fs-lead); font-weight: 800; color: var(--green); margin-top: 10px; }
+
+/* ——— Семья: меню «Отправить детям», студия «Голос близких», послание в конце занятия ——— */
+.sheet { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: var(--gutter); background: rgba(20, 30, 24, 0.45); backdrop-filter: blur(4px); }
+.sheet-card {
+  position: relative; width: min(640px, 100%); max-height: calc(100dvh - 2 * var(--gutter)); overflow-y: auto;
+  background: var(--surface); border-radius: 28px; box-shadow: var(--shadow); padding: 28px 28px 24px; text-align: center;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.sheet-card h2 { font-size: clamp(30px, 2vw + 16px, 44px); margin: 0; }
+.sheet-sub { font-size: 22px; color: var(--ink-2); margin: 0; text-wrap: balance; }
+.sheet-note { font-size: 18px; color: var(--ink-2); margin: 0; }
+.sheet-close { position: absolute; top: 12px; right: 14px; border: 0; background: var(--bg-deep); width: 44px; height: 44px; border-radius: 50%; font-size: 22px; cursor: pointer; }
+.share-text { width: 100%; font: inherit; font-size: 20px; line-height: 1.35; padding: 12px 14px; border-radius: 16px; border: 2px solid var(--bg-deep); resize: vertical; }
+.share-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.share-btn { display: flex; flex-direction: column; align-items: center; gap: 8px; border: 0; background: var(--bg-deep); border-radius: 18px; padding: 14px 6px; font: inherit; font-size: 18px; font-weight: 800; cursor: pointer; }
+.share-btn:hover { transform: translateY(-2px); }
+.share-ico { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 28px; }
+@media (max-width: 560px) { .share-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.studio-q { font-size: 24px; font-weight: 800; margin: 0; }
+.who-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.who-btn { border: 2px solid var(--green); background: var(--surface); color: var(--green); border-radius: 999px; padding: 12px 22px; font: inherit; font-size: 22px; font-weight: 800; cursor: pointer; }
+.who-btn:hover { background: var(--green); color: #fff; }
+.ideas { list-style: none; margin: 0; padding: 0; font-size: 20px; color: var(--ink-2); display: grid; gap: 4px; }
+.rec-btn { align-self: center; width: 120px; height: 120px; border-radius: 50%; border: 8px solid #f5d0ca; background: #e0553f; display: grid; place-items: center; cursor: pointer; box-shadow: var(--shadow); }
+.rec-dot { width: 40px; height: 40px; border-radius: 50%; background: #fff; transition: border-radius 200ms, transform 200ms; }
+.rec-btn[data-on='true'] { animation: rec-pulse 1s ease-in-out infinite; }
+.rec-btn[data-on='true'] .rec-dot { border-radius: 8px; transform: scale(0.9); }
+.rec-time { font-size: 20px; color: var(--ink-2); margin: 0; }
+.rec-audio { width: 100%; }
+.studio-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.btn-ghost { border: 2px solid var(--bg-deep); background: transparent; border-radius: 999px; padding: 10px 18px; font: inherit; font-size: 22px; font-weight: 800; cursor: pointer; }
+
+.sheet-msg .sheet-card { background: linear-gradient(160deg, #fff7df, #fde7ec); }
+.msg-heart { font-size: 96px; line-height: 1; animation: msg-beat 1.2s ease-in-out infinite; }
+@keyframes msg-beat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.12); } 30% { transform: scale(1); } 45% { transform: scale(1.08); } }
+.msg-wave { display: flex; gap: 6px; justify-content: center; align-items: center; height: 60px; }
+.msg-wave span { width: 8px; height: 12px; border-radius: 4px; background: #e07a8f; }
+.sheet-msg[data-playing='true'] .msg-wave span { animation: wave 0.9s ease-in-out infinite; }
+.msg-wave span:nth-child(odd) { animation-delay: 0.15s !important; }
+.msg-wave span:nth-child(3n) { animation-delay: 0.3s !important; }
+@keyframes wave { 50% { height: 56px; } }
+.studio-step { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.studio-step[hidden] { display: none; }

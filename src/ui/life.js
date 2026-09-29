@@ -1,3 +1,4 @@
+import { GOAL_PLANS } from './exercises.js';
 // «Из тренажёра — в жизнь» (PLAN §9г). Цель жизни, задание дня (CIMT «пакет переноса»), дневная доза повторов,
 // голос близких. Всё хранится только в этом браузере; localStorage/IndexedDB — в try/catch.
 
@@ -15,12 +16,7 @@ export const GOALS = [
 export const goalById = (id) => GOALS.find((g) => g.id === id) ?? null;
 
 // Какие упражнения тренируют какую цель — чтобы в итогах упражнения сказать «это для чашки».
-export const GOAL_EXERCISES = {
-  cup: ['hand_to_mouth', 'open_hand'],
-  hair: ['reach_up', 'hand_to_mouth'],
-  dress: ['reach_side', 'reach_across'],
-  hug: ['reach_side', 'reach_across'],
-};
+export const GOAL_EXERCISES = Object.fromEntries(Object.entries(GOAL_PLANS).map(([g, list]) => [g, list.map(([e]) => e)]));
 
 const GOAL_KEY = 'qaita.goal.v1';
 const TASK_KEY = 'qaita.task.v1';

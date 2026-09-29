@@ -6,6 +6,8 @@ import { createVoice } from './voice.js';
 import { createSound } from './sound.js';
 import { prefersReducedMotion, esc } from './dom.js';
 import { icons } from './icons.js';
+import { setPlanForGoal } from './exercises.js';
+import { loadGoal } from './life.js';
 import welcome from './screens/welcome.js';
 import prep from './screens/prep.js';
 import hand from './screens/hand.js';
@@ -32,6 +34,7 @@ export function createApp({ engine, video, mock = false }) {
   camera.park();
 
   const state = { status: null, live: false, side: null, mock };
+  setPlanForGoal(loadGoal()?.id); // прошлая цель — её упражнения (цель можно сменить на экране «Ради чего?»)
   let current = null;       // { name, el, ...handlers, destroy }
 
   const voice = createVoice();

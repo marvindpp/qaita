@@ -32,3 +32,20 @@ export const EXERCISE_INFO = {
 };
 
 export const SESSION_PLAN = EXERCISES.filter((id) => EXERCISE_INFO[id]);
+const ALL = [...SESSION_PLAN];
+
+// Цель из жизни → свои упражнения (PLAN §9г: тренируем то движение, которое нужно в жизни) и зачем каждое.
+export const GOAL_PLANS = {
+  cup: [['open_hand', 'чтобы взять чашку'], ['hand_to_mouth', 'чтобы поднести её ко рту'], ['reach_up', 'чтобы достать чашку с полки']],
+  hair: [['reach_up', 'чтобы поднять руку к голове'], ['hand_to_mouth', 'чтобы довести руку до лица'], ['reach_side', 'чтобы вести расчёску сбоку']],
+  dress: [['reach_side', 'чтобы продеть руку в рукав'], ['reach_across', 'чтобы застегнуть пуговицы'], ['reach_up', 'чтобы надеть через голову']],
+  hug: [['reach_side', 'чтобы раскрыть объятия'], ['reach_across', 'чтобы обнять за плечи'], ['open_hand', 'чтобы погладить по голове']],
+};
+/** Зачем это упражнение для выбранной цели (или null). */
+export const whyFor = (goalId, id) => GOAL_PLANS[goalId]?.find(([e]) => e === id)?.[1] ?? null;
+
+/** Сессия под цель: меняем SESSION_PLAN на месте — все экраны читают его по индексу. Без цели — все 5. */
+export function setPlanForGoal(goalId) {
+  const plan = GOAL_PLANS[goalId]?.map(([e]) => e) ?? ALL;
+  SESSION_PLAN.splice(0, SESSION_PLAN.length, ...plan);
+}
