@@ -13,7 +13,7 @@
 | **Казахстан:** ~40–49 тыс. инсультов в год, постинсультную реабилитацию в 2024 году получили **8 762** человека (примерно каждый пятый) | [CAJMHE 2018–2024](https://cajmhe.com/index.php/journal/article/view/498), [Kazpravda](https://kazpravda.kz/n/ezhegodno-v-kazahstane-registriruetsya-okolo-40-tysyach-sluchaev-insulta/) |
 | На занятии пациент делает в среднем **32 повтора** для руки, а для восстановления нужны сотни | [Lang et al., Arch PM&R](https://www.archives-pmr.org/article/S0003-9993(09)00353-0/abstract) |
 | **До 70%** пациентов не выполняют домашние упражнения: забывают и скучно | [Physiopedia](https://www.physio-pedia.com/Adherence_to_Home_Exercise_Programs), [JMIR 2018](https://mhealth.jmir.org/2018/3/e47/) |
-| Дома пациенты компенсируют корпусом и плечом; персональная калибровка точнее общей модели (0,83–0,95 против ~0,5–0,7) | [Frontiers in Medicine 2025](https://pmc.ncbi.nlm.nih.gov/articles/PMC12660197/), [J NeuroEng Rehab 2025](https://link.springer.com/article/10.1186/s12984-025-01808-4) |
+| Дома пациенты компенсируют корпусом и плечом; обычная вебкамера с MediaPipe умеет их ловить | [Frontiers in Medicine 2025](https://pmc.ncbi.nlm.nih.gov/articles/PMC12660197/), [J NeuroEng Rehab 2025](https://link.springer.com/article/10.1186/s12984-025-01808-4) |
 
 > 🔒 **Видео не записывается и никуда не отправляется.** Распознавание идёт прямо в браузере (MediaPipe, WebAssembly/GPU). Из интернета загружаются только файлы моделей.
 
@@ -138,7 +138,7 @@ npm run build   # сборка в dist/
 
 ### Тесты
 
-`npm test` — 122 теста: на синтетических позах (правильное движение → +1 повтор и **ноль** ошибок; каждая компенсация → нужный код и подсказка; исправление → `mistake-cleared` → повтор засчитан) и на записи живой сессии 28.09 (`tests/fixtures/`).
+`npm test` — 124 теста: на синтетических позах (правильное движение → +1 повтор и **ноль** ошибок; каждая компенсация → нужный код и подсказка; исправление → `mistake-cleared` → повтор засчитан) и на записи живой сессии 28.09 (`tests/fixtures/`).
 
 ---
 
