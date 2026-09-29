@@ -951,6 +951,10 @@ p { text-wrap: pretty; }
 .switch span::after { content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.2); transition: transform 160ms; }
 .switch input:checked + span { background: var(--green); }
 .switch input:checked + span::after { transform: translateX(22px); }
+.moods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: -2px 0 4px 64px; }
+.moods button { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 56px; padding: 6px 4px; border: 2px solid var(--bg-deep); border-radius: 14px; background: none; font: inherit; font-size: 16px; font-weight: 700; color: var(--ink-2); cursor: pointer; }
+.moods button span { font-size: 20px; line-height: 1; }
+.moods button[aria-pressed='true'] { border-color: var(--green); background: var(--green-soft); color: var(--green); }
 .drawer-note { font-size: 15px; color: var(--ink-2); margin-top: auto; }
 
 /* ——— Страницы: прогресс, профиль, о Qaita ——— */

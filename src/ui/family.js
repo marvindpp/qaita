@@ -212,6 +212,8 @@ export async function playMessageCard(root, ctx) {
   el.querySelector('[data-act="replay"]').addEventListener('click', play);
   const obs = new MutationObserver(() => { if (!el.isConnected) { audio.pause(); obs.disconnect(); } });
   obs.observe(root, { childList: true });
-  play();
+  // Сначала тихая «шкатулка» (узнаваемый сигнал «пришло послание»), потом голос близкого.
+  ctx.sound?.family?.();
+  setTimeout(() => { if (el.isConnected) play(); }, ctx.sound?.family ? 900 : 0);
   return close;
 }
