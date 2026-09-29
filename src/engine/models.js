@@ -6,9 +6,14 @@ const WASM_URL = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${TASKS_V
 const POSE_MODEL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task';
 const HAND_MODEL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
 
+// На некоторых телефонах (iPhone Safari) GPU-делегат не падает с ошибкой, а зависает — тогда через 12 с идём на CPU
+// (живой тест 29.09: «Загружаю распознавание…» без конца).
+const GPU_TIMEOUT_MS = 12000;
+const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error('GPU timeout')), ms));
+
 async function withGpuFallback(create) {
   try {
-    return { model: await create('GPU'), delegate: 'GPU' };
+    return { model: await Promise.race([create('GPU'), timeout(GPU_TIMEOUT_MS)]), delegate: 'GPU' };
   } catch {
     return { model: await create('CPU'), delegate: 'CPU' };
   }
