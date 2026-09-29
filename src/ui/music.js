@@ -4,6 +4,8 @@
 // Всё идёт через реверберацию (комната генерируется тут же), поэтому звучит объёмно, а не «из пищалки» (29.09).
 // Выключатель и выбор настроения — в меню. Смена настроения — плавный кроссфейд (~3 с), без щелчков.
 // Пока говорит тренер — музыка тише (duck). До первого нажатия/жеста браузер звук не даёт — музыка ждёт.
+import { loadInstrument, playNote, holdNote } from './music-samples.js';
+
 const KEY = 'qaita.music.v1';
 const MOOD_KEY = 'qaita.music.mood.v1';
 const FADE_S = 3;
@@ -16,6 +18,7 @@ const hz = (midi) => 440 * 2 ** ((midi - 69) / 12);
  * chords — аккорды (MIDI) в среднем регистре; бас — основной тон (первая нота аккорда) на октаву ниже.
  * scale — лад мелодии (MIDI-ноты, по которым она ходит), rhythm — ритм мелодии по тактам:
  *   [доля такта 0..1, длительность в долях такта]. level — общий уровень (все три звучат одинаково тихо).
+ * live — живые инструменты (сэмплы): чем играть мелодию и аккорды, их громкость. Без сэмплов звучит синтез.
  */
 export const MOODS = {
   morning: {
@@ -26,6 +29,7 @@ export const MOODS = {
     rhythm: [[[0, 0.25], [0.25, 0.25], [0.5, 0.5]], [[0, 0.375], [0.375, 0.125], [0.5, 0.25], [0.75, 0.25]]],
     barS: 6, padWave: 'triangle', padGain: 0.0252, padAttack: 1.4, padCut: 1400, detune: 5,
     bassGain: 0.0275, melGain: 0.095, melDecay: 2.2, reverb: 2.6, wet: 0.32, level: 1.6,
+    live: { mel: 'acoustic_grand_piano', pad: 'string_ensemble_1', melGain: 0.55, padGain: 0.45, bass: 0.45, level: 5.2 },
   },
   evening: {
     label: 'Вечер', title: 'Мягкий вечер', ico: '🌙',
@@ -35,6 +39,7 @@ export const MOODS = {
     rhythm: [[[0, 0.5], [0.5, 0.5]], [[0, 0.375], [0.375, 0.375], [0.75, 0.25]]],
     barS: 8, padWave: 'sine', padGain: 0.0336, padAttack: 2.2, padCut: 900, detune: 7,
     bassGain: 0.0303, melGain: 0.0855, melDecay: 3.2, reverb: 3.4, wet: 0.4, level: 1.3,
+    live: { mel: 'acoustic_grand_piano', pad: 'string_ensemble_1', melGain: 0.45, padGain: 0.5, bass: 0.45, level: 6 },
   },
   bright: {
     label: 'Бодро', title: 'Бодро, но тихо', ico: '🌿',
@@ -44,6 +49,7 @@ export const MOODS = {
     rhythm: [[[0, 0.25], [0.25, 0.25], [0.5, 0.25], [0.75, 0.25]], [[0, 0.25], [0.25, 0.125], [0.375, 0.125], [0.5, 0.5]]],
     barS: 4, padWave: 'triangle', padGain: 0.0196, padAttack: 0.9, padCut: 1800, detune: 4,
     bassGain: 0.0248, melGain: 0.076, melDecay: 1.6, reverb: 2.2, wet: 0.28, level: 1.9,
+    live: { mel: 'orchestral_harp', pad: 'string_ensemble_1', melGain: 0.6, padGain: 0.4, bass: 0.45, level: 4.6 },
   },
 };
 export const MOOD_IDS = Object.keys(MOODS);
@@ -73,7 +79,7 @@ function roomImpulse(c, seconds) {
 }
 
 /** Шина настроения: gain (для кроссфейда) → lowpass → сухой + реверберация → dest. */
-export function createMoodBus(c, dest, id) {
+export function createMoodBus(c, dest, id, instruments = null) {
   const mood = MOODS[id];
   const gain = c.createGain();
   gain.gain.value = 0;
@@ -85,7 +91,15 @@ export function createMoodBus(c, dest, id) {
   gain.connect(lp);
   lp.connect(dry).connect(dest);
   lp.connect(verb).connect(wet).connect(dest);
-  return { id, mood, gain, lp, state: { last: null, motif: null } };
+  const bus = { id, mood, gain, lp, state: { last: null, motif: null }, live: null };
+  useInstruments(bus, instruments);
+  return bus;
+}
+
+/** Подключить живые инструменты к шине, если нужные уже загружены. */
+export function useInstruments(bus, instruments) {
+  const l = bus.mood.live;
+  if (l && instruments?.[l.mel] && instruments?.[l.pad]) bus.live = { ...l, mel: instruments[l.mel], pad: instruments[l.pad] };
 }
 
 /** Огибающая: атака → удержание → плавный спад. */
@@ -133,14 +147,18 @@ export function scheduleMoodBar(c, bus, t, bar, rnd = Math.random) {
   {
     const o = c.createOscillator();
     o.type = 'sine'; o.frequency.value = hz(chord[0] - 12);
-    const g = env(c, t, m.bassGain * L, 0.4, dur * 0.55, dur * 0.6);
+    const g = env(c, t, m.bassGain * L * (bus.live?.bass ?? 1), 0.4, dur * 0.55, dur * 0.6);
     o.connect(g).connect(bus.gain); o.start(t); o.stop(t + dur * 1.25);
   }
-  // Аккорд: каждый звук — пара чуть расстроенных осцилляторов через мягкий фильтр (тепло, «хор»).
+  const live = bus.live;
+  // Аккорд. Живой: струнные тянут каждый звук аккорда. Синтез: пара чуть расстроенных осцилляторов через фильтр.
+  if (live) {
+    for (const n of chord) holdNote(c, live.pad, bus.gain, t, n, (live.padGain * live.level) / chord.length * 2, { dur: dur * 0.55, attack: m.padAttack, release: dur * 0.6 });
+  }
   const padLp = c.createBiquadFilter();
   padLp.type = 'lowpass'; padLp.frequency.value = m.padCut; padLp.Q.value = 0.3;
   padLp.connect(bus.gain);
-  for (const n of chord) {
+  for (const n of live ? [] : chord) {
     for (const d of [-m.detune, m.detune]) {
       const o = c.createOscillator();
       o.type = m.padWave; o.frequency.value = hz(n); o.detune.value = d;
@@ -165,14 +183,16 @@ export function scheduleMoodBar(c, bus, t, bar, rnd = Math.random) {
       note = m.scale[Math.max(0, Math.min(m.scale.length - 1, idx + steps[i - 1]))];
     }
     if (inPhrase === 3 && i === rhythm.length - 1) note = chordToneIn(m.scale, chord, note); // разрешение
-    feltNote(c, bus.gain, t + at * dur, note, m.melGain * L, Math.max(m.melDecay * 0.6, len * dur * 1.6));
+    const nt = t + at * dur, nlen = Math.max(m.melDecay * 0.6, len * dur * 1.6);
+    if (live) playNote(c, live.mel, bus.gain, nt, note, live.melGain * live.level, { len: nlen + 0.8 });
+    else feltNote(c, bus.gain, nt, note, m.melGain * L, nlen);
   });
   S.last = note;
 }
 
 /** Рендер настроения целиком (для проверки в OfflineAudioContext): такты с момента 0. */
-export function renderMood(c, id, seconds, { seed = 7, fadeIn = 0.5 } = {}) {
-  const bus = createMoodBus(c, c.destination, id);
+export function renderMood(c, id, seconds, { seed = 7, fadeIn = 0.5, instruments = null } = {}) {
+  const bus = createMoodBus(c, c.destination, id, instruments);
   bus.gain.gain.setValueAtTime(0, 0);
   bus.gain.gain.linearRampToValueAtTime(1, fadeIn);
   const rnd = seeded(seed);
@@ -200,8 +220,13 @@ export function renderCrossfade(c, from, to, seconds, at, { seed = 7 } = {}) {
   for (let t = at, bar = 0; t < seconds; t += b.mood.barS, bar += 1) scheduleMoodBar(c, b, t, bar, rnd);
 }
 
+// Папка с сэмплами (public/music/) — относительно страницы, поэтому работает и на GitHub Pages (/qaita/).
+const SAMPLES_BASE = `${import.meta.env?.BASE_URL ?? './'}music/`;
+const LIVE_NAMES = [...new Set(Object.values(MOODS).flatMap((m) => (m.live ? [m.live.mel, m.live.pad] : [])))];
+
 export function createMusic() {
   let ctx = null, master = null, duckGain = null, bus = null, timer = null, bar = 0, on = false, started = false;
+  let instruments = null, loading = null;
   let mood = DEFAULT_MOOD;
   try { on = localStorage.getItem(KEY) === 'on'; } catch { /* приватный режим */ }
   try { const m = localStorage.getItem(MOOD_KEY); if (m && MOODS[m]) mood = m; } catch { /* */ }
@@ -217,6 +242,13 @@ export function createMusic() {
     master.connect(duckGain).connect(ctx.destination);
     return true;
   }
+  // Живые инструменты грузятся в фоне (~1 МБ). Пока не загрузились или без сети — играет синтез.
+  function loadLive() {
+    if (loading || !ctx) return;
+    loading = Promise.all(LIVE_NAMES.map((n) => loadInstrument(ctx, n, SAMPLES_BASE)))
+      .then((list) => { instruments = Object.fromEntries(list.map((i) => [i.name, i])); if (bus) useInstruments(bus, instruments); })
+      .catch(() => { /* нет сети — остаёмся на синтезе */ });
+  }
   function tick() {
     // Пока браузер не разрешил звук, часы стоят — не копим такты (иначе потом всё прозвучит разом).
     if (!ctx || ctx.state !== 'running' || !bus) return;
@@ -231,7 +263,8 @@ export function createMusic() {
   function begin() {
     if (!on || started || !ctx || ctx.state !== 'running') return;
     started = true;
-    if (!bus) { bus = createMoodBus(ctx, master, mood); bus.gain.gain.value = 1; }
+    loadLive();
+    if (!bus) { bus = createMoodBus(ctx, master, mood, instruments); bus.gain.gain.value = 1; }
     glide(master.gain, ctx, 1, 2);
     loop();
   }
@@ -250,7 +283,7 @@ export function createMusic() {
     const old = bus;
     glide(old.gain.gain, ctx, 0, FADE_S);
     setTimeout(() => { try { old.gain.disconnect(); } catch { /* */ } }, (FADE_S + 12) * 1000);
-    bus = createMoodBus(ctx, master, id);
+    bus = createMoodBus(ctx, master, id, instruments);
     glide(bus.gain.gain, ctx, 1, FADE_S);
     bar = 0;
     if (started) loop();

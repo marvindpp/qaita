@@ -185,6 +185,7 @@ npm run build   # сборка в dist/
 - [MediaPipe Tasks Vision](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker) 1.0.1 — Pose Landmarker (lite) + Hand Landmarker, GPU с запасным вариантом на CPU.
 - Vite, чистый JavaScript (без фреймворков), Vitest.
 - Без бэкенда: всё в браузере, прогресс в `localStorage`. Шрифт Manrope (Google Fonts).
+- Фоновая музыка сочиняется в браузере (Web Audio). Живые инструменты — сэмплы пианино, струнных и арфы из [FluidR3_GM](https://github.com/gleitz/midi-js-soundfonts) (Frank Wen), лицензия [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/); файлы в `public/music/`. Без сети играет синтез.
 
 ## Команда «Хастлеры»
 
