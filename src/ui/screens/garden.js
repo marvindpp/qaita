@@ -7,6 +7,7 @@ import { EXERCISE_INFO } from '../exercises.js';
 import { loadSessions, saveSession, streakDays, dayKey, amplitudeOf } from '../storage.js';
 import { loadGoal, giveTask, addDose, doseToday, DAILY_DOSE, lifeFlowers } from '../life.js';
 import { makeCard } from '../share.js';
+import { gardenLife } from '../motion.js';
 import { openShareSheet, shareText, openVoiceStudio, playMessageCard, listMessages } from '../family.js';
 
 const plural = (n, one, few, many) => {
@@ -110,7 +111,7 @@ export default function garden(ctx) {
     </section>`);
 
   const ring = createRing({ onFire: () => ctx.go('doctor') });
-  let alive = true;
+  let alive = true, stopFx = null;
 
   // ——— Семья (PLAN §9г) ———
   const plantsAll = record.beds.flatMap((b) => b.plants);
@@ -151,12 +152,13 @@ export default function garden(ctx) {
         { duration: 360, delay: 500 + i * 70 + k * 140, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', fill: 'backwards' },
       ));
       ctx.sound.done();
+      stopFx = gardenLife(el, { clean }); // ветер качает растения; все повторы чистые — пролетает бабочка
       // Если близкие записали послание — оно звучит после слов тренера (самое тёплое — в конце).
       setTimeout(() => { if (alive) playMessageCard(el, ctx); }, 9000);
       ctx.say(`Ваш сад. ${words}. ${record.stars} ${plural(record.stars, 'звезда', 'звезды', 'звёзд')}. Покажите ладонь, чтобы открыть отчёт для врача`, { interrupt: true, hint: true });
     },
     // Пока открыто окно «Отправить» / «Голос близких» — жесты не уводят с экрана.
     onGesture: (g) => (el.querySelector('.sheet') ? true : ring.handle(g)),
-    destroy: () => { alive = false; closeStudio?.(); ring.destroy(); },
+    destroy: () => { alive = false; stopFx?.(); closeStudio?.(); ring.destroy(); },
   };
 }

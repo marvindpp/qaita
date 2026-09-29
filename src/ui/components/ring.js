@@ -2,6 +2,7 @@
 // Кнопок нет: это единственный способ «нажать» в приложении.
 import { html } from '../dom.js';
 import { icons } from '../icons.js';
+import { ringBurst } from '../motion.js';
 
 const R = 46;
 const C = 2 * Math.PI * R;
@@ -45,6 +46,7 @@ export function createRing({ gesture = 'PALM_HOLD', icon = icons.palm, center = 
     fired = true;
     draw(1);
     el.dataset.fired = 'true';
+    ringBurst(el);
     onAnyFire?.();
     timer = setTimeout(() => onFire?.(), FIRE_DELAY_MS);
   }
@@ -62,6 +64,7 @@ export function createRing({ gesture = 'PALM_HOLD', icon = icons.palm, center = 
   function draw(p) {
     progress = p;
     fill.style.strokeDashoffset = String(C * (1 - p));
+    el.style.setProperty('--p', p.toFixed(2)); // свечение кольца растёт с заполнением (motion.css)
     el.dataset.active = String(p > 0 && !fired);
   }
 

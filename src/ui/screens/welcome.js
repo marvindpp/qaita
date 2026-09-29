@@ -5,6 +5,7 @@ import { icons } from '../icons.js';
 import { createRing } from '../components/ring.js';
 import { cameraHelp, noPromptHelp } from '../camera-help.js';
 import { loadProfile, greeting } from '../profile.js';
+import { splashStar } from '../motion.js';
 
 // Столько ждём вопроса «Разрешить камеру?», прежде чем подсказать, где её включить.
 const NO_PROMPT_MS = 6000;
@@ -33,6 +34,7 @@ export default function welcome(ctx) {
     </section>`);
 
   const camSlot = html('<div class="ring-cam"></div>');
+  camSlot.append(splashStar()); // заставка: звезда из искр, пока камера и распознавание не ожили
   const ring = createRing({ center: camSlot, onFire: () => ctx.go('prep') });
   el.querySelector('.ring-slot').replaceWith(ring.el);
   // Браузер не даёт голосу говорить, пока на странице ни разу не нажали. Жюри и родственник, открывший ссылку,
@@ -55,6 +57,7 @@ export default function welcome(ctx) {
   function syncReady() {
     const s = ctx.state.status;
     clearTimeout(helpTimer);
+    camSlot.dataset.nocam = String(s?.code === 'NO_CAMERA');
     if (s?.code === 'NO_CAMERA') {
       ring.setDisabled(true);
       show({ label: 'Нет доступа к камере', sub: s.message });

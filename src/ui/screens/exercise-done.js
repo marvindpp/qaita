@@ -6,6 +6,7 @@ import { icons } from '../icons.js';
 import { createRing } from '../components/ring.js';
 import { EXERCISE_INFO, SESSION_PLAN } from '../exercises.js';
 import { loadGoal, GOAL_EXERCISES } from '../life.js';
+import { playResult } from '../motion.js';
 
 const TITLE = { 3: 'Идеально!', 2: 'Отлично!', 1: 'Хорошее начало!', 0: 'Попробуем ещё' };
 const SAY = { 3: 'Три звезды! Идеально, без единой ошибки', 2: 'Две звезды! Отлично', 1: 'Одна звезда. Хорошее начало', 0: 'Ничего страшного, попробуем ещё' };
@@ -62,19 +63,13 @@ export default function exerciseDone(ctx, { index = 0, result, moments = null })
 
   const ring = createRing({ onFire: () => ctx.go(next ? 'demo' : 'garden', { index: index + 1 }) });
   el.querySelector('.ring-slot').replaceWith(ring.el);
+  let stopFx = null;
 
   return {
     el,
     enter() {
-      // Звёзды «падают» по одной, растения вырастают следом.
-      el.querySelectorAll('.big-star').forEach((s, i) => s.animate(
-        [{ transform: 'scale(0.3) rotate(-30deg)', opacity: 0 }, { transform: 'none', opacity: 1 }],
-        { duration: 420, delay: 150 + i * 160, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', fill: 'backwards' },
-      ));
-      el.querySelectorAll('.xdone-bed li').forEach((p, i) => p.animate(
-        [{ transform: 'scale(0.6, 0.05)', opacity: 0 }, { opacity: 1, offset: 0.3 }, { transform: 'none', opacity: 1 }],
-        { duration: 520, delay: 650 + i * 110, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'backwards' },
-      ));
+      // Звёзды падают с отскоком и искрами, растения вырастают из земли, на ★★★ — конфетти (motion.js).
+      stopFx = playResult(el, { stars: r.stars, sound: ctx.sound });
       el.querySelectorAll('.moment').forEach((m, i) => m.animate(
         [{ transform: 'translateY(16px)', opacity: 0 }, { transform: 'none', opacity: 1 }],
         { duration: 420, delay: 500 + i * 250, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'backwards' },
@@ -83,6 +78,6 @@ export default function exerciseDone(ctx, { index = 0, result, moments = null })
       ctx.say(`${SAY[r.stars]}.${fix}${forGoal ? ` Это ${forGoal.stepText}.` : ''} ${next ? 'Покажите ладонь, чтобы перейти дальше' : 'Покажите ладонь, чтобы увидеть ваш сад'}`, { interrupt: true, hint: true });
     },
     onGesture: (g) => ring.handle(g),
-    destroy: () => ring.destroy(),
+    destroy: () => { stopFx?.(); ring.destroy(); },
   };
 }
