@@ -158,6 +158,19 @@ p { text-wrap: pretty; }
 }
 .status-toast[data-show='true'] { transform: translate(-50%, 0); opacity: 1; }
 .status-toast svg { width: 36px; height: 36px; flex: none; color: var(--gold); }
+/* «👍 Повторяю: …» — ответ на «палец вверх», виден и без звука */
+.repeat-toast {
+  position: absolute; left: 50%; top: var(--gutter); z-index: 21;
+  display: flex; align-items: center; gap: 14px;
+  width: max-content; max-width: min(900px, calc(100% - 2 * var(--gutter)));
+  padding: 14px 28px 14px 18px; border-radius: 28px;
+  background: var(--green-soft); color: var(--green); box-shadow: var(--shadow);
+  font-size: var(--fs-lead); font-weight: 800; line-height: 1.15; text-wrap: balance;
+  transform: translate(-50%, -140%); opacity: 0; pointer-events: none;
+  transition: transform 220ms var(--ease-out), opacity 160ms ease;
+}
+.repeat-toast[data-show='true'] { transform: translate(-50%, 0); opacity: 1; }
+.repeat-ico { font-size: 1.3em; flex: none; }
 
 /* ——— Экран: Приветствие ——— */
 .welcome { justify-content: space-between; gap: 24px; }
