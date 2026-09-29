@@ -49,17 +49,17 @@ npm run build   # сборка в dist/
 
 ### Если не грузится
 
-Сам сайт — статичные файлы на GitHub Pages. Распознавание (MediaPipe от Google) браузер скачивает при первом запуске, **~26 МБ** с двух адресов (точные ссылки — `src/engine/models.js`):
+Сам сайт — статичные файлы на GitHub Pages. Распознавание (MediaPipe от Google, лицензия Apache 2.0) браузер скачивает при первом запуске, **~26 МБ**, и **с того же сайта**, а не с чужих CDN: школьный или больничный фильтр, который режет jsdelivr и googleapis, запуску не мешает. Если своих файлов нет (например, в `npm run dev` без `npm ci`), сайт сам берёт их с CDN (`src/engine/models.js`).
 
-| Что | Откуда | Размер |
-|---|---|---|
-| движок распознавания (WebAssembly) | `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm/` | ~12 МБ |
-| модель позы | `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task` | 5,8 МБ |
-| модель кисти | `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task` | 7,8 МБ |
-| шрифт Manrope (необязательно) | `fonts.googleapis.com`, `fonts.gstatic.com` | — |
+| Что | С нашего сайта | Запасной адрес | Размер |
+|---|---|---|---|
+| движок распознавания (WebAssembly) | `./mediapipe/wasm/` (копирует `scripts/copy-wasm.mjs` из `node_modules` при `npm run dev` / `build`) | `cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm/` | ~12 МБ |
+| модель позы | `./models/pose_landmarker_lite.task` | `storage.googleapis.com/mediapipe-models/…/pose_landmarker_lite.task` | 5,8 МБ |
+| модель кисти | `./models/hand_landmarker.task` | `storage.googleapis.com/mediapipe-models/…/hand_landmarker.task` | 7,8 МБ |
+| шрифт Manrope (необязательно) | — | `fonts.googleapis.com`, `fonts.gstatic.com` | — |
 
 - **«Готовлю распознавание…»** с советами — идёт загрузка (на телефоне до минуты). Если видеокарта телефона зависла, через 12 с распознавание само переходит на процессор.
-- **«Не загрузилось распознавание. Проверьте интернет и обновите страницу»** — один из адресов выше недоступен (нет интернета, корпоративный фильтр, VPN). Откройте ссылки из таблицы в той же вкладке: должно начаться скачивание файла. Помогает другая сеть (раздача с телефона).
+- **«Не загрузилось распознавание. Проверьте интернет и обновите страницу»** — нет интернета или оборвалась загрузка. Обновите страницу; помогает другая сеть (раздача с телефона).
 - **«Загрузка идёт слишком долго»** — за минуту с открытой камерой модели не скачались (медленная сеть). Подождите: если догрузятся, экран сам вернётся к «Покажите ладонь». Или обновите страницу — второй раз файлы берутся из кэша браузера.
 - **«Нет доступа к камере»** — значок камеры в адресной строке → «Разрешить» → обновить страницу. Камера работает только по `https://` или на `localhost`.
 - Проверить интерфейс **без камеры и без моделей**: `https://marvindpp.github.io/qaita/?mock=1` — виртуальный пациент проходит весь сценарий сам (с CDN ничего не качается).
@@ -199,7 +199,7 @@ npm run build   # сборка в dist/
 
 - Первый коммит `b0f3269` — 28.09 19:32 (Астана): пустой каркас — настройки Vite, деплой на GitHub Pages, заглушка контракта, «камера включается», план и брифы в `docs/`. Логики распознавания в нём нет.
 - Движок (сглаживание, калибровка, повторы, ошибки, жесты) — с коммита `f5c4318` (28.09 20:09); интерфейс — с `416cdfb` (28.09 20:51).
-- Не наше: модели MediaPipe Pose и Hand Landmarker от Google (разрешены правилами кейса), npm-пакеты `@mediapipe/tasks-vision`, `vite`, `vitest`, шрифт Manrope.
+- Не наше: модели MediaPipe Pose и Hand Landmarker от Google (разрешены правилами кейса; копии в `public/models/`, Apache 2.0), npm-пакеты `@mediapipe/tasks-vision`, `vite`, `vitest`, шрифт Manrope.
 
 ## Дисклеймер
 

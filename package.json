@@ -5,7 +5,9 @@
   "type": "module",
   "description": "Qaita — реабилитолог в каждой вебкамере. ADMIT Hackathon «Motion» 2026, команда «Хастлеры».",
   "scripts": {
+    "predev": "node scripts/copy-wasm.mjs",
     "dev": "vite",
+    "prebuild": "node scripts/copy-wasm.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run"

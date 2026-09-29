@@ -18,3 +18,12 @@
 | Свечение и всплеск кольца «ладонь» | `styles/motion.css`, `src/ui/components/ring.js` | CSS + Web Animations API |
 
 Лицензия — как у всего проекта. Звуки синтезируются в браузере (`src/ui/sound.js`, `src/ui/music.js`), файлов нет.
+
+## Модели распознавания
+
+| Что | Где у нас | Откуда | Лицензия |
+|---|---|---|---|
+| `pose_landmarker_lite.task`, `hand_landmarker.task` | `public/models/` | [MediaPipe Models](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker), Google | Apache 2.0 |
+| WebAssembly `@mediapipe/tasks-vision` 1.0.1 | копируется в `public/mediapipe/wasm/` при сборке | npm, Google | Apache 2.0 |
+
+Лежат на нашем сайте, чтобы запуск не зависел от CDN (`src/engine/models.js`, запасной путь — CDN).

@@ -1,10 +1,28 @@
-// Загрузка MediaPipe Pose + Hand. GPU, при ошибке — CPU.
+// Загрузка MediaPipe Pose + Hand. Сначала с нашего сайта, потом с CDN. GPU, при ошибке — CPU.
 import { FilesetResolver, PoseLandmarker, HandLandmarker } from '@mediapipe/tasks-vision';
 
 const TASKS_VERSION = '1.0.1'; // держать равным версии @mediapipe/tasks-vision в package.json
-const WASM_URL = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${TASKS_VERSION}/wasm`;
-const POSE_MODEL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task';
-const HAND_MODEL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
+// Сначала — с нашего же сайта (wasm копирует scripts/copy-wasm.mjs, модели лежат в public/models):
+// жюри или клиника с фильтром, который режет jsdelivr/googleapis, всё равно запустит. CDN — запасной путь.
+const here = (path) => new URL(path, globalThis.location?.href ?? 'http://localhost/').href;
+const LOCAL = {
+  wasm: here('./mediapipe/wasm'),
+  pose: here('./models/pose_landmarker_lite.task'),
+  hand: here('./models/hand_landmarker.task'),
+};
+const CDN = {
+  wasm: `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${TASKS_VERSION}/wasm`,
+  pose: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',
+  hand: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
+};
+
+async function reachable(url) {
+  try {
+    const r = await fetch(url, { method: 'HEAD' });
+    // dev-сервер на неизвестный путь может отдать index.html с кодом 200 — это не наш файл
+    return r.ok && !(r.headers.get('content-type') ?? '').includes('text/html');
+  } catch { return false; }
+}
 
 // На некоторых телефонах (iPhone Safari) GPU-делегат не падает с ошибкой, а зависает — тогда через 12 с идём на CPU
 // (живой тест 29.09: «Загружаю распознавание…» без конца).
@@ -19,11 +37,11 @@ async function withGpuFallback(create) {
   }
 }
 
-export async function loadModels() {
-  const vision = await FilesetResolver.forVisionTasks(WASM_URL);
+async function loadFrom(src) {
+  const vision = await FilesetResolver.forVisionTasks(src.wasm);
   const [pose, hand] = await Promise.all([
     withGpuFallback((delegate) => PoseLandmarker.createFromOptions(vision, {
-      baseOptions: { modelAssetPath: POSE_MODEL, delegate },
+      baseOptions: { modelAssetPath: src.pose, delegate },
       runningMode: 'VIDEO',
       numPoses: 1,
       minPoseDetectionConfidence: 0.5,
@@ -31,10 +49,21 @@ export async function loadModels() {
       minTrackingConfidence: 0.5,
     })),
     withGpuFallback((delegate) => HandLandmarker.createFromOptions(vision, {
-      baseOptions: { modelAssetPath: HAND_MODEL, delegate },
+      baseOptions: { modelAssetPath: src.hand, delegate },
       runningMode: 'VIDEO',
       numHands: 2,
     })),
   ]);
   return { pose: pose.model, hand: hand.model, delegate: pose.delegate };
+}
+
+export async function loadModels() {
+  const local = (await Promise.all([LOCAL.pose, LOCAL.hand, `${LOCAL.wasm}/vision_wasm_internal.js`].map(reachable))).every(Boolean);
+  if (!local) return loadFrom(CDN);
+  try {
+    return await loadFrom(LOCAL);
+  } catch (e) {
+    console.warn('Qaita: локальные модели не загрузились, пробую CDN', e);
+    return loadFrom(CDN);
+  }
 }

@@ -4,3 +4,4 @@ dist/
 .env*
 .unlazy/
 .claude/settings.local.json
+public/mediapipe/
