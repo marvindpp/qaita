@@ -27,6 +27,7 @@ import coachVoice from './screens/coach-voice.js';
 import { createMenu } from './menu.js';
 import { createMusic } from './music.js';
 import { screenIn, screenOut } from './motion.js';
+import '../../styles/phone.css'; // телефон: раскладки без ужимания (подключается последним — главнее остальных стилей)
 
 const SCREENS = { welcome, prep, checkin, hand, goal, progress, profile: profileScreen, about, calibration, demo, play, 'exercise-done': exerciseDone, garden, doctor, soon, 'coach-voice': coachVoice };
 
@@ -86,7 +87,7 @@ export function createApp({ engine, video, mock = false }) {
       }
     }
   }
-  let fitTimer = null;
+  let fitTimer = null, fitWatch = null;
   window.addEventListener('resize', () => { clearTimeout(fitTimer); fitTimer = setTimeout(() => fit(current?.el), 120); });
   // Картинки/шрифты догружаются позже — перепроверяем через полсекунды.
   const refit = () => setTimeout(() => fit(current?.el), 500);
@@ -112,6 +113,16 @@ export function createApp({ engine, video, mock = false }) {
     document.body.dataset.screen = name;
     if (!next.noFit) fit(next.el); // страницы-«лендинги» (прогресс, профиль) прокручиваются сами
     refit();
+    // Экран сам показывает/прячет части (кнопка «Начать со звуком», подсказки) уже после подгонки — подгоняем заново,
+    // иначе масштаб зависел от того, успело ли это случиться до fit() (прыгал при повторном открытии).
+    fitWatch?.disconnect();
+    fitWatch = new MutationObserver((list) => {
+      if (!list.some((m) => m.oldValue !== m.target.getAttribute('hidden'))) return; // то же значение — ничего не поменялось
+      clearTimeout(fitTimer); fitTimer = setTimeout(() => fit(current?.el), 120);
+    });
+    fitWatch.observe(next.el, { subtree: true, attributes: true, attributeOldValue: true, attributeFilter: ['hidden'] });
+    const rotateHint = document.querySelector('.rotate-hint'); // спряталась подсказка «Поверните телефон» — места стало больше
+    if (rotateHint) fitWatch.observe(rotateHint, { attributes: true, attributeOldValue: true, attributeFilter: ['hidden'] });
 
     // Переход: лёгкий подъём + размытие, ≤300 мс (motion.js; при reduced-motion — просто проявление).
     screenIn(next.el);
