@@ -293,3 +293,39 @@
   .garden-go .ring { --size: 96px; }
   .doctor-pdf .ring-sub { font-size: 14px; }
 }
+
+/* ——— Телефон горизонтально: камера на всю высоту на «Ради чего?» и калибровке (живой тест Даулета 30.09, iPhone:
+   «камера маленькая»). Камера слева во всю высоту экрана (4:3), заголовок, кнопки и шаги — справа. ——— */
+@media (orientation: landscape) and (max-height: 520px) {
+  .goal.screen, .calib.screen {
+    display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto 1fr;
+    column-gap: 16px; row-gap: 8px; align-items: start;
+  }
+  .goal-main, .calib-main { display: contents; }
+  .goal-main .cam-slot, .calib-main .cam-slot { grid-column: 1; grid-row: 1 / span 2; align-self: center; }
+  .goal-main .cam, .calib-main .cam {
+    height: calc(100dvh - 20px); width: auto; aspect-ratio: 4 / 3; max-width: 54vw; max-height: calc(54vw * 3 / 4);
+  }
+  .goal-head { grid-column: 2; grid-row: 1; text-align: left; padding: 50px 0 0; } /* под бургером и значком звука */
+  .goal-head h1 { font-size: 22px !important; white-space: nowrap; }
+  .goal-buttons { grid-column: 2; grid-row: 2; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; align-content: start; }
+  .goal-btn { justify-content: flex-start; }
+  .calib .steps { grid-column: 2; grid-row: 1; width: auto !important; margin: 0 60px 0 0; gap: 6px; }
+  .calib-side { grid-column: 2; grid-row: 2; gap: 10px; }
+  .calib .steps li { white-space: nowrap; font-size: 14px; padding: 6px 4px; }
+  .goal-head .lead { font-size: 16px; }
+  /* Плашка статуса («Отодвиньтесь назад») — внизу над камерой, а не поверх заголовка справа */
+  body[data-screen='goal'] .status-toast, body[data-screen='calibration'] .status-toast {
+    top: auto; bottom: 14px; left: calc(10px + min(54vw, (100dvh - 20px) * 4 / 3) / 2); max-width: 52vw; font-size: 16px; padding: 8px 14px;
+  }
+}
+/* Узкий горизонтальный телефон (≤ 800px): цели столбиком, чтобы кнопки не вылезали за край */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 800px) {
+  .goal-buttons { grid-template-columns: 1fr; gap: 5px; }
+  .goal-btn { padding: 5px 12px; }
+  .goal-head h1 { font-size: 20px !important; }
+  .goal-head .lead { font-size: 15px; }
+  .calib .steps { grid-template-columns: 1fr; gap: 4px; margin-right: 56px; }
+  .calib .steps li { padding: 3px 8px; }
+  .calib-msg { font-size: 22px; }
+}
