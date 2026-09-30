@@ -11,9 +11,10 @@ const ITEMS = [
   { go: 'profile', ico: '👤', label: 'Профиль и близкие' },
   { go: 'doctor', ico: '🩺', label: 'Отчёт для врача' },
   { go: 'about', ico: 'ℹ️', label: 'О Qaita' },
+  { go: 'coach-voice', ico: '🎙', label: 'Живой голос тренера' },
 ];
 // На этих экранах бургер показываем; на остальных (калибровка, демо, игра, итоги упражнения) — нет.
-export const MENU_SCREENS = new Set(['welcome', 'prep', 'hand', 'goal', 'garden', 'doctor', 'progress', 'profile', 'about']);
+export const MENU_SCREENS = new Set(['welcome', 'prep', 'hand', 'goal', 'garden', 'doctor', 'progress', 'profile', 'about', 'coach-voice']);
 
 export function createMenu({ go, music, voice }) {
   const btn = html('<button type="button" class="burger" aria-label="Меню" aria-expanded="false"><span></span><span></span><span></span></button>');

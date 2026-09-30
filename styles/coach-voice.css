@@ -1,0 +1,52 @@
+/* «Голос тренера» (screens/coach-voice.js): страница прокручивается, как «О Qaita»; карточка текущей фразы —
+   крупно и по центру, внизу список всех фраз с отметками. Подключается после landing.css. */
+.coach-voice.screen { overflow-x: hidden; overflow-y: auto; padding-bottom: 0 !important; }
+.coach-voice .page-scroll { flex: none; min-height: auto; overflow: visible; display: grid; gap: 16px; width: min(100%, 820px); margin: 0 auto; }
+.coach-voice .page-actions {
+  position: sticky; bottom: 0; z-index: 3; margin-top: auto; padding: 18px 0 max(12px, env(safe-area-inset-bottom));
+  display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+  background: linear-gradient(to bottom, rgba(250, 246, 239, 0), var(--bg) 45%);
+}
+.coach-voice .btn-start:disabled { opacity: 0.45; cursor: default; transform: none; }
+body[data-screen='coach-voice'] .rotate-hint { display: none; }
+
+.cv-card { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; padding: 22px 20px; }
+.cv-card .cv-count { font-size: 20px; color: var(--ink-2); margin: 0; }
+.cv-count b { color: var(--ink); }
+.cv-bar { width: 100%; height: 8px; border-radius: 999px; background: var(--bg-deep); overflow: hidden; }
+.cv-bar span { display: block; height: 100%; width: 0; background: var(--green-bright); border-radius: inherit; transition: width 300ms var(--ease-out, ease-out); }
+.cv-card .cv-line { font-size: clamp(28px, 2vw + 18px, 40px); font-weight: 800; line-height: 1.2; margin: 6px 0; min-height: 2.4em; display: flex; align-items: center; justify-content: center; text-wrap: balance; color: var(--ink); }
+.cv-card[data-has='true'] .cv-line::after { content: '✓'; color: var(--green); margin-left: 0.3em; }
+.cv-controls { display: flex; align-items: center; justify-content: center; gap: 22px; }
+.cv-controls .rec-btn { width: 104px; height: 104px; }
+.cv-nav { width: 64px; height: 64px; border-radius: 50%; border: 2px solid var(--line); background: var(--surface); font: inherit; font-size: 30px; font-weight: 800; cursor: pointer; color: var(--ink); }
+.cv-nav:hover { background: var(--bg-deep); }
+.cv-card .cv-status { font-size: 20px; color: var(--ink-2); margin: 0; min-height: 1.5em; }
+.cv-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.cv-row .btn-ghost { font-size: 19px; padding: 8px 16px; }
+.cv-card .cv-keys { font-size: 15px; color: var(--ink-2); margin: 0; }
+@media (pointer: coarse) { .cv-card .cv-keys { display: none; } }
+
+.cv-tips summary { font-size: 22px; font-weight: 800; cursor: pointer; }
+.cv-tips ul { margin: 10px 0 0; padding-left: 22px; font-size: 18px; display: grid; gap: 6px; color: var(--ink-2); }
+
+.cv-all h2 { font-size: 22px; }
+.cv-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.cv-list button {
+  border: 2px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px;
+  font: inherit; font-size: 15px; font-weight: 600; color: var(--ink-2); cursor: pointer; text-align: left;
+}
+.cv-list button[data-has='true'] { background: var(--green-soft); border-color: transparent; color: var(--green); }
+.cv-list button[data-has='true']::before { content: '✓ '; }
+.cv-list button[aria-current='true'] { border-color: var(--green); color: var(--ink); }
+
+@media (max-width: 560px), (orientation: landscape) and (max-height: 520px) {
+  .cv-card { padding: 14px 12px; gap: 10px; }
+  .cv-card .cv-line { font-size: 24px; }
+  .coach-voice .page-actions { flex-wrap: nowrap; gap: 8px; }
+  .coach-voice .page-actions .btn-start, .coach-voice .page-actions .btn-ghost { font-size: 18px; padding: 10px 14px; white-space: nowrap; }
+  .cv-controls .rec-btn { width: 84px; height: 84px; }
+  .cv-nav { width: 52px; height: 52px; font-size: 24px; }
+  .cv-card .cv-status { font-size: 17px; }
+}
+.coach-voice .page-head .lead { font-size: clamp(19px, 0.8vw + 14px, 24px); }
