@@ -361,7 +361,7 @@ p { text-wrap: pretty; }
 /* В игре звезда часто у верхнего края кадра — бейдж «Вижу вас» уводим вниз, чтобы он её не закрывал. */
 .play .cam-badge { top: auto; bottom: 14px; left: 14px; font-size: 20px; padding: 6px 14px 6px 10px; }
 .play .cam-badge svg { width: 22px; height: 22px; }
-.hud-ex { font-size: var(--fs-small); font-weight: 800; color: var(--green); text-transform: uppercase; letter-spacing: 0.05em; }
+.hud-ex { font-size: var(--fs-small); font-weight: 800; color: var(--green); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hud-count { display: flex; align-items: baseline; gap: 10px; font-weight: 800; line-height: 1; }
 .hud-count b { font-size: clamp(72px, 7vw, 128px); letter-spacing: -0.04em; display: inline-block; }
 .hud-count span { font-size: var(--fs-lead); color: var(--ink-2); }
