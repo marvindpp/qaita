@@ -313,3 +313,7 @@ npm run build   # сборка в dist/
 - Не наше: модели MediaPipe Pose и Hand Landmarker от Google (разрешены правилами кейса; копии в `public/models/`, Apache 2.0), npm-пакеты `@mediapipe/tasks-vision`, `vite`, `vitest`, шрифт Manrope. Звуки, музыка и анимации — свои (`docs/CREDITS.md`).
 
 Документы проекта: [`docs/PLAN.md`](docs/PLAN.md) (продукт и исследования), [`docs/CONTRACT.md`](docs/CONTRACT.md) (API движок ↔ UI), [`docs/COMPETITORS.md`](docs/COMPETITORS.md) (конкуренты), [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md) (сценарий видео).
+
+## Права
+
+© 2026 команда «Хастлеры» (Даулет, Ерсултан). Все права защищены. Код открыт для просмотра и проверки жюри; модели MediaPipe — Google, Apache 2.0 (`docs/CREDITS.md`).

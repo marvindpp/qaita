@@ -17,7 +17,7 @@
 | Вспышка новой награды | `src/ui/motion.js` (`celebrateAwards`) | Web Animations API |
 | Свечение и всплеск кольца «ладонь» | `styles/motion.css`, `src/ui/components/ring.js` | CSS + Web Animations API |
 
-Лицензия — как у всего проекта. Звуки синтезируются в браузере (`src/ui/sound.js`, `src/ui/music.js`), файлов нет.
+Все права на код и рисунки — у команды «Хастлеры» (открытой лицензии нет). Звуки синтезируются в браузере (`src/ui/sound.js`, `src/ui/music.js`), файлов нет.
 
 ## Модели распознавания
 
