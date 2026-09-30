@@ -155,7 +155,7 @@ export default function garden(ctx) {
       stopFx = gardenLife(el, { clean }); // ветер качает растения; все повторы чистые — пролетает бабочка
       // Если близкие записали послание — оно звучит после слов тренера (самое тёплое — в конце).
       setTimeout(() => { if (alive) playMessageCard(el, ctx); }, 9000);
-      ctx.say(`Ваш сад. ${words}. ${record.stars} ${plural(record.stars, 'звезда', 'звезды', 'звёзд')}. Покажите ладонь, чтобы открыть отчёт для врача`, { interrupt: true, hint: true });
+      ctx.say(`Ваш сад. ${/[.!?]$/.test(words) ? words : `${words}.`} ${record.stars} ${plural(record.stars, 'звезда', 'звезды', 'звёзд')}. Покажите ладонь, чтобы открыть отчёт для врача`, { interrupt: true, hint: true });
     },
     // Пока открыто окно «Отправить» / «Голос близких» — жесты не уводят с экрана.
     onGesture: (g) => (el.querySelector('.sheet') ? true : ring.handle(g)),
