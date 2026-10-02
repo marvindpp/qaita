@@ -1,19 +1,12 @@
 // «Ссылка для врача»: вся история упаковывается в ссылку (report-link.js) — врач открывает её или сканирует QR
 // со своего телефона и видит кабинет (report.html). Сервера нет: данные уходят только тому, кому пациент отправил.
-import qrcode from 'qrcode-generator';
+import { qrSvg } from './qr.js';
 import { overlay } from './family.js';
 import { reportUrl } from './report-link.js';
 import { loadSessions } from './storage.js';
 import { loadProfile } from './profile.js';
 import { loadGoal } from './life.js';
-
-/** QR как SVG-строка. Уровень коррекции L — ссылка длинная, так QR получается реже и легче сканируется. */
-export function qrSvg(text) {
-  const qr = qrcode(0, 'L');
-  qr.addData(text);
-  qr.make();
-  return qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
-}
+import { loadRx } from './rx.js';
 
 export async function openDoctorLink(root) {
   const sessions = loadSessions();
@@ -35,7 +28,7 @@ export async function openDoctorLink(root) {
     return close;
   }
   const p = loadProfile();
-  const url = await reportUrl({ sessions, name: p.name, goal: loadGoal()?.id ?? '' });
+  const url = await reportUrl({ sessions, name: p.name, goal: loadGoal()?.id ?? '', rx: loadRx() });
   el.querySelector('.dl-qr').innerHTML = qrSvg(url);
   const text = `${p.name ? `${p.name}: ` : ''}мои тренировки руки в Qaita — прогресс для врача`;
   el.querySelectorAll('.share-btn').forEach((b) => b.addEventListener('click', async () => {

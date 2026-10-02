@@ -1018,3 +1018,10 @@ p { text-wrap: pretty; }
 .btn-doctor-link { display: inline-flex; align-items: center; gap: 8px; border: 2px solid var(--line); border-radius: 999px; padding: 10px 18px; background: var(--surface); font: 800 20px var(--font); color: var(--ink); cursor: pointer; white-space: nowrap; }
 .btn-doctor-link:hover { border-color: var(--green-bright); }
 @media (max-width: 600px) { .dl-actions { grid-template-columns: repeat(2, 1fr); } }
+
+/* «План от врача» на приветствии: назначение по QR из кабинета врача (rx.js) */
+.rx-card { display: grid; gap: 4px; margin-top: 14px; padding: 12px 16px; border-radius: 18px; background: var(--green-soft); color: var(--green); font-size: var(--fs-small); max-width: 640px; }
+.rx-card b { font-weight: 800; }
+.rx-card span { color: var(--ink); font-weight: 600; }
+.rx-card .rx-note { color: var(--ink-2); font-style: italic; }
+@media (orientation: landscape) and (max-height: 520px) { .rx-card { font-size: 14px; padding: 8px 12px; margin-top: 8px; } }

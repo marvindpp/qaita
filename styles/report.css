@@ -35,7 +35,7 @@ body.report-page { overflow: auto; font-size: 18px; line-height: 1.45; }
 .cab-trend[data-dir='up'] { color: var(--red); }
 .cab-trend[data-dir='same'] { color: var(--ink-2); }
 .cab-small, .cab-note { font-size: 14px; color: var(--ink-2); margin: 8px 0 0; }
-.cab-empty { padding: 15vh 0; max-width: 640px; }
+.cab-empty { padding: 6vh 0 0; max-width: 720px; }
 @media (max-width: 760px) {
   .cab-grid { grid-template-columns: 1fr; }
   .cab-table { font-size: 15px; }
@@ -60,3 +60,25 @@ body.report-page { overflow: auto; font-size: 18px; line-height: 1.45; }
 .cab-copy-text { flex: 1 1 380px; margin: 0; font-size: 15px; color: var(--ink-2); }
 .cab-copy-btn { border: 2px solid var(--line); background: var(--surface); border-radius: 999px; padding: 8px 16px; font: 800 15px var(--font); cursor: pointer; white-space: nowrap; }
 @media print { .cab-copy-btn { display: none; } }
+/* Назначение: выполнение и форма «Назначить упражнения» */
+.cab-adh { display: flex; align-items: center; gap: 12px; margin: 8px 0 0; }
+.cab-adh-bar { flex: 1; height: 14px; border-radius: 999px; background: var(--bg-deep); overflow: hidden; }
+.cab-adh-bar span { display: block; height: 100%; background: var(--green-bright); border-radius: inherit; }
+.cab-adh b { font-size: 24px; color: var(--green); }
+.cab-form { display: grid; gap: 14px; }
+.cab-form fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px 10px; }
+.cab-form legend { font-weight: 800; font-size: 15px; margin-bottom: 6px; color: var(--ink-2); }
+.cab-check { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: var(--bg); cursor: pointer; font-weight: 700; }
+.cab-check input { width: 18px; height: 18px; accent-color: var(--green); }
+.cab-pill input { position: absolute; opacity: 0; }
+.cab-pill span { display: grid; place-items: center; min-width: 52px; height: 44px; border-radius: 12px; background: var(--bg); font-weight: 800; cursor: pointer; border: 2px solid transparent; }
+.cab-pill input:checked + span { border-color: var(--green); background: var(--green-soft); color: var(--green); }
+.cab-pill input:focus-visible + span { outline: 3px solid var(--gold); }
+.cab-field { display: grid; gap: 4px; font-weight: 700; font-size: 15px; color: var(--ink-2); max-width: 520px; }
+.cab-field input { font: 600 17px var(--font); padding: 10px 12px; border-radius: 12px; border: 2px solid var(--line); background: #fff; color: var(--ink); }
+.cab-form .cab-print { justify-self: start; }
+.cab-rx-out { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+.cab-rx-qr svg { width: 220px; height: auto; background: #fff; border-radius: 12px; }
+.cab-link { font-size: 13px; color: var(--ink-2); word-break: break-all; max-width: 520px; }
+.cab-warn { color: var(--red); font-weight: 700; }
+@media print { .cab-rx { display: none; } }

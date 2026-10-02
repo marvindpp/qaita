@@ -2,6 +2,7 @@
 // &screen=prep — открыть сразу нужный экран (для разработки).
 import '../styles/main.css';
 import { createApp } from './ui/app.js';
+import { takeRxFromUrl } from './ui/rx.js';
 
 const params = new URLSearchParams(location.search);
 const mock = params.has('mock');
@@ -9,9 +10,11 @@ const { createEngine } = mock
   ? await import('./mock/mockEngine.js')
   : await import('./engine/index.js');
 
+const newRx = await takeRxFromUrl(); // пришли по QR врача (?rx=…) — назначение сохранено до createApp (план читается при старте)
 const video = document.querySelector('#camera');
 const engine = await createEngine({ video });
 const app = createApp({ engine, video, mock });
+app.ctx.state.newRx = newRx;
 app.start(params.get('screen') ?? 'welcome');
 if (mock) window.qaita = app; // для отладки в консоли: qaita.ctx.go('garden')
 

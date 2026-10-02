@@ -9,14 +9,33 @@ const MAX_SESSIONS = 14;
 const EX_IDS = EXERCISES;
 const MISTAKE_CODES = MISTAKES;
 
-const b64url = (bytes) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-const unb64url = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
+export const b64url = (bytes) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+export const unb64url = (s) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
 
 async function pipe(bytes, stream) {
   const out = new Response(new Blob([bytes]).stream().pipeThrough(stream));
   return new Uint8Array(await out.arrayBuffer());
 }
 const canZip = () => typeof CompressionStream === 'function';
+
+/** Любой объект → строка для ссылки: «z» + deflate-raw + base64url (или «j» без сжатия на старом браузере). */
+export async function packJson(obj) {
+  const bytes = new TextEncoder().encode(JSON.stringify(obj));
+  return canZip() ? `z${b64url(await pipe(bytes, new CompressionStream('deflate-raw')))}` : `j${b64url(bytes)}`;
+}
+
+/** Обратно; null — битая строка. */
+export async function unpackJson(payload) {
+  try {
+    const kind = payload[0];
+    let bytes = unb64url(payload.slice(1));
+    if (kind === 'z') bytes = await pipe(bytes, new DecompressionStream('deflate-raw'));
+    else if (kind !== 'j') return null;
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    return null;
+  }
+}
 
 /** Сессии → компактный массив: [день, рука(0/1), секунды, точность%, исправлено, [[упр, повторы, угол, {ошибка: n}]]]. */
 export function packSessions(sessions) {
@@ -52,23 +71,17 @@ export function unpackSessions(rows) {
   });
 }
 
-/** @returns {Promise<string>} строка для `#doctor=`: «z» + сжатое или «j» + несжатое (старый браузер). */
-export async function encodeReport({ sessions, name = '', goal = '' }) {
-  const json = JSON.stringify({ v: REPORT_VERSION, n: name.slice(0, 30), g: goal, at: new Date().toISOString().slice(0, 10), s: packSessions(sessions) });
-  const bytes = new TextEncoder().encode(json);
-  return canZip() ? `z${b64url(await pipe(bytes, new CompressionStream('deflate-raw')))}` : `j${b64url(bytes)}`;
+/** @returns {Promise<string>} строка для `#doctor=`. rx — назначение врача (если было), чтобы врач видел «назначено / сделано». */
+export async function encodeReport({ sessions, name = '', goal = '', rx = null }) {
+  return packJson({ v: REPORT_VERSION, n: name.slice(0, 30), g: goal, at: new Date().toISOString().slice(0, 10), s: packSessions(sessions), ...(rx ? { r: rx } : {}) });
 }
 
-/** @returns {Promise<{name, goal, at, sessions} | null>} null — ссылка битая или от другой версии. */
+/** @returns {Promise<{name, goal, at, sessions, rx} | null>} null — ссылка битая или от другой версии. */
 export async function decodeReport(payload) {
+  const d = await unpackJson(payload);
+  if (!d || d.v !== REPORT_VERSION || !Array.isArray(d.s)) return null;
   try {
-    const kind = payload[0];
-    let bytes = unb64url(payload.slice(1));
-    if (kind === 'z') bytes = await pipe(bytes, new DecompressionStream('deflate-raw'));
-    else if (kind !== 'j') return null;
-    const d = JSON.parse(new TextDecoder().decode(bytes));
-    if (d.v !== REPORT_VERSION || !Array.isArray(d.s)) return null;
-    return { name: d.n ?? '', goal: d.g ?? '', at: d.at, sessions: unpackSessions(d.s) };
+    return { name: d.n ?? '', goal: d.g ?? '', at: d.at, sessions: unpackSessions(d.s), rx: d.r ?? null };
   } catch {
     return null;
   }

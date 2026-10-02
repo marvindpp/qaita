@@ -2,12 +2,15 @@
 import { html, esc } from '../dom.js';
 import { loadProfile, saveProfile, AVATARS, wipeAll } from '../profile.js';
 import { GOALS, loadGoal, saveGoal } from '../life.js';
-import { setPlanForGoal } from '../exercises.js';
+import { setPlanForGoal, EXERCISE_INFO } from '../exercises.js';
+import { loadRx, clearRx } from '../rx.js';
+import { loadGoal as currentGoal } from '../life.js';
 import { listMessages, removeMessage, openVoiceStudio, whoLabel } from '../family.js';
 
 export default function profile(ctx) {
   const p = loadProfile();
   const goal = loadGoal();
+  const rx = loadRx();
   const el = html(`
     <section class="profile" aria-labelledby="profile-title">
       <header class="page-head"><h1 id="profile-title">Профиль и близкие</h1>
@@ -23,6 +26,12 @@ export default function profile(ctx) {
           <h2>Ради чего я занимаюсь</h2>
           <div class="goal-pick">${GOALS.map((g) => `<button type="button" class="goal-btn" data-goal="${g.id}" data-saved="${goal?.id === g.id}"><span>${g.emoji}</span>${esc(g.title)}</button>`).join('')}</div>
         </section>
+        ${rx ? `<section class="card rx-profile">
+          <h2>🩺 План от врача</h2>
+          <p>${esc(rx.ex.map((id) => EXERCISE_INFO[id]?.title).join(', '))} — по ${rx.reps} повт., ${rx.perDay} р. в день${rx.doctor ? ` · ${esc(rx.doctor)}` : ''}, с ${new Date(`${rx.at}T12:00:00`).toLocaleDateString('ru-RU')}</p>
+          ${rx.note ? `<p class="hint-small">«${esc(rx.note)}»</p>` : ''}
+          <button type="button" class="btn-ghost" data-act="rx-off">Отменить план — заниматься под свою цель</button>
+        </section>` : ''}
         <section class="card">
           <h2>💌 Голоса близких</h2>
           <ul class="voices"><li class="hint-small">Загружаю…</li></ul>
@@ -47,6 +56,11 @@ export default function profile(ctx) {
     saveGoal(b.dataset.goal); setPlanForGoal(b.dataset.goal);
     el.querySelectorAll('[data-goal]').forEach((x) => { x.dataset.saved = String(x === b); });
   }));
+
+  el.querySelector('[data-act="rx-off"]')?.addEventListener('click', (e) => {
+    clearRx(); setPlanForGoal(currentGoal()?.id);
+    e.currentTarget.closest('.rx-profile').remove();
+  });
 
   const list = el.querySelector('.voices');
   let audio = null;

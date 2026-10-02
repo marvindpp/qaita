@@ -3,6 +3,7 @@
 import { html } from '../dom.js';
 import { createRing } from '../components/ring.js';
 import { EXERCISE_INFO, SESSION_PLAN, whyFor } from '../exercises.js';
+import { loadRx } from '../rx.js';
 import { loadGoal } from '../life.js';
 import { demoFigure } from '../demo-figure.js';
 
@@ -12,7 +13,8 @@ export default function demo(ctx, { index = 0 } = {}) {
   const info = EXERCISE_INFO[id];
   const side = ctx.state.side ?? 'right';
   const goal = loadGoal();
-  const why = goal && whyFor(goal.id, id);
+  const why = whyFor(goal?.id, id);
+  const whyIco = loadRx()?.ex.includes(id) ? '🩺' : goal?.emoji ?? '';
 
   const el = html(`
     <section class="demo" aria-labelledby="demo-title">
@@ -21,7 +23,7 @@ export default function demo(ctx, { index = 0 } = {}) {
         <p class="demo-step">Упражнение ${index + 1} из ${SESSION_PLAN.length}</p>
         <h1 id="demo-title">${info.title}</h1>
         <p class="lead">${info.phrase}</p>
-        ${why ? `<p class="demo-why"><span aria-hidden="true">${goal.emoji}</span> ${why}</p>` : ''}
+        ${why ? `<p class="demo-why"><span aria-hidden="true">${whyIco}</span> ${why}</p>` : ''}
         <div class="demo-go">
           <div class="ring-slot"></div>
           <div><p class="ring-label">Покажите ладонь</p><p class="ring-sub">когда будете готовы</p></div>

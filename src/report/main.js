@@ -8,6 +8,9 @@ import { EXERCISE_INFO } from '../ui/exercises.js';
 import { GOALS } from '../ui/life.js';
 import { amplitudeOf } from '../ui/storage.js';
 import { esc, plural } from '../ui/dom.js';
+import { rxUrl, rxAdherence, RX_REPS, RX_PER_DAY } from '../ui/rx.js';
+import { qrSvg } from '../ui/qr.js';
+import { EXERCISES } from '../contract.js';
 
 const root = document.getElementById('report');
 const fmt = (day, o = { day: 'numeric', month: 'long' }) => new Date(`${day}T12:00:00`).toLocaleDateString('ru-RU', o);
@@ -94,6 +97,54 @@ function calendar(sessions, at) {
   return `<div class="cab-cal">${cells.join('')}</div>`;
 }
 
+/** Было ли назначение и как выполняется: «назначено / сделано» — главный вопрос врача на приёме. */
+function rxBlock(r) {
+  if (!r.rx) return '';
+  const a = rxAdherence(r.rx, r.sessions, r.at);
+  const pct = Math.round(a.share * 100);
+  const names = r.rx.ex.map((id) => EXERCISE_INFO[id]?.title ?? id).join(', ');
+  return `<section class="cab-card"><h2>Ваше назначение от ${fmt(r.rx.at)}</h2>
+    <p>${esc(names)} — по ${r.rx.reps} повт., ${r.rx.perDay} р. в день${r.rx.note ? ` · «${esc(r.rx.note)}»` : ''}</p>
+    <div class="cab-adh"><div class="cab-adh-bar"><span style="width:${pct}%"></span></div><b>${pct}%</b></div>
+    <p class="cab-small">Выполнено ${a.done} из ${a.need} назначенных тренировок за ${a.days} ${plural(a.days, 'день', 'дня', 'дней')}.</p></section>`;
+}
+
+/** Форма «Назначить упражнения»: врач выбирает — пациент сканирует QR, и Qaita занимается по этому плану. */
+function prescribeForm(r) {
+  const cur = r.rx ?? { ex: [...new Set(r.sessions.flatMap((s) => s.exercises.map((e) => e.id)))], reps: 5, perDay: 1, note: '' };
+  return `<section class="cab-card cab-rx" id="prescribe"><h2>${r.rx ? 'Изменить назначение' : 'Назначить упражнения'}</h2>
+    <p class="cab-small">Пациент отсканирует QR своим телефоном или откроет ссылку — Qaita сама будет заниматься с ним по этому плану.</p>
+    <form class="cab-form">
+      <fieldset><legend>Упражнения</legend>${EXERCISES.map((id) => `<label class="cab-check"><input type="checkbox" name="ex" value="${id}" ${cur.ex.includes(id) ? 'checked' : ''}> ${EXERCISE_INFO[id].title}</label>`).join('')}</fieldset>
+      <fieldset><legend>Повторов каждого</legend>${RX_REPS.map((n) => `<label class="cab-pill"><input type="radio" name="reps" value="${n}" ${n === cur.reps ? 'checked' : ''}><span>${n}</span></label>`).join('')}</fieldset>
+      <fieldset><legend>Раз в день</legend>${RX_PER_DAY.map((n) => `<label class="cab-pill"><input type="radio" name="perDay" value="${n}" ${n === cur.perDay ? 'checked' : ''}><span>${n}</span></label>`).join('')}</fieldset>
+      <label class="cab-field">Врач (необязательно)<input name="doctor" maxlength="40" placeholder="Например, д-р Ахметова" value="${esc(cur.doctor ?? '')}"></label>
+      <label class="cab-field">Комментарий пациенту<input name="note" maxlength="160" placeholder="Например, медленно, без боли" value="${esc(cur.note ?? '')}"></label>
+      <button type="submit" class="cab-print">📲 Получить QR для пациента</button>
+    </form>
+    <div class="cab-rx-out" hidden></div>
+  </section>`;
+}
+
+function wirePrescribe() {
+  const form = root.querySelector('.cab-form');
+  const out = root.querySelector('.cab-rx-out');
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = new FormData(form);
+    const rx = { ex: f.getAll('ex'), reps: Number(f.get('reps')), perDay: Number(f.get('perDay')), note: f.get('note'), doctor: f.get('doctor'), at: new Date().toISOString().slice(0, 10) };
+    if (!rx.ex.length) { out.hidden = false; out.innerHTML = '<p class="cab-warn">Выберите хотя бы одно упражнение.</p>'; return; }
+    const url = await rxUrl(rx);
+    out.hidden = false;
+    out.innerHTML = `<div class="cab-rx-qr">${qrSvg(url)}</div><div><p><b>Покажите QR пациенту</b> — пусть наведёт камеру телефона. Или отправьте ссылку:</p>
+      <p class="cab-link">${esc(url)}</p><button type="button" class="cab-copy-btn">📋 Скопировать ссылку</button></div>`;
+    out.querySelector('.cab-copy-btn').addEventListener('click', async (ev) => {
+      try { await navigator.clipboard.writeText(url); ev.currentTarget.textContent = 'Скопировано ✓'; } catch { prompt('Скопируйте ссылку', url); }
+    });
+    out.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+}
+
 function render(r) {
   const s = r.sessions;
   const goal = GOALS.find((g) => g.id === r.goal);
@@ -135,6 +186,7 @@ function render(r) {
       <section class="cab-card"><h2>Подъём руки по тренировкам</h2>${amplitudeChart(s)}</section>
       <section class="cab-card"><h2>Регулярность · 14 дней</h2>${calendar(s, r.at)}</section>
     </div>
+    ${rxBlock(r)}
     <section class="cab-card"><h2>Компенсации: стало лучше?</h2>${trend(s)}</section>
     <section class="cab-card cab-wide"><h2>Тренировки</h2>
       <div class="cab-scroll"><table class="cab-table">
@@ -142,8 +194,10 @@ function render(r) {
         <tbody>${rows}</tbody>
       </table></div>
     </section>
+    ${prescribeForm(r)}
     <p class="cab-note">🔒 Данные пришли в самой ссылке и хранятся только у вас в браузере — сервера у Qaita нет. Углы — оценка по обычной веб-камере, не замер гониометром. Qaita не медицинское изделие и не ставит диагноз.</p>`;
   root.querySelector('.cab-print').addEventListener('click', () => window.print());
+  wirePrescribe();
   root.querySelector('.cab-copy-btn').addEventListener('click', async (e) => {
     try { await navigator.clipboard.writeText(b.text); e.currentTarget.textContent = 'Скопировано ✓'; } catch { prompt('Скопируйте текст', b.text); }
   });
@@ -153,6 +207,12 @@ const payload = new URLSearchParams(location.hash.slice(1)).get('doctor');
 const data = payload ? await decodeReport(payload) : null;
 if (data?.sessions.length) render(data);
 else {
-  root.innerHTML = `<section class="cab-empty"><p class="cab-kicker">Qaita · кабинет врача</p><h1>Ссылка не открылась</h1>
-    <p class="muted">Попросите пациента ещё раз нажать «Ссылка для врача» в Qaita и прислать её целиком — или отсканировать QR-код с его экрана.</p></section>`;
+  // Без ссылки — врач пришёл назначить упражнения новому пациенту; битая ссылка — честно говорим.
+  root.innerHTML = payload
+    ? `<section class="cab-empty"><p class="cab-kicker">Qaita · кабинет врача</p><h1>Ссылка не открылась</h1>
+      <p class="muted">Попросите пациента ещё раз нажать «Ссылка для врача» в Qaita и прислать её целиком — или отсканировать QR-код с его экрана.</p></section>`
+    : `<section class="cab-empty"><p class="cab-kicker">Qaita · кабинет врача</p><h1>Назначьте упражнения пациенту</h1>
+      <p class="muted">Выберите упражнения ниже и покажите пациенту QR — Qaita будет заниматься с ним дома по вашему плану и подсказывать, если он компенсирует корпусом. Прогресс пациент пришлёт вам кнопкой «Ссылка для врача».</p></section>`;
+  root.insertAdjacentHTML('beforeend', prescribeForm({ sessions: [], rx: null }));
+  wirePrescribe();
 }

@@ -1,7 +1,10 @@
 // Каталог упражнений для экранов [E]: только тексты и порядок. Что считается повтором — решает движок.
 import { EXERCISES } from '../contract.js';
+import { loadRx } from './rx.js';
 
-export const TARGET_REPS = 3; // по 3 повтора: жюри проходит всю сессию за ~2 минуты
+// По 3 повтора: жюри проходит всю сессию за ~2 минуты. Назначение врача (rx.js) меняет число — экраны читают живую привязку.
+export let TARGET_REPS = 3;
+const DEFAULT_REPS = 3;
 
 export const EXERCISE_INFO = {
   reach_up: {
@@ -42,10 +45,12 @@ export const GOAL_PLANS = {
   hug: [['reach_side', 'чтобы раскрыть объятия'], ['reach_across', 'чтобы обнять за плечи'], ['open_hand', 'чтобы погладить по голове']],
 };
 /** Зачем это упражнение для выбранной цели (или null). */
-export const whyFor = (goalId, id) => GOAL_PLANS[goalId]?.find(([e]) => e === id)?.[1] ?? null;
+export const whyFor = (goalId, id) => (loadRx()?.ex.includes(id) ? 'так назначил врач' : GOAL_PLANS[goalId]?.find(([e]) => e === id)?.[1] ?? null);
 
-/** Сессия под цель: меняем SESSION_PLAN на месте — все экраны читают его по индексу. Без цели — все 5. */
+/** Сессия: назначение врача → его упражнения и повторы; иначе под цель; без цели — все 5. SESSION_PLAN меняем на месте. */
 export function setPlanForGoal(goalId) {
-  const plan = GOAL_PLANS[goalId]?.map(([e]) => e) ?? ALL;
+  const rx = loadRx(); // назначение врача главнее плана «под цель»
+  TARGET_REPS = rx?.reps ?? DEFAULT_REPS;
+  const plan = rx?.ex ?? GOAL_PLANS[goalId]?.map(([e]) => e) ?? ALL;
   SESSION_PLAN.splice(0, SESSION_PLAN.length, ...plan);
 }

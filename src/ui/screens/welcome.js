@@ -1,15 +1,29 @@
 // Экран 1 — Приветствие [E]. Одна мысль: «это упражнения для руки, покажите ладонь — начнём».
 // Кольцо обнимает живое видео: человек видит себя и свою ладонь, пока кольцо заполняется.
 import { mountNameAsk } from '../name-ask.js';
-import { html } from '../dom.js';
+import { html, esc } from '../dom.js';
 import { icons } from '../icons.js';
 import { createRing } from '../components/ring.js';
 import { cameraHelp, noPromptHelp } from '../camera-help.js';
 import { loadProfile, greeting } from '../profile.js';
 import { splashStar } from '../motion.js';
+import { loadRx, rxToday } from '../rx.js';
+import { EXERCISE_INFO } from '../exercises.js';
+import { plural } from '../dom.js';
 
 // Столько ждём вопроса «Разрешить камеру?», прежде чем подсказать, где её включить.
 const NO_PROMPT_MS = 6000;
+
+/** Карточка «План от врача» (если врач назначил упражнения по QR). */
+function rxCard() {
+  const rx = loadRx();
+  if (!rx) return '';
+  const t = rxToday(rx);
+  const names = rx.ex.map((id) => EXERCISE_INFO[id]?.title).filter(Boolean).join(', ');
+  return `<div class="rx-card"><b>🩺 План от врача${rx.doctor ? ` · ${esc(rx.doctor)}` : ''}</b>
+    <span>${esc(names)} — по ${rx.reps} ${plural(rx.reps, 'разу', 'раза', 'раз')}, ${rx.perDay} ${plural(rx.perDay, 'раз', 'раза', 'раз')} в день · сегодня ${Math.min(t.done, t.need)} из ${t.need}</span>
+    ${rx.note ? `<span class="rx-note">«${esc(rx.note)}»</span>` : ''}</div>`;
+}
 
 export default function welcome(ctx) {
   const el = html(`
@@ -20,6 +34,7 @@ export default function welcome(ctx) {
           ${loadProfile().name ? `<p class="welcome-hello">${loadProfile().avatar} ${greeting()}</p>` : ''}
           <h1 id="welcome-title">Упражнения для руки <em>дома</em></h1>
           <p class="lead">Камера считает повторы и подсказывает голосом, как делать правильно.</p>
+          ${rxCard()}
         </div>
         <div class="welcome-go">
           <div class="ring-slot"></div>
@@ -103,7 +118,9 @@ export default function welcome(ctx) {
     },
     onLive() {
       syncReady();
-      ctx.say(`${greeting()} Это упражнения для руки. Покажите ладонь в камеру и подержите секунду`, { hint: true });
+      const rxSay = ctx.state.newRx ? 'Врач назначил вам упражнения — я буду заниматься с вами по его плану. ' : '';
+      ctx.state.newRx = null;
+      ctx.say(`${greeting()} ${rxSay}Это упражнения для руки. Покажите ладонь в камеру и подержите секунду`, { hint: true });
     },
     onStatus: syncReady,
     onFailed: syncReady,
