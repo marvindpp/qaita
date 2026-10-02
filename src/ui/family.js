@@ -125,7 +125,7 @@ export function openShareSheet(root, { text, makeBlob, onSent }) {
 /** Текст сообщения детям — от первого лица, тёплый, без цифр-терминов. */
 export function shareText({ reps, flowers, words, goal, streak }) {
   const garden = [
-    flowers ? `${flowers} ${plural(flowers, 'цветок', 'цветка', 'цветков')} в саду` : null,
+    flowers ? `${flowers} ${plural(flowers, 'яблоко', 'яблока', 'яблок')} в саду` : null,
     reps ? `${reps} ${plural(reps, 'повтор', 'повтора', 'повторов')}` : null,
   ].filter(Boolean).join(' · ');
   return [

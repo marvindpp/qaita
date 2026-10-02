@@ -68,7 +68,7 @@ export default function progress(ctx) {
           <div class="stat"><b>${p.days}</b><span>${plural(p.days, 'день', 'дня', 'дней')} занятий</span></div>
           <div class="stat"><b>${p.streak}</b><span>${plural(p.streak, 'день', 'дня', 'дней')} подряд</span></div>
           <div class="stat"><b>${p.totalReps}</b><span>${plural(p.totalReps, 'повтор', 'повтора', 'повторов')}</span></div>
-          <div class="stat"><b>${p.flowers}</b><span>🌸 ${plural(p.flowers, 'цветок', 'цветка', 'цветов')}</span></div>
+          <div class="stat"><b>${p.flowers}</b><span>🍎 ${plural(p.flowers, 'яблоко', 'яблока', 'яблок')}</span></div>
           <div class="stat"><b>${life}</b><span>💐 ${plural(life, 'задание', 'задания', 'заданий')}</span></div>
         </div>
 
