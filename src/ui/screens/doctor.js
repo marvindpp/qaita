@@ -5,6 +5,7 @@ import { icons } from '../icons.js';
 import { createRing } from '../components/ring.js';
 import { EXERCISE_INFO } from '../exercises.js';
 import { loadSessions, streakDays, amplitudeOf, dayKey } from '../storage.js';
+import { openDoctorLink } from '../doctor-link.js';
 import '../../../styles/doctor-print.css'; // кнопка «Сохранить PDF» + печатная версия (@media print)
 
 export const MISTAKE_NAMES = {
@@ -135,7 +136,8 @@ export default function doctor(ctx) {
             <button type="button" class="doctor-pdf">
               <span class="pdf-ring-slot"></span>
               <span><span class="ring-label">${ICON_PRINTER}Сохранить PDF</span><span class="ring-sub">нажмите или покажите палец вверх</span></span>
-            </button>` : ''}
+            </button>
+            <button type="button" class="btn-doctor-link">🔗 Ссылка для врача</button>` : ''}
           </div>
         </header>
         <p class="print-only print-disclaimer">Qaita — не медицинское изделие. Цифры — оценка по обычной веб-камере. Это не диагноз и не замена осмотра врача или реабилитолога.</p>
@@ -193,6 +195,8 @@ export default function doctor(ctx) {
     window.print();
     pdfRing?.reset();
   };
+  let closeLink = null;
+  el.querySelector('.btn-doctor-link')?.addEventListener('click', async () => { closeLink = await openDoctorLink(el); });
   if (pdfBtn) {
     pdfRing = createRing({ gesture: 'THUMBS_UP', icon: ICON_THUMB, onFire: savePdf });
     el.querySelector('.pdf-ring-slot').replaceWith(pdfRing.el);
@@ -206,6 +210,6 @@ export default function doctor(ctx) {
       ctx.say(`Отчёт для врача. Сфотографируйте экран и покажите на приёме.${pdf} Чтобы начать новую тренировку, покажите ладонь`, { interrupt: true, hint: true });
     },
     onGesture: (g) => ring.handle(g) || Boolean(pdfRing?.handle(g)),
-    destroy: () => { ring.destroy(); pdfRing?.destroy(); },
+    destroy: () => { ring.destroy(); pdfRing?.destroy(); closeLink?.(); },
   };
 }

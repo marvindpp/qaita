@@ -1010,3 +1010,11 @@ p { text-wrap: pretty; }
 .welcome-go[data-loading='true'] .ring { animation: ring-breathe 1.6s ease-in-out infinite; }
 @keyframes ring-breathe { 50% { transform: scale(1.04); filter: drop-shadow(0 0 18px rgba(46, 163, 110, 0.45)); } }
 @media (prefers-reduced-motion: reduce) { .welcome-go[data-loading='true'] .ring { animation: none; } }
+
+/* «Ссылка для врача»: QR крупно — его сканирует телефон врача с расстояния вытянутой руки */
+.dl-qr { display: grid; place-items: center; margin: 4px auto 14px; }
+.dl-qr svg { width: min(300px, 70vw, 42dvh); height: auto; background: #fff; border-radius: 16px; }
+.dl-actions { grid-template-columns: repeat(4, 1fr); }
+.btn-doctor-link { display: inline-flex; align-items: center; gap: 8px; border: 2px solid var(--line); border-radius: 999px; padding: 10px 18px; background: var(--surface); font: 800 20px var(--font); color: var(--ink); cursor: pointer; white-space: nowrap; }
+.btn-doctor-link:hover { border-color: var(--green-bright); }
+@media (max-width: 600px) { .dl-actions { grid-template-columns: repeat(2, 1fr); } }

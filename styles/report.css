@@ -1,0 +1,62 @@
+/* Кабинет врача (report.html): обычная прокручиваемая страница для ноутбука и телефона врача. Шрифт мельче,
+   чем у пациента — врач сидит близко и читает таблицы. Цвета и шрифт — из main.css. */
+body.report-page { overflow: auto; font-size: 18px; line-height: 1.45; }
+.cab { max-width: 1100px; margin: 0 auto; padding: 28px var(--gutter) 48px; display: grid; gap: 16px; }
+.cab-loading { color: var(--ink-2); }
+.cab-kicker { font-size: 15px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--green); margin: 0 0 4px; }
+.cab h1 { font-size: clamp(30px, 4vw, 44px); line-height: 1.1; margin: 0 0 6px; letter-spacing: -0.02em; }
+.cab h2 { font-size: 20px; margin: 0 0 12px; }
+.cab-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.cab-print {
+  border: 0; border-radius: 999px; padding: 12px 22px; background: var(--green); color: #fff;
+  font: 800 17px var(--font); cursor: pointer; white-space: nowrap; box-shadow: var(--shadow);
+}
+.cab-print:hover { background: #17633f; }
+.cab-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.cab-tile { background: var(--surface); border-radius: 20px; box-shadow: var(--shadow); padding: 16px 18px; display: grid; gap: 2px; }
+.cab-tile b { font-size: 38px; line-height: 1; color: var(--green); }
+.cab-tile span { color: var(--ink-2); font-weight: 700; font-size: 16px; }
+.cab-tile em { font-style: normal; color: var(--green-bright); }
+.cab-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+.cab-card { background: var(--surface); border-radius: 22px; box-shadow: var(--shadow); padding: 18px 20px; min-width: 0; }
+.cab-card .chart-grid text, .cab-card .chart-axis { font-size: 16px; }
+.cab-card .chart-label { font-size: 18px; }
+.cab-card .chart-empty { color: var(--ink-2); }
+.cab-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.cab-day { aspect-ratio: 1; display: grid; place-items: center; border-radius: 10px; background: var(--bg-deep); font-weight: 800; font-size: 15px; color: var(--ink-2); }
+.cab-day[data-on='true'] { background: var(--green-bright); color: #fff; }
+.cab-scroll { overflow-x: auto; }
+.cab-table { width: 100%; border-collapse: collapse; font-size: 16px; }
+.cab-table th, .cab-table td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.cab-table thead th { font-size: 14px; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+.cab-table tbody th { white-space: nowrap; }
+.cab-trend { font-weight: 800; white-space: nowrap; }
+.cab-trend[data-dir='down'] { color: var(--green); }
+.cab-trend[data-dir='up'] { color: var(--red); }
+.cab-trend[data-dir='same'] { color: var(--ink-2); }
+.cab-small, .cab-note { font-size: 14px; color: var(--ink-2); margin: 8px 0 0; }
+.cab-empty { padding: 15vh 0; max-width: 640px; }
+@media (max-width: 760px) {
+  .cab-grid { grid-template-columns: 1fr; }
+  .cab-table { font-size: 15px; }
+}
+@media print {
+  body.report-page { background: #fff; font-size: 12pt; }
+  .cab { padding: 0; max-width: none; }
+  .cab-print { display: none; }
+  .cab-card, .cab-tile { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
+}
+/* Сводка за 30 секунд: флажки (красный — обратить внимание, жёлтый — обсудить, зелёный — хорошо) и текст для медкарты */
+.cab-flags { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 8px; }
+.cab-flags li { padding: 10px 14px 10px 40px; border-radius: 14px; font-weight: 700; position: relative; }
+.cab-flags li::before { position: absolute; left: 14px; top: 10px; }
+.cab-flags li[data-lvl='red'] { background: var(--red-soft); color: var(--red); }
+.cab-flags li[data-lvl='red']::before { content: '⚠'; }
+.cab-flags li[data-lvl='warn'] { background: var(--gold-soft); color: #7a5300; }
+.cab-flags li[data-lvl='warn']::before { content: '●'; }
+.cab-flags li[data-lvl='ok'] { background: var(--green-soft); color: var(--green); }
+.cab-flags li[data-lvl='ok']::before { content: '✓'; }
+.cab-copy { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; background: var(--bg); border-radius: 14px; padding: 12px 14px; }
+.cab-copy-text { flex: 1 1 380px; margin: 0; font-size: 15px; color: var(--ink-2); }
+.cab-copy-btn { border: 2px solid var(--line); background: var(--surface); border-radius: 999px; padding: 8px 16px; font: 800 15px var(--font); cursor: pointer; white-space: nowrap; }
+@media print { .cab-copy-btn { display: none; } }

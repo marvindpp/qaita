@@ -68,7 +68,7 @@ export async function nextMessage() {
 }
 const fromText = (who) => WHO.find((w) => w.id === who)?.from ?? 'от близких';
 
-function overlay(root, inner) {
+export function overlay(root, inner) {
   const el = html(`<div class="sheet" role="dialog" aria-modal="true"><div class="sheet-card">${inner}<button type="button" class="sheet-close" aria-label="Закрыть">✕</button></div></div>`);
   root.append(el);
   const close = () => el.remove();

@@ -27,3 +27,9 @@
 | WebAssembly `@mediapipe/tasks-vision` 1.0.1 | копируется в `public/mediapipe/wasm/` при сборке | npm, Google | Apache 2.0 |
 
 Лежат на нашем сайте, чтобы запуск не зависел от CDN (`src/engine/models.js`, запасной путь — CDN).
+
+## Библиотеки
+
+| Что | Зачем | Лицензия |
+|---|---|---|
+| [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) 2.0.4, Kazuhiko Arase | QR-код «Ссылки для врача» | MIT |

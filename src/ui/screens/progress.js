@@ -6,6 +6,7 @@ import { EXERCISE_INFO } from '../exercises.js';
 import { lifeFlowers, loadGoal } from '../life.js';
 import { amplitudeChart } from './doctor.js';
 import { loadProfile } from '../profile.js';
+import { openDoctorLink } from '../doctor-link.js';
 import { celebrateAwards } from '../motion.js';
 
 function longestStreak(sessions) {
@@ -97,9 +98,12 @@ export default function progress(ctx) {
       <div class="page-actions">
         <button type="button" class="btn-start" data-go="welcome">▶ Начать тренировку</button>
         <button type="button" class="btn-ghost" data-go="doctor">🩺 Отчёт врачу</button>
+        <button type="button" class="btn-ghost" data-act="link">🔗 Ссылка для врача</button>
       </div>
     </section>`);
   el.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => ctx.go(b.dataset.go)));
+  let closeLink = null;
+  el.querySelector('[data-act="link"]').addEventListener('click', async () => { closeLink = await openDoctorLink(el); });
   let stopFx = null;
 
   return {
