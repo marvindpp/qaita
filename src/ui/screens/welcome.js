@@ -8,6 +8,7 @@ import { cameraHelp, noPromptHelp } from '../camera-help.js';
 import { loadProfile, greeting } from '../profile.js';
 import { splashStar } from '../motion.js';
 import { loadRx, rxToday } from '../rx.js';
+import { LANGS, getLang, setLang } from '../i18n.js';
 import { EXERCISE_INFO } from '../exercises.js';
 import { plural } from '../dom.js';
 
@@ -28,7 +29,8 @@ function rxCard() {
 export default function welcome(ctx) {
   const el = html(`
     <section class="welcome" aria-labelledby="welcome-title">
-      <header><span class="brand">${icons.logo}Qaita</span></header>
+      <header class="welcome-head"><span class="brand">${icons.logo}Qaita</span>
+        <div class="lang-switch lang-mini" role="group" aria-label="Тіл / Язык" data-no-tr>${Object.entries(LANGS).map(([id]) => `<button type="button" data-lang="${id}" aria-pressed="${id === getLang()}">${id === 'kk' ? 'ҚАЗ' : 'РУС'}</button>`).join('')}</div></header>
       <div class="welcome-main">
         <div class="stagger">
           ${loadProfile().name ? `<p class="welcome-hello">${loadProfile().avatar} ${greeting()}</p>` : ''}
@@ -48,6 +50,14 @@ export default function welcome(ctx) {
         <span class="chip">${icons.heart}Не заменяет врача</span>
       </footer>
     </section>`);
+
+  // Язык прямо на первом экране: ҚАЗ / РУС (жюри и бабушка найдут сразу, без меню).
+  el.querySelectorAll('[data-lang]').forEach((b) => b.addEventListener('click', () => {
+    setLang(b.dataset.lang);
+    el.querySelectorAll('[data-lang]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    ctx.voice.stop?.();
+    ctx.say('Это упражнения для руки. Покажите ладонь в камеру и подержите секунду', { interrupt: true, force: true }); // voice.js сам скажет на выбранном языке
+  }));
 
   // Первый запуск: «Как вас зовут?» — одно поле и «Пропустить»; ладонь всё так же ведёт дальше.
   const doneNameAsk = mountNameAsk(el.querySelector('.stagger'), ctx);

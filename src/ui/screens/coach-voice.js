@@ -7,6 +7,10 @@ import { LINES, lineKey } from '../voice-lines.js';
 import { localClips, saveClip, deleteClip, cleanRecording } from '../voice-clips.js';
 import '../../../styles/landing.css';
 import '../../../styles/coach-voice.css';
+import { tr } from '../i18n.js';
+
+// В режиме қазақша записываем казахские фразы: ключ записи = казахское предложение (voice.js ищет по нему).
+const line = (k) => tr(LINES[k]);
 
 const MAX_MS = 12000;
 
@@ -73,13 +77,13 @@ export default function coachVoice(ctx) {
     $('[data-f="n"]').textContent = String(i + 1);
     $('[data-f="done"]').textContent = String(done.size);
     $('.cv-bar span').style.width = `${(done.size / LINES.length) * 100}%`;
-    $('[data-f="line"]').textContent = LINES[i];
-    const has = done.has(lineKey(LINES[i]));
+    $('[data-f="line"]').textContent = line(i);
+    const has = done.has(lineKey(line(i)));
     el.querySelector('.cv-card').dataset.has = String(has);
     $('[data-act="del"]').hidden = !has;
     $('[data-act="download"]').disabled = !done.size;
     $('[data-act="download"]').textContent = done.size ? `⬇ Скачать всё (${done.size})` : '⬇ Скачать всё';
-    listBtns.forEach((b, k) => { b.dataset.has = String(done.has(lineKey(LINES[k]))); b.setAttribute('aria-current', String(k === i)); });
+    listBtns.forEach((b, k) => { b.dataset.has = String(done.has(lineKey(line(k)))); b.setAttribute('aria-current', String(k === i)); });
     if (!rec && !busy) status(has ? '✓ Записано. Можно послушать или записать заново.' : 'Нажмите красный круг и прочитайте фразу.');
   }
   const go = (k) => { if (rec || busy) return; i = (k + LINES.length) % LINES.length; render(); };
@@ -129,7 +133,7 @@ export default function coachVoice(ctx) {
     if (!alive) return;
     busy = true;
     status('Обрабатываю…');
-    const text = LINES[i];
+    const text = line(i);
     try {
       const wav = await cleanRecording(new Blob(chunks, { type }));
       await saveClip(text, wav);
@@ -153,9 +157,9 @@ export default function coachVoice(ctx) {
   async function play() {
     if (rec || busy) return;
     const own = await localClips();
-    const clip = own.get(lineKey(LINES[i]));
+    const clip = own.get(lineKey(line(i)));
     // Есть запись — её; нет — как сейчас говорит приложение (голос браузера или общая запись).
-    if (clip) { ctx.voice.stop(); playBlob(clip.blob); } else ctx.voice.say(LINES[i], { interrupt: true, force: true });
+    if (clip) { ctx.voice.stop(); playBlob(clip.blob); } else ctx.voice.say(line(i), { interrupt: true, force: true });
   }
   async function download() {
     const own = await localClips();
@@ -178,7 +182,7 @@ export default function coachVoice(ctx) {
   $('[data-act="prev"]').addEventListener('click', () => go(i - 1));
   $('[data-act="next"]').addEventListener('click', () => go(i + 1));
   $('[data-act="play"]').addEventListener('click', play);
-  $('[data-act="del"]').addEventListener('click', async () => { await deleteClip(LINES[i]); await refresh(); await ctx.voice.reloadClips?.(); render(); });
+  $('[data-act="del"]').addEventListener('click', async () => { await deleteClip(line(i)); await refresh(); await ctx.voice.reloadClips?.(); render(); });
   $('[data-act="download"]').addEventListener('click', download);
   $('[data-act="home"]').addEventListener('click', () => ctx.go('welcome'));
   listBtns.forEach((b) => b.addEventListener('click', () => { go(Number(b.dataset.i)); $('.cv-card').scrollIntoView({ behavior: 'smooth', block: 'center' }); }));

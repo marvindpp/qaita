@@ -2,6 +2,7 @@
 // музыка и голос. Во время упражнений кнопки нет (там всё управляется жестами и ничего не должно мешать).
 import { html, esc } from './dom.js';
 import { loadProfile } from './profile.js';
+import { LANGS, getLang, setLang } from './i18n.js';
 import { MOODS, MOOD_IDS } from './music.js';
 
 const ITEMS = [
@@ -23,6 +24,7 @@ export function createMenu({ go, music, voice }) {
       <nav class="drawer-panel" aria-label="Меню">
         <div class="drawer-head"><span class="drawer-ava"></span><div><b class="drawer-name"></b><small>Мой Qaita</small></div></div>
         <ul>${ITEMS.map((i) => `<li><button type="button" data-go="${i.go}"><span aria-hidden="true">${i.ico}</span>${i.label}</button></li>`).join('')}</ul>
+        <div class="lang-switch" role="group" aria-label="Тіл / Язык" data-no-tr>${Object.entries(LANGS).map(([id, name]) => `<button type="button" data-lang="${id}" aria-pressed="${id === getLang()}">${name}</button>`).join('')}</div>
         <div class="drawer-toggles">
           <label class="switch"><input type="checkbox" data-t="music"><span></span>🎵 Спокойная музыка</label>
           <div class="moods" role="group" aria-label="Настроение музыки">${MOOD_IDS.map((id) => `<button type="button" data-mood="${id}" aria-pressed="false" title="${MOODS[id].title}"><span aria-hidden="true">${MOODS[id].ico}</span>${MOODS[id].label}</button>`).join('')}</div>
@@ -58,6 +60,10 @@ export function createMenu({ go, music, voice }) {
     music.setMood?.(b.dataset.mood);
     if (!music.on) { music.set(true); drawer.querySelector('[data-t="music"]').checked = true; }
     syncMoods();
+  }));
+  drawer.querySelectorAll('[data-lang]').forEach((b) => b.addEventListener('click', () => {
+    setLang(b.dataset.lang);
+    drawer.querySelectorAll('[data-lang]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
   }));
   drawer.querySelector('[data-t="voice"]').addEventListener('change', (e) => voice.setMuted(!e.target.checked));
   addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });

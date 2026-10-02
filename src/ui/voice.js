@@ -5,6 +5,7 @@
 // голос браузера. Нет ни одной записи — всё как раньше, только speechSynthesis.
 import { lineKey, splitSentences } from './voice-lines.js';
 import { localClips, sharedClips, wavBlob } from './voice-clips.js';
+import { getLang, tr } from './i18n.js';
 
 const SAME_PHRASE_COOLDOWN_MS = 4000;
 const RATE = 0.95; // чуть медленнее обычного — для людей 50–75
@@ -12,6 +13,7 @@ const RATE = 0.95; // чуть медленнее обычного — для л
 export function createVoice() {
   const synth = typeof speechSynthesis !== 'undefined' ? speechSynthesis : null;
   let voice = null;
+  let kkVoice = null; // казахский голос есть далеко не везде — тогда незаписанные фразы говорим по-русски
   let muted = false;
   let blocked = false;
   let last = { text: '', at: -Infinity };
@@ -40,6 +42,7 @@ export function createVoice() {
     const ru = all.filter((v) => /^ru(-|_|$)/i.test(v.lang));
     // Предпочитаем «живые» голоса: Google / Milena / Yandex / Microsoft, потом любой русский.
     voice = ru.find((v) => /google|milena|yandex|microsoft|алёна|irina|svetlana/i.test(v.name)) ?? ru[0] ?? null;
+    kkVoice = all.find((v) => /^kk(-|_|$)/i.test(v.lang)) ?? null;
   }
   pickVoice();
   synth?.addEventListener?.('voiceschanged', pickVoice);
@@ -50,10 +53,11 @@ export function createVoice() {
     for (const cb of listeners) cb({ blocked, muted });
   };
 
-  function utter(text) {
+  function utter(text, lang = 'ru') {
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'ru-RU';
-    if (voice) u.voice = voice;
+    u.lang = lang === 'kk' ? 'kk-KZ' : 'ru-RU';
+    const v = lang === 'kk' ? kkVoice : voice;
+    if (v) u.voice = v;
     u.rate = RATE;
     return u;
   }
@@ -88,7 +92,7 @@ export function createVoice() {
       return;
     }
     if (!synth) { next(g); return; }
-    const u = utter(item.text);
+    const u = utter(item.text, item.lang);
     let over = false, timer = 0;
     const done = () => { if (over) return; over = true; clearTimeout(timer); if (g === gen && current === item) next(g); };
     // Chrome иногда не присылает onend — страховка, чтобы очередь не встала навсегда.
@@ -105,6 +109,7 @@ export function createVoice() {
 
   function speak(text, { interrupt = false } = {}) {
     if (!text) return;
+    if (getLang() === 'kk') return speakKk(text, { interrupt });
     const parts = splitSentences(text);
     const live = player && parts.some((s) => clips.has(lineKey(s)));
     if (!live && !queue.length && !current) {
@@ -127,6 +132,24 @@ export function createVoice() {
       if (url) items.push({ url });
       else if (prev?.text) prev.text += ` ${s}`;
       else items.push({ text: s });
+    }
+    queue.push(...items);
+    if (!current) next(gen);
+  }
+
+  // Қазақша: каждое русское предложение → перевод. Есть запись казахской фразы — играем её; есть казахский голос
+  // браузера — он; нет ни того ни другого — это предложение по-русски (лучше, чем молчать или коверкать).
+  function speakKk(text, { interrupt }) {
+    if (interrupt) stopAll();
+    else if (!current && synth?.speaking) synth.cancel();
+    const items = [];
+    for (const s of splitSentences(text)) {
+      const k = tr(s);
+      const url = player && clips.get(lineKey(k));
+      const piece = url ? { url } : kkVoice && k !== s ? { text: k, lang: 'kk' } : { text: s, lang: 'ru' };
+      const prev = items[items.length - 1];
+      if (piece.text && prev?.text && prev.lang === piece.lang) prev.text += ` ${piece.text}`;
+      else items.push(piece);
     }
     queue.push(...items);
     if (!current) next(gen);
@@ -181,6 +204,8 @@ export function createVoice() {
       return Boolean(current || queue.length || (synth && (synth.speaking || synth.pending)));
     },
     get available() { return Boolean(synth || clips.size); },
+    /** Есть ли на устройстве казахский голос (иначе незаписанные фразы — по-русски). */
+    get hasKk() { return Boolean(kkVoice); },
     /** Сколько предложений звучит живым голосом (для «Студии голоса тренера»). */
     get liveCount() { return clips.size; },
     /** Перечитать записи (после записи в студии — сразу слышно в приложении). */

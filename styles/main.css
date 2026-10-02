@@ -1025,3 +1025,12 @@ p { text-wrap: pretty; }
 .rx-card span { color: var(--ink); font-weight: 600; }
 .rx-card .rx-note { color: var(--ink-2); font-style: italic; }
 @media (orientation: landscape) and (max-height: 520px) { .rx-card { font-size: 14px; padding: 8px 12px; margin-top: 8px; } }
+
+/* Язык: ҚАЗ / РУС на приветствии и в меню */
+.welcome-head { display: flex; align-items: center; gap: 16px; }
+.lang-switch { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--bg-deep); }
+.lang-switch button { border: 0; background: none; border-radius: 999px; padding: 8px 16px; font: 800 18px var(--font); color: var(--ink-2); cursor: pointer; white-space: nowrap; }
+.lang-switch button[aria-pressed='true'] { background: var(--surface); color: var(--green); box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+.drawer .lang-switch { align-self: flex-start; }
+.lang-mini button { padding: 6px 14px; font-size: 16px; }
+@media (orientation: landscape) and (max-height: 520px) { .lang-mini button { padding: 4px 10px; font-size: 14px; } }

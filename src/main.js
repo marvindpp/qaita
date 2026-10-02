@@ -3,6 +3,9 @@
 import '../styles/main.css';
 import { createApp } from './ui/app.js';
 import { takeRxFromUrl } from './ui/rx.js';
+import { startPageTranslation } from './ui/i18n.js';
+
+startPageTranslation(document.body); // қазақша: перевод текста на странице (i18n.js)
 
 const params = new URLSearchParams(location.search);
 const mock = params.has('mock');
