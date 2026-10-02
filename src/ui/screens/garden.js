@@ -9,6 +9,7 @@ import { loadGoal, giveTask, addDose, doseToday, DAILY_DOSE, lifeFlowers } from 
 import { makeCard } from '../share.js';
 import { gardenLife } from '../motion.js';
 import { openShareSheet, shareText, openVoiceStudio, playMessageCard, listMessages } from '../family.js';
+import { shanyrakScene, yurtCaption, YURT_STAGES, YURT_FULL } from '../shanyrak.js';
 
 const plural = (n, one, few, many) => {
   const m10 = n % 10, m100 = n % 100;
@@ -68,28 +69,24 @@ export default function garden(ctx) {
   const badges = [
     history.length === 0 && { icon: icons.flower, title: 'Первый шаг', text: 'Первая тренировка' },
     clean && { icon: icons.star, title: 'Без компенсаций', text: 'Ни одной ошибки' },
-    streak >= 3 && { icon: icons.sun, title: `${streak} ${plural(streak, 'день', 'дня', 'дней')} подряд`, text: 'Сад растёт каждый день' },
+    streak >= 3 && { icon: icons.sun, title: `${streak} ${plural(streak, 'день', 'дня', 'дней')} подряд`, text: 'Дом растёт каждый день' },
   ].filter(Boolean);
   // Прошлые дни: последние ростки/цветы из истории — «сад пышнее с каждым днём».
-  const old = history.flatMap((s) => (s.beds ?? []).flatMap((b) => b.plants)).slice(-16);
+  const old = history.flatMap((s) => (s.beds ?? []).flatMap((b) => b.plants)).slice(-30);
+  // «Шаңырақ»: каждый новый день занятий добавляет часть юрты (shanyrak.js).
+  const days = new Set(all.map((s) => s.day)).size;
+  const newToday = !history.some((s) => s.day === record.day);
 
   const el = html(`
     <section class="garden" aria-labelledby="garden-title">
       <div class="garden-head stagger">
-        <h1 id="garden-title">Ваш сад</h1>
+        <h1 id="garden-title">Ваш дом и сад</h1>
         <p class="lead">${esc(compareWords(amplitudeOf(record), amplitudeOf(prev), !prev))}</p>
       </div>
-      <div class="garden-scene" style="--sun: ${Math.min(streak, 7) / 7}">
-        <div class="garden-sky" aria-hidden="true"><span class="garden-sun"></span><span class="garden-hill garden-hill-back"></span><span class="garden-hill garden-hill-front"></span></div>
-        ${old.length ? `<div class="garden-old" aria-hidden="true">${old.map((p) => (p === 'flower' ? icons.flower : icons.sprout)).join('')}</div>` : ''}
-        <div class="garden-beds">
-          ${record.beds.map((b) => `
-            <figure class="garden-bed">
-              <div class="garden-plants">${b.plants.map((p) => `<span data-plant="${p}">${p === 'flower' ? icons.flower : icons.sprout}</span>`).join('')}</div>
-              <figcaption>${EXERCISE_INFO[b.id]?.title ?? b.id}</figcaption>
-            </figure>`).join('')}
-        </div>
+      <div class="garden-scene sh-wrap">
+        ${shanyrakScene({ days, newToday, todayPlants: record.beds.flatMap((b) => b.plants), oldPlants: old, streak })}
       </div>
+      <p class="sh-caption">${newToday && days < YURT_FULL ? `✨ Сегодня: ${esc(YURT_STAGES[days])} · ` : ''}${esc(yurtCaption(days))}</p>
       <div class="garden-chips">
         ${record.maxStars ? `<span class="pill pill-gold">${icons.star}${record.stars} из ${record.maxStars} ${plural(record.maxStars, 'звезды', 'звёзд', 'звёзд')}</span>` : ''}
         ${streak < 3 ? `<span class="pill pill-green">${icons.sun}${streak} ${plural(streak, 'день', 'дня', 'дней')} подряд</span>` : ''}
@@ -138,12 +135,12 @@ export default function garden(ctx) {
     enter() {
       // Сначала встаёт солнце (чем больше дней подряд, тем выше), потом из земли по одному растут растения.
       const reduce = prefersReducedMotion();
-      el.querySelector('.garden-sun')?.animate(
+      el.querySelector('.sh-sun')?.animate(
         reduce ? [{ opacity: 0 }, { opacity: 1 }] : [{ transform: 'translateY(60%)', opacity: 0 }, { transform: 'none', opacity: 1 }],
         { duration: reduce ? 200 : 900, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'backwards' },
       );
       let i = 0;
-      el.querySelectorAll('.garden-plants span').forEach((p) => p.animate(
+      el.querySelectorAll('.garden-plants span').forEach((p) => p.animate( // (грядки теперь на экране итогов упражнения)
         reduce ? [{ opacity: 0 }, { opacity: 1 }] : [{ transform: 'scale(0.6, 0.05)', opacity: 0 }, { opacity: 1, offset: 0.3 }, { transform: 'none', opacity: 1 }],
         { duration: reduce ? 200 : 560, delay: 450 + (i++) * 80, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', fill: 'backwards' },
       ));
