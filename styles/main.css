@@ -1070,3 +1070,11 @@ p { text-wrap: pretty; }
 .shx-apple.sh-new { animation: sh-pop 520ms cubic-bezier(0.34, 1.56, 0.64, 1) calc(1300ms + var(--i) * 120ms) both; transform-origin: 50% 100%; }
 .garden-wind .shx-tree { animation: sh-sway 4s ease-in-out infinite; animation-delay: calc(var(--i) * -1.1s); }
 @media (prefers-reduced-motion: reduce) { .shx-yurt.sh-new, .shx-apple.sh-new, .garden-wind .shx-tree { animation: none; } }
+
+/* ——— Стиль «войлок» (вариант №1 Ерсултана) на экране упражнения: стёжка по краю камеры, подсказки и карточек. Только декор: размеры и раскладка не меняются. ——— */
+.play-cam .cam { box-shadow: 0 0 0 5px #8a5a36, 0 14px 34px rgba(80, 50, 20, 0.22); }
+.play-cam .cam::before { content: ''; position: absolute; inset: 9px; border: 3px dashed rgba(255, 246, 228, 0.9); border-radius: calc(var(--radius) - 8px); z-index: 3; pointer-events: none; }
+.play .hint, .play .hud-demo { outline: 3px dashed rgba(122, 75, 42, 0.32); outline-offset: -9px; }
+.play[data-hint='mistake'] .hint { outline-color: rgba(184, 65, 47, 0.45); }
+.play[data-hint='good'] .hint, .play[data-hint='rep'] .hint { outline-color: rgba(29, 117, 82, 0.4); }
+@media (orientation: landscape) and (max-height: 520px) { .play-cam .cam::before { inset: 6px; border-width: 2px; } .play .hint, .play .hud-demo { outline-width: 2px; outline-offset: -4px; } }
