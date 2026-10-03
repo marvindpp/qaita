@@ -17,3 +17,4 @@ out/mk.sh
 out/*.log
 out/s*.png
 public/pitch-music.wav
+out/qaita-pitch-720.mp4
