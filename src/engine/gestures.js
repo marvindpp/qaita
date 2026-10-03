@@ -27,17 +27,30 @@ export function isThumbsUp(hand) {
 /** Какой жест виден в этом кадре (без учёта удержания). */
 export function detectGesture({ hands = [], m, allow }) {
   const palms = hands.filter(isOpenPalm).length;
+  const raise = raiseSide(m, allow, 0.3);
   if (allow.has('PAUSE') && palms >= 2) return 'PAUSE';
+  // Рука высоко над головой — это «поднять руку», даже если камера видит раскрытую ладонь: иначе PALM_HOLD
+  // перехватывал жест, и экран выбора руки не реагировал на поднятую вверх руку (живой тест 03.10, iPhone).
+  // Ладонь у лица (обычный «ОК») ниже этой высоты и остаётся PALM_HOLD.
+  const high = raiseSide(m, allow, RAISE_HIGH);
+  if (high) return high;
   if (allow.has('THUMBS_UP') && hands.some(isThumbsUp)) return 'THUMBS_UP';
   if (allow.has('PALM_HOLD') && palms === 1) return 'PALM_HOLD';
-  if (m && (allow.has('RAISE_LEFT') || allow.has('RAISE_RIGHT'))) {
-    const up = (w, sh) => w && sh.y - w.y > m.S * 0.3;
-    // m.wrist — рабочая рука, m.otherWrist — другая; сравниваем обе стороны по индексам плеч.
-    const right = m.side === 'right' ? up(m.wrist, m.rsh) : up(m.otherWrist, m.rsh);
-    const left = m.side === 'left' ? up(m.wrist, m.lsh) : up(m.otherWrist, m.lsh);
-    if (right && !left && allow.has('RAISE_RIGHT')) return 'RAISE_RIGHT';
-    if (left && !right && allow.has('RAISE_LEFT')) return 'RAISE_LEFT';
-  }
+  return raise;
+}
+
+/** Запястье выше плеча настолько, что рука «высоко» (в ширинах плеч): ладонь у лица ≈ 0,5–0,8, рука вверх ≈ 1,2+. */
+export const RAISE_HIGH = 0.95;
+
+/** Какая рука поднята выше плеча на `minUp` ширин плеч (только одна) — RAISE_LEFT / RAISE_RIGHT / null. */
+function raiseSide(m, allow, minUp) {
+  if (!m || !(allow.has('RAISE_LEFT') || allow.has('RAISE_RIGHT'))) return null;
+  const up = (w, sh) => w && sh.y - w.y > m.S * minUp;
+  // m.wrist — рабочая рука, m.otherWrist — другая; сравниваем обе стороны по индексам плеч.
+  const right = m.side === 'right' ? up(m.wrist, m.rsh) : up(m.otherWrist, m.rsh);
+  const left = m.side === 'left' ? up(m.wrist, m.lsh) : up(m.otherWrist, m.lsh);
+  if (right && !left && allow.has('RAISE_RIGHT')) return 'RAISE_RIGHT';
+  if (left && !right && allow.has('RAISE_LEFT')) return 'RAISE_LEFT';
   return null;
 }
 

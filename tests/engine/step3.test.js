@@ -56,6 +56,16 @@ describe('gestures', () => {
     expect(detectGesture({ hands: [makeHand()], allow: ALL })).toBe('PALM_HOLD');
     expect(detectGesture({ hands: [makeHand()], allow: new Set(['PAUSE']) })).toBe(null);
   });
+  it('arm high above the head with an open palm = RAISE, not PALM_HOLD (live test 03.10, iPhone)', () => {
+    const mm = measure(makePose({ wrist: { out: 0.2, up: 1.4 } }), 'right', ASPECT);
+    expect(detectGesture({ hands: [makeHand({ cy: 0.1 })], m: mm, allow: ALL })).toBe('RAISE_RIGHT');
+    // ладонь у лица — по-прежнему «ОК»
+    const face = measure(makePose({ wrist: { out: 0.3, up: 0.6 } }), 'right', ASPECT);
+    expect(detectGesture({ hands: [makeHand({ cy: 0.3 })], m: face, allow: ALL })).toBe('PALM_HOLD');
+    // две ладони — пауза, даже если одна рука поднята
+    expect(detectGesture({ hands: [makeHand({ cy: 0.1 }), makeHand({ cx: 0.3 })], m: mm, allow: ALL })).toBe('PAUSE');
+  });
+
   it('raising the right arm = RAISE_RIGHT', () => {
     const mm = measure(makePose({ wrist: { out: 0.2, up: 1.2 } }), 'right', ASPECT);
     expect(detectGesture({ hands: [], m: mm, allow: ALL })).toBe('RAISE_RIGHT');
