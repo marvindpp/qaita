@@ -8,14 +8,15 @@ import { MOODS, MOOD_IDS } from './music.js';
 const ITEMS = [
   { go: 'welcome', ico: '▶', label: 'Тренировка' },
   { go: 'progress', ico: '📈', label: 'Прогресс и рекорды' },
-  { go: 'garden', ico: '🌸', label: 'Мой сад' },
+  { go: 'garden', ico: '🏕', label: 'Мой дом и сад' },
   { go: 'profile', ico: '👤', label: 'Профиль и близкие' },
   { go: 'doctor', ico: '🩺', label: 'Отчёт для врача' },
+  { go: 'safety', ico: '🔒', label: 'Безопасность и данные' },
   { go: 'about', ico: 'ℹ️', label: 'О Qaita' },
   { go: 'coach-voice', ico: '🎙', label: 'Живой голос тренера' },
 ];
 // На этих экранах бургер показываем; на остальных (калибровка, демо, игра, итоги упражнения) — нет.
-export const MENU_SCREENS = new Set(['welcome', 'prep', 'hand', 'goal', 'garden', 'doctor', 'progress', 'profile', 'about', 'coach-voice']);
+export const MENU_SCREENS = new Set(['welcome', 'prep', 'hand', 'goal', 'garden', 'doctor', 'progress', 'profile', 'about', 'safety', 'coach-voice']);
 
 export function createMenu({ go, music, voice }) {
   const btn = html('<button type="button" class="burger" aria-label="Меню" aria-expanded="false"><span></span><span></span><span></span></button>');

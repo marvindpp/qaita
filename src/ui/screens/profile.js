@@ -4,6 +4,7 @@ import { loadProfile, saveProfile, AVATARS, wipeAll } from '../profile.js';
 import { GOALS, loadGoal, saveGoal } from '../life.js';
 import { setPlanForGoal, EXERCISE_INFO } from '../exercises.js';
 import { loadRx, clearRx } from '../rx.js';
+import { reminderHtml, wireReminder } from '../reminder.js';
 import { loadGoal as currentGoal } from '../life.js';
 import { listMessages, removeMessage, openVoiceStudio, whoLabel } from '../family.js';
 
@@ -37,6 +38,10 @@ export default function profile(ctx) {
           <ul class="voices"><li class="hint-small">Загружаю…</li></ul>
           <button type="button" class="btn-family" data-act="record">🎙 Записать новое послание</button>
         </section>
+        <section class="card">
+          <h2>⏰ Напоминание</h2>
+          ${reminderHtml()}
+        </section>
         <section class="card card-danger">
           <h2>Данные</h2>
           <p class="hint-small">История, цели и голоса хранятся только в этом браузере. Видео не записывается никогда.</p>
@@ -61,6 +66,8 @@ export default function profile(ctx) {
     clearRx(); setPlanForGoal(currentGoal()?.id);
     e.currentTarget.closest('.rx-profile').remove();
   });
+
+  wireReminder(el);
 
   const list = el.querySelector('.voices');
   let audio = null;

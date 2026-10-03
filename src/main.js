@@ -6,6 +6,12 @@ import { takeRxFromUrl } from './ui/rx.js';
 import { startPageTranslation } from './ui/i18n.js';
 
 startPageTranslation(document.body); // қазақша: перевод текста на странице (i18n.js)
+import './ui/install.js'; // ловим запрос «Установить приложение» как можно раньше
+
+// Приложение (PWA): офлайн после первого запуска. Только в собранной версии — в разработке кэш мешает.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+}
 
 const params = new URLSearchParams(location.search);
 const mock = params.has('mock');

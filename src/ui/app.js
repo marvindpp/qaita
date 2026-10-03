@@ -23,13 +23,14 @@ import checkin from './screens/checkin.js';
 import progress from './screens/progress.js';
 import profileScreen from './screens/profile.js';
 import about from './screens/about.js';
+import safety from './screens/safety.js';
 import coachVoice from './screens/coach-voice.js';
 import { createMenu } from './menu.js';
 import { createMusic } from './music.js';
 import { screenIn, screenOut } from './motion.js';
 import '../../styles/phone.css'; // телефон: раскладки без ужимания (подключается последним — главнее остальных стилей)
 
-const SCREENS = { welcome, prep, checkin, hand, goal, progress, profile: profileScreen, about, calibration, demo, play, 'exercise-done': exerciseDone, garden, doctor, soon, 'coach-voice': coachVoice };
+const SCREENS = { welcome, prep, checkin, hand, goal, progress, profile: profileScreen, about, safety, calibration, demo, play, 'exercise-done': exerciseDone, garden, doctor, soon, 'coach-voice': coachVoice };
 
 // Какие события движка экран может получать (метод on<Event> у экрана).
 const ROUTED = ['frame', 'status', 'calibration', 'target', 'rep', 'mistake', 'mistake-cleared', 'gesture', 'exercise-done', 'rest'];

@@ -16,14 +16,6 @@ const CDN = {
   hand: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
 };
 
-async function reachable(url) {
-  try {
-    const r = await fetch(url, { method: 'HEAD' });
-    // dev-сервер на неизвестный путь может отдать index.html с кодом 200 — это не наш файл
-    return r.ok && !(r.headers.get('content-type') ?? '').includes('text/html');
-  } catch { return false; }
-}
-
 // На некоторых телефонах (iPhone Safari) GPU-делегат не падает с ошибкой, а зависает — тогда через 12 с идём на CPU
 // (живой тест 29.09: «Загружаю распознавание…» без конца).
 const GPU_TIMEOUT_MS = 12000;
@@ -58,8 +50,8 @@ async function loadFrom(src) {
 }
 
 export async function loadModels() {
-  const local = (await Promise.all([LOCAL.pose, LOCAL.hand, `${LOCAL.wasm}/vision_wasm_internal.js`].map(reachable))).every(Boolean);
-  if (!local) return loadFrom(CDN);
+  // Сразу пробуем свои файлы: без сети их отдаёт кэш приложения (public/sw.js). HEAD-проверку не делаем —
+  // service worker отвечает только на GET, и офлайн она ошибочно уводила на CDN. Нет своих файлов — CDN.
   try {
     return await loadFrom(LOCAL);
   } catch (e) {

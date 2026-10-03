@@ -1096,3 +1096,10 @@ p { text-wrap: pretty; }
   .shx-trees .shx-tree { margin: 0 -5%; }
   .shx-apples { left: 44%; }
 }
+
+/* Напоминание (.ics) и согласие перед ссылкой врачу */
+.reminder { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.reminder-time { display: inline-flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 800; white-space: nowrap; }
+.reminder-time input { font: 800 22px var(--font); padding: 8px 12px; border-radius: 12px; border: 2px solid var(--line); background: #fff; color: var(--ink); }
+.consent-list { text-align: left; font-size: 20px; margin: 4px 0 10px; }
+.consent-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 8px; }
