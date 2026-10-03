@@ -1,5 +1,5 @@
 // Эффекты видео-питча 16:9: дождь, молния, тучи, ЭКГ, конфетти, штамп, мем-карточка, уведомление, кольцо.
-import { useCurrentFrame, interpolate, random, Img, staticFile } from 'remotion';
+import { useCurrentFrame, interpolate, random, spring, Img, staticFile } from 'remotion';
 import { C, FONT, clamp, ease, useSpring } from '../kit.jsx';
 import { W, H, CUES, FPS } from './timing.js';
 
@@ -287,7 +287,7 @@ export function Arm({ reach = 0, droop = 0, grip = 0, lift = 0, shake = 0, x = 0
   const f = useCurrentFrame();
   const tremble = Math.sin(f * 1.7) * 3 * shake;
   const len = 420 + reach * 520;
-  const ang = droop * 14 - lift * 8;
+  const ang = droop * 14;
   return (
     <div style={{ position: 'absolute', left: x - 120, top: y + tremble - lift * 120, transformOrigin: '0 50%', transform: `rotate(${ang}deg)` }}>
       <svg width={len + 200} height={220} style={{ overflow: 'visible' }}>
@@ -307,3 +307,9 @@ export function Arm({ reach = 0, droop = 0, grip = 0, lift = 0, shake = 0, x = 0
 }
 
 export { C, FONT, clamp, ease };
+
+// Чистые функции анимации от кадра f (можно вызывать в условиях и циклах — это не хуки).
+export const tt = (f, at, dur = 12, e = ease) => interpolate(f, [at, at + dur], [0, 1], { ...clamp, easing: e });
+export const inn = (f, at, dur = 12, dist = 40) => { const t = tt(f, at, dur); return { opacity: t, transform: `translateY(${(1 - t) * dist}px)` }; };
+export const win = (f, a, b, fade = 8) => interpolate(f, [a - 1, a + fade, b - fade, b], [0, 1, 1, 0], clamp);
+export const spr = (f, at, config = { damping: 12, stiffness: 170, mass: 0.8 }) => spring({ frame: f - at, fps: FPS, config });

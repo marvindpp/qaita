@@ -12,3 +12,8 @@ public/voice.mp3
 public/voice.wav
 out/voice-pcm.wav
 public/voice-map.json
+out/vt/
+out/mk.sh
+out/*.log
+out/s*.png
+public/pitch-music.wav

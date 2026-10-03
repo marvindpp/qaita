@@ -1,6 +1,8 @@
 import { Composition, staticFile, delayRender, continueRender } from 'remotion';
 import { Promo } from './Promo.jsx';
 import { FPS, DURATION } from './timing.js';
+import { Pitch } from './pitch/Pitch.jsx';
+import { TOTAL, W, H } from './pitch/timing.js';
 
 // Шрифт Manrope (OFL) из public/fonts — грузим до первого кадра, чтобы текст не «прыгал».
 const fontsReady = (() => {
@@ -11,5 +13,8 @@ const fontsReady = (() => {
 })();
 
 export const Root = () => (
-  <Composition id="Promo" component={Promo} durationInFrames={DURATION} fps={FPS} width={1080} height={1920} />
+  <>
+    <Composition id="Promo" component={Promo} durationInFrames={DURATION} fps={FPS} width={1080} height={1920} />
+    <Composition id="Pitch" component={Pitch} durationInFrames={TOTAL} fps={FPS} width={W} height={H} defaultProps={{ withMusic: false }} />
+  </>
 );
