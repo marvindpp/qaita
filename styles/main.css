@@ -1059,7 +1059,7 @@ p { text-wrap: pretty; }
 /* «Шаңырақ» из картинок (shanyrakArt): степь фоном, юрта слева от центра, сад справа, сегодняшние яблоки — на траве */
 .shx { position: relative; width: 100%; height: 100%; overflow: hidden; }
 .shx img { position: absolute; display: block; user-select: none; -webkit-user-drag: none; }
-.shx-bg { inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 78%; }
+.shx-bg { inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 92%; } /* низ степи: холмы и полоса орнамента (при 78% на ноутбуке горы резались в полосу сверху, а орнамент пропадал) */
 .shx-yurt { left: 22%; bottom: 4%; height: 96%; aspect-ratio: 1; transform-origin: 50% 100%; }
 .shx-trees { position: absolute; right: 6%; bottom: 7%; height: 80%; width: 40%; display: flex; align-items: flex-end; justify-content: center; }
 .shx-trees .shx-tree { position: relative; height: 100%; aspect-ratio: 1; margin: 0 -7%; transform-origin: 50% 100%; }
