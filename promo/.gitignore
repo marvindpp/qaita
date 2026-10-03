@@ -4,3 +4,11 @@ out/frames/
 out/check/
 out/*.html
 public/music.wav
+out/demo/
+public/demo.webm
+public/pitch-music.wav
+public/voice-raw.mp3
+public/voice.mp3
+public/voice.wav
+out/voice-pcm.wav
+public/voice-map.json
