@@ -1,0 +1,17 @@
+{
+  "name": "qaita-promo",
+  "private": true,
+  "type": "module",
+  "description": "Вертикальный промо-ролик Qaita (Remotion, 1080×1920, 30 с). Музыка и звуки синтезированы кодом (music/make-music.mjs).",
+  "scripts": {
+    "music": "node music/make-music.mjs",
+    "studio": "remotion studio src/index.jsx",
+    "render": "remotion render src/index.jsx Promo out/qaita-promo.mp4 --codec h264 --crf 18"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.532",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "^4.0.532"
+  }
+}
