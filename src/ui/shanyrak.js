@@ -119,3 +119,23 @@ export function yurtCaption(days) {
   if (stage >= YURT_FULL) return 'Дом готов — семья в сборе. Каждое занятие — новые яблоки в саду';
   return `Ваш дом: ${stage} из ${YURT_FULL} · в следующий день — ${YURT_STAGES[stage + 1].split(' — ')[0]}`;
 }
+
+// ——— Картинки Ерсултана (public/shanyrak/, войлок, docs/CREDITS.md) ———
+// Юрта yurt-1…7 = этапы 1…7, деревья tree-1…4 по возрасту, яблоки — красное (чистый повтор) / зелёное (с подсказкой).
+// Если картинки не загрузились, garden.js подставит SVG-сцену выше (shanyrakScene).
+const ART = './shanyrak/';
+
+/** Сцена «Шаңырақ» из картинок: степь, юрта текущего этапа, сад (дерево на каждый день, до 4), яблоки сегодня. */
+export function shanyrakArt({ days, newToday, todayPlants, streak }) {
+  const stage = Math.max(1, Math.min(YURT_FULL, days));
+  const nTrees = Math.max(1, Math.min(4, days));
+  const trees = Array.from({ length: nTrees }, (_, t) => Math.max(1, Math.min(4, days - t))); // старшее — самое большое
+  const apples = todayPlants.slice(0, 15);
+  return `
+  <div class="shx" role="img" aria-label="Ваш дом: ${YURT_STAGES[stage]}. Яблок сегодня: ${apples.filter((p) => p === 'flower').length}" style="--sun:${Math.min(streak, 7) / 7}">
+    <img class="shx-bg" src="${ART}steppe.webp" alt="" draggable="false">
+    <img class="shx-yurt${newToday ? ' sh-new' : ''}" src="${ART}yurt-${stage}.webp" alt="" draggable="false">
+    <div class="shx-trees">${trees.map((k, i) => `<img class="shx-tree" style="--i:${i}" src="${ART}tree-${k}.webp" alt="" draggable="false">`).join('')}</div>
+    <div class="shx-apples">${apples.map((p, i) => `<img class="shx-apple sh-new" style="--i:${i}" src="${ART}apple-${p === 'flower' ? 'red' : 'green'}.webp" alt="" draggable="false">`).join('')}</div>
+  </div>`;
+}

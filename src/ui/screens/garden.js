@@ -9,7 +9,7 @@ import { loadGoal, giveTask, addDose, doseToday, DAILY_DOSE, lifeFlowers } from 
 import { makeCard } from '../share.js';
 import { gardenLife } from '../motion.js';
 import { openShareSheet, shareText, openVoiceStudio, playMessageCard, listMessages } from '../family.js';
-import { shanyrakScene, yurtCaption, YURT_STAGES, YURT_FULL } from '../shanyrak.js';
+import { shanyrakScene, shanyrakArt, yurtCaption, YURT_STAGES, YURT_FULL } from '../shanyrak.js';
 
 const plural = (n, one, few, many) => {
   const m10 = n % 10, m100 = n % 100;
@@ -84,7 +84,7 @@ export default function garden(ctx) {
         <p class="lead">${esc(compareWords(amplitudeOf(record), amplitudeOf(prev), !prev))}</p>
       </div>
       <div class="garden-scene sh-wrap">
-        ${shanyrakScene({ days, newToday, todayPlants: record.beds.flatMap((b) => b.plants), oldPlants: old, streak })}
+        ${shanyrakArt({ days, newToday, todayPlants: record.beds.flatMap((b) => b.plants), streak })}
       </div>
       <p class="sh-caption">${newToday && days < YURT_FULL ? `✨ Сегодня: ${esc(YURT_STAGES[days])} · ` : ''}${esc(yurtCaption(days))}</p>
       <div class="garden-chips">
@@ -129,6 +129,10 @@ export default function garden(ctx) {
     closeStudio = openVoiceStudio(el, { onSaved: () => { syncVoice(); ctx.say('Послание сохранено. Оно прозвучит в конце следующего занятия', { interrupt: true }); } });
   });
   el.querySelector('.ring-slot').replaceWith(ring.el);
+  // Картинки «Шаңырақ» не загрузились (нет файла, старый кэш) — рисуем ту же сцену своим SVG.
+  el.querySelector('.shx-bg')?.addEventListener('error', () => {
+    el.querySelector('.shx')?.replaceWith(html(shanyrakScene({ days, newToday, todayPlants: record.beds.flatMap((b) => b.plants), oldPlants: old, streak })));
+  }, { once: true });
 
   return {
     el,
