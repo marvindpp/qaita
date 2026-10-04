@@ -29,6 +29,7 @@ import { createMenu } from './menu.js';
 import { createMusic } from './music.js';
 import { screenIn, screenOut } from './motion.js';
 import '../../styles/phone.css'; // телефон: раскладки без ужимания (подключается последним — главнее остальных стилей)
+import '../../styles/felt.css'; // стиль «войлок»: стёжка, кромка камеры, фактура (только украшение, подключается самым последним)
 
 const SCREENS = { welcome, prep, checkin, hand, goal, progress, profile: profileScreen, about, safety, calibration, demo, play, 'exercise-done': exerciseDone, garden, doctor, soon, 'coach-voice': coachVoice };
 
