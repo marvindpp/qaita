@@ -1,0 +1,58 @@
+/* Войлок на всех экранах (вариант №1 «Войлок»): только украшение, раскладка и размеры не меняются.
+   - фон — фактура войлока (две мелкие россыпи точек);
+   - карточки, плашки и кнопки — «стёжка»: пунктирный outline с отрицательным отступом (внутри элемента, места не занимает);
+   - все рамки камеры — коричневая войлочная кромка и светлая стёжка, как на экране упражнения;
+   - фокус с клавиатуры остаётся заметным (золотая рамка поверх стёжки).
+   Подключается последним (src/ui/app.js), поэтому правила здесь главнее. */
+:root {
+  --stitch-dark: rgba(122, 75, 42, 0.3);
+  --stitch-light: rgba(255, 246, 228, 0.85);
+  --felt-rim: #8a5a36;
+}
+
+/* Фон: фактура войлока. */
+body {
+  background-image: radial-gradient(rgba(122, 75, 42, 0.07) 1px, transparent 1.5px), radial-gradient(rgba(255, 255, 255, 0.55) 1px, transparent 1.6px);
+  background-size: 7px 7px, 11px 11px;
+  background-position: 0 0, 3px 5px;
+}
+
+/* Рамки камеры (все экраны, кроме круглой камеры в кольце): кромка и стёжка — как .play-cam. */
+.cam:not(.ring-cam .cam) { box-shadow: 0 0 0 5px var(--felt-rim), 0 14px 34px rgba(80, 50, 20, 0.22); }
+.cam:not(.ring-cam .cam)::before {
+  content: ''; position: absolute; inset: 9px; z-index: 3; pointer-events: none;
+  border: 3px dashed var(--stitch-light); border-radius: calc(var(--radius) - 8px);
+}
+/* Круглая камера в кольце «ладонь» и сердцевина кольца — круговая стёжка. */
+.ring-cam::before {
+  content: ''; position: absolute; inset: 7px; z-index: 2; pointer-events: none;
+  border: 2.5px dashed var(--stitch-light); border-radius: 50%;
+}
+.ring-core { outline: 2px dashed var(--stitch-dark); outline-offset: -7px; }
+.ring[data-fired='true'] .ring-core { outline-color: var(--stitch-light); }
+
+/* Карточки и плашки — тёмная стёжка по краю. */
+.card, .stat, .demo-card, .rule, .rx-card, .sheet-card, .drawer-panel, .status-toast, .repeat-toast,
+.checkin-opt, .xdone-points, .hud-demo, .name-ask {
+  outline: 2px dashed var(--stitch-dark); outline-offset: -7px;
+}
+.pill, .goal-btn:not([data-saved='true']), .who-btn, .lang-switch {
+  outline: 1.5px dashed var(--stitch-dark); outline-offset: -5px;
+}
+
+/* Кнопки: на зелёной — светлая стёжка, на прозрачной — тёмная. */
+.btn-start, .btn-family, .page-actions .btn-start { outline: 2px dashed var(--stitch-light); outline-offset: -6px; }
+.btn-ghost { outline: 1.5px dashed var(--stitch-dark); outline-offset: -6px; }
+
+/* Фокус с клавиатуры: золотая рамка снаружи, как было. */
+:is(.btn-start, .btn-family, .btn-ghost, .goal-btn, .who-btn, .checkin-opt):focus-visible {
+  outline: 4px solid var(--gold, #f2b42a); outline-offset: 4px;
+}
+
+/* Телефон горизонтально: стёжка тоньше и ближе к краю. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .cam:not(.ring-cam .cam)::before { inset: 6px; border-width: 2px; }
+  .ring-cam::before { inset: 5px; border-width: 2px; }
+  .card, .stat, .demo-card, .rule, .rx-card, .sheet-card, .drawer-panel, .checkin-opt, .xdone-points, .hud-demo { outline-width: 1.5px; outline-offset: -5px; }
+  .btn-start, .btn-family { outline-width: 1.5px; outline-offset: -4px; }
+}
