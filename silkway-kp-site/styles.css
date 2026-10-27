@@ -311,10 +311,12 @@ ul, ol { padding: 0; list-style: none; }
 
 /* Кейсы */
 
+/* align-items: start — карточки разной высоты (в тёмной два скрина), не растягиваем белую пустотой */
 .cases {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 20px;
+  align-items: start;
 }
 .case {
   border-radius: 22px;
@@ -330,18 +332,33 @@ ul, ol { padding: 0; list-style: none; }
   background: var(--ink);
   color: var(--bg);
 }
-/* Картинка показывается целиком; слишком высокий скрин кабинета подрежется снизу */
+/* Скрины рекламных кабинетов: целиком, со скруглением, по тапу открываются в полный размер */
 .case__media {
-  background: var(--bg);
-  overflow: hidden;
+  padding: 20px 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
+.case__shot {
+  display: block;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #FFFFFF;
+}
+.case__shot:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .case__media img {
   width: 100%;
   height: auto;
-  max-height: 520px;
-  object-fit: cover;
-  object-position: top;
 }
+.case__figcaption {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--muted);
+  padding: 2px 8px 0;
+}
+.case--dark .case__shot { border-color: var(--ink-2); }
+.case--dark .case__figcaption { color: var(--muted-dk); }
 .case__body {
   padding: 24px 28px 28px;
   display: flex;
