@@ -304,7 +304,7 @@ b { font-weight: inherit; }
   letter-spacing: -0.015em;
 }
 .case__big--huge {
-  font-size: clamp(72px, 3rem + 6vw, 120px);
+  font-size: clamp(64px, 2rem + 5.5vw, 112px);
   line-height: 0.95;
   color: var(--accent);
   letter-spacing: -0.03em;
@@ -327,9 +327,6 @@ b { font-weight: inherit; }
   color: var(--bg);
   letter-spacing: -0.01em;
 }
-/* На телефоне цифры кейса читаются как обычное предложение; на десктопе становятся тремя колонками с линиями */
-.fig { display: inline; }
-
 /* Скрин кабинета как экспонат: рамка, белое паспарту, подпись в полосе под линией */
 .exhibit {
   display: flex;
@@ -455,10 +452,13 @@ b { font-weight: inherit; }
     padding-bottom: 32px;
   }
   .price__side { gap: 22px; }
-  .btn { width: auto; align-self: flex-start; }
+  .btn { width: auto; }
+  .price__side .btn { align-self: flex-start; }
 
   .plan .wrap { padding-top: 64px; padding-bottom: 64px; }
-  .plan__grid { grid-template-columns: 1fr 1fr; }
+  /* subgrid: заголовки двух ведомостей в одной строке сетки, линии под ними на одной высоте, даже если один заголовок в две строки */
+  .plan__grid { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; row-gap: 0; }
+  .ledger { display: grid; grid-template-rows: subgrid; grid-row: span 2; }
   .row { padding: 18px 0; grid-template-columns: 64px 1fr; }
   .rows--days .row { grid-template-columns: 112px 1fr; }
   .row__key--day { font-size: 16px; }
@@ -472,15 +472,6 @@ b { font-weight: inherit; }
     padding: 40px 0;
   }
   .case:last-child { padding-bottom: 8px; }
-  .fig {
-    display: inline-block;
-    white-space: nowrap;
-    line-height: 1.25;
-    padding-right: 14px;
-    margin-right: 10px;
-    border-right: 1px solid var(--line-dk);
-  }
-  .fig:last-of-type { border-right: 0; padding-right: 0; margin-right: 0; }
   .case__sub { font-size: 20px; }
   .exhibit { padding: 8px; gap: 8px; }
   .exhibit__cap { margin: 2px -8px -8px; padding: 10px 14px; }
